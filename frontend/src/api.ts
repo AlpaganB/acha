@@ -37,6 +37,21 @@ export interface ResearchRecord {
   medians: Record<string, number | null>
 }
 
+export interface IssResearchRecord {
+  dataset_id: 'RR-6'
+  provenance: 'NASA_REAL'
+  source: string
+  download: string
+  samples: { recorded_at: string; temperature_c: number | null; relative_humidity_pct: number | null; carbon_dioxide_ppm: number | null }[]
+}
+
+export interface DoseResearchRecord {
+  dataset_id: 'DosTel1'
+  source: string
+  download: string
+  samples: { timestamp: string; absorbed_dose_rate: number | null; dose_equivalent_rate: number | null }[]
+}
+
 export interface AssessmentInput {
   id: string
   mission_profile_id: string
@@ -91,12 +106,14 @@ const apiUrl = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '')
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   let response: Response
+  const headers = new Headers(options?.headers)
+  if (options?.body) headers.set('Content-Type', 'application/json')
   try {
     response = await fetch(apiUrl + path, {
       ...options,
       cache: 'no-store',
-      headers: options?.body ? { 'Content-Type': 'application/json' } : undefined,
-      signal: AbortSignal.timeout(8000),
+      headers,
+      signal: options?.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(8000)]) : AbortSignal.timeout(8000),
     })
   } catch {
     throw new ApiError(0, 'The mission service could not be reached.')
@@ -140,6 +157,8 @@ export const api = {
   recordMeasurement: (crewId: string, input: MeasurementInput) =>
     request<Measurement>(`/crew-members/${crewId}/measurements`, { method: 'POST', body: JSON.stringify(input) }),
   researchRecord: (refresh = false) => request<ResearchRecord>(`/research/bidmc-01${refresh ? '?refresh=true' : ''}`),
+  issResearchRecord: () => request<IssResearchRecord>('/research/nasa-rr6-iss'),
+  doseResearchRecord: () => request<DoseResearchRecord>('/research/nasa-dostel1'),
   assessments: (crewId: string) =>
     request<Assessment[]>(`/crew-members/${crewId}/assessments?limit=20`),
   assessment: (crewId: string, id: string) =>
@@ -155,5 +174,63 @@ export const api = {
     request<CrewMember>(`/crew-members/${crewId}/mission-profile`, {
       method: 'PATCH',
       body: JSON.stringify({ mission_profile_id: profileId }),
+    }),
+}
+
+export type ObservationScope = 'environment' | 'crew'
+export type MissionPhase = 'preflight' | 'in_flight' | 'eva' | 'postflight'
+export interface ParameterDefinition {
+  id: string
+  label: string
+  category: string
+  unit: string
+  method: string
+  cadence: string
+  priority: string
+  source: string
+  scope: ObservationScope
+  minimum: number | null
+  maximum: number | null
+  input_kind: 'number' | 'event'
+}
+export interface ObservationAccess {
+  actor: string
+  role: 'operations' | 'medical'
+  missions: string[]
+}
+export interface ObservationInput {
+  id: string
+  crew_code: string | null
+  location: string
+  phase: MissionPhase
+  activity: 'unknown' | 'rest' | 'exercise' | 'task'
+  parameter: string
+  value: number | null
+  event_text: string | null
+  quality: 'unverified' | 'verified' | 'suspect'
+  device: string | null
+  calibration: string | null
+  uncertainty: number | null
+  recorded_at: string
+}
+export interface MissionObservation extends ObservationInput {
+  mission_code: string
+  scope: ObservationScope
+  unit: string
+  provenance: 'SYNTHETIC' | 'USER_REPORTED' | 'MANUAL_OBSERVATION' | 'CLINICAL_RECORD'
+  method: string
+  created_at: string
+}
+
+export const observationsApi = {
+  parameters: () => request<ParameterDefinition[]>('/observations/parameters'),
+  access: (token: string) => request<ObservationAccess>('/observations/access', { headers: { Authorization: `Bearer ${token}` } }),
+  list: (token: string, mission: string, query: URLSearchParams, signal: AbortSignal) =>
+    request<MissionObservation[]>(`/observations/missions/${encodeURIComponent(mission)}?${query}`, {
+      headers: { Authorization: `Bearer ${token}` }, signal,
+    }),
+  save: (token: string, mission: string, input: ObservationInput) =>
+    request<MissionObservation>(`/observations/missions/${encodeURIComponent(mission)}`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(input),
     }),
 }

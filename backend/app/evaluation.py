@@ -17,15 +17,16 @@ if repository not in sys.path:
 from demo.crew_app import rules_for
 from demo.health_assessment import evaluate_health_payload
 
-
 PROFILE_KEYS = {
     "orbital_station": "orbital",
     "lunar_habitat": "lunar",
     "deep_space": "transit",
     "spacecraft": "transit",
 }
+ENGINE_VALUE_LIMIT = 1e12
 ASSESSMENT_METRICS = {
     "heart_rate": ("heart_rate", "bpm", 1, 300),
+    "respiratory_rate": ("respiratory_rate", "breaths/min", 0, ENGINE_VALUE_LIMIT),
     "spo2": ("spo2", "%", 0, 100),
     "blood_pressure": ("systolic_bp", "mmHg", 1, 300),
     "body_temperature": ("temperature", "C", 20, 50),
@@ -52,7 +53,7 @@ def evaluate_assessment(session: Session, record: Assessment, profile: MissionPr
         # Sleep is a recorded wellbeing observation, outside the NEWS2 engine's scope.
         if reading.kind not in ASSESSMENT_METRICS:
             continue
-        if reading.recorded_at > record.assessed_at or abs(reading.value) > 1e12:
+        if reading.recorded_at > record.assessed_at or abs(reading.value) > ENGINE_VALUE_LIMIT:
             continue
         metric, unit, _, _ = ASSESSMENT_METRICS[reading.kind]
         timestamp = reading.recorded_at.isoformat()

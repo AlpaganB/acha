@@ -50,6 +50,7 @@ class Measurement(Base):
             "(kind = 'blood_pressure' AND diastolic IS NOT NULL AND diastolic > 0 AND value >= diastolic)"
             " OR (diastolic IS NULL AND ("
             "(kind = 'heart_rate' AND value > 0)"
+            " OR (kind = 'respiratory_rate' AND value >= 0)"
             " OR (kind = 'spo2' AND value BETWEEN 0 AND 100)"
             " OR (kind = 'body_temperature' AND value >= -273.15)"
             " OR (kind = 'sleep_duration' AND value BETWEEN 0 AND 24)))",
@@ -111,3 +112,50 @@ class Assessment(Base):
     @property
     def engine_result(self) -> dict | None:
         return self.engine_snapshot["result"] if self.engine_snapshot else None
+
+
+class MissionObservation(Base):
+    __tablename__ = "mission_observations"
+    __table_args__ = (
+        sa.CheckConstraint(
+            "(scope = 'environment' AND crew_code IS NULL) OR (scope = 'crew' AND crew_code IS NOT NULL)",
+            name="ck_mission_observation_scope",
+        ),
+        sa.CheckConstraint("value BETWEEN -1e12 AND 1e12", name="ck_mission_observation_value"),
+        sa.CheckConstraint("uncertainty BETWEEN 0 AND 1e12", name="ck_mission_observation_uncertainty"),
+        sa.CheckConstraint("(value IS NULL) <> (event_text IS NULL)", name="ck_mission_observation_payload"),
+        sa.Index("ix_mission_observation_history", "mission_code", "scope", "crew_code", "recorded_at", "id"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    mission_code: Mapped[str] = mapped_column(sa.String(64))
+    crew_code: Mapped[str | None] = mapped_column(sa.String(64))
+    scope: Mapped[str] = mapped_column(sa.String(16))
+    location: Mapped[str] = mapped_column(sa.String(64))
+    phase: Mapped[str] = mapped_column(sa.String(16))
+    activity: Mapped[str] = mapped_column(sa.String(16))
+    parameter: Mapped[str] = mapped_column(sa.String(64))
+    unit: Mapped[str] = mapped_column(sa.String(24))
+    value: Mapped[float | None] = mapped_column(sa.Float)
+    event_text: Mapped[str | None] = mapped_column(sa.Text)
+    quality: Mapped[str] = mapped_column(sa.String(16))
+    device: Mapped[str | None] = mapped_column(sa.String(120))
+    calibration: Mapped[str | None] = mapped_column(sa.String(120))
+    uncertainty: Mapped[float | None] = mapped_column(sa.Float)
+    provenance: Mapped[str] = mapped_column(sa.String(24))
+    method: Mapped[str] = mapped_column(sa.String(24))
+    recorded_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), server_default=sa.func.now())
+
+
+class ObservationAudit(Base):
+    __tablename__ = "observation_audit"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    actor: Mapped[str] = mapped_column(sa.String(64))
+    action: Mapped[str] = mapped_column(sa.String(16))
+    mission_code: Mapped[str] = mapped_column(sa.String(64))
+    scope: Mapped[str] = mapped_column(sa.String(16))
+    crew_code: Mapped[str | None] = mapped_column(sa.String(64))
+    observation_id: Mapped[UUID | None] = mapped_column(sa.Uuid)
+    created_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), server_default=sa.func.now())

@@ -26,7 +26,7 @@ The web app records and evaluates measurements through a live API. A standalone 
 ## How a check-in works
 
 1. **Choose a crew member.** A mission profile supplies equipment, constraints, and guidance for the current environment.
-2. **Record a reading.** Save heart rate, blood oxygen saturation, blood pressure, or body temperature. Each reading has a unit and a timestamp and stays in that crew member's history.
+2. **Record a reading.** Save heart rate, respiratory rate, blood oxygen saturation, blood pressure, body temperature, or sleep duration. Each reading has a unit and a timestamp and stays in that crew member's history.
 3. **Submit an assessment.** Select saved readings, report symptoms, or combine both. The engine evaluates the available inputs and reports missing information.
 4. **Review the result.** Read the rationale and suggested next step, then open the training guide when one is linked. Previous assessments preserve the mission profile and inputs used at the time.
 
@@ -42,6 +42,10 @@ The standalone demo covers the full terrestrial NEWS2 reference calculation in i
 | --- | --- |
 | Crew entries | The API stores entered measurements and symptoms in PostgreSQL. The seed provides a crew roster and mission profiles with empty histories. |
 | PhysioNet BIDMC | The Research page parses 481 published hospital observations and calculates the medians. **Fetch from PhysioNet** downloads the original record and recalculates them. This dataset has its own research view. [Data source and attribution](demo/DATA_SOURCE.md) |
+| NASA OSDR Rodent Research 6 | **Fetch from NASA** on the Research page loads historical ISS cabin temperature, relative humidity and ambient CO₂ from the public Environmental Data Application. [Source registry](docs/health-monitoring.md#scientific-source-registry) |
+| NASA OSDR RadLab DosTel1 | **Fetch from RadLab** loads historical instrument dose rates from the ISS Columbus module. [Source registry](docs/health-monitoring.md#scientific-source-registry) |
+| ACHA pressure scenario | **Mission → Review cabin pressure** shows a synthetic cabin timeline, measured-interval calculations, and comparison with a fictional resting baseline. The scenario runs offline after the app shell is cached. [Analysis method](docs/health-monitoring.md#pressure-analysis-and-interpretation) |
+| Mission observations | **Mission → Mission observations** compares synthetic sleep, cognition, workload, physiology and environment. An optional restricted log supports manual measurements and clinical/operational events. [Restricted log setup](docs/health-monitoring.md#restricted-log-setup) |
 | NASA Human Research Program | Spaceflight hazards and Earth-independent medical operations inform the choice of measurements and the onboard workflow. [NASA hazards](https://www.nasa.gov/hrp/hazards/) · [NASA risks](https://www.nasa.gov/hrp/risks/) · [NASA medical operations research](https://www.nasa.gov/centers-and-facilities/ames/ames-science/ames-space-biosciences/a-clinical-decision-support-system-for-earth-independent-medical-operations/) |
 
 <details>
@@ -145,7 +149,8 @@ Open [the web app](http://localhost:5173/) or [the API explorer](http://127.0.0.
 | --- | --- |
 | [Swagger UI](http://127.0.0.1:8000/docs) · [OpenAPI JSON](http://127.0.0.1:8000/openapi.json) | Request schemas, status codes, and interactive API calls |
 | [Live health check](https://acha.tr/api/v1/health) | API and PostgreSQL connectivity |
-| [Research page](https://acha.tr/research) | Published observations and the live PhysioNet fetch |
+| `/research` | Published hospital observations, ISS cabin environment and fixed-instrument radiation readings |
+| `/mission/observations` | Offline training and optional role-scoped mission log |
 
 <details>
 <summary>Integration notes</summary>
@@ -174,4 +179,5 @@ Open [the web app](http://localhost:5173/) or [the API explorer](http://127.0.0.
 | [Onboard demo](demo/START_HERE.md) | Setup, offline scenarios, and simulated handover |
 | [Assessment engine](demo/README.md) | Inputs, outputs, and rule behavior |
 | [Verification report](demo/VALIDATION.md) | Rule comparisons, dataset replay, and limits |
+| [Health monitoring and environmental data](docs/health-monitoring.md) | Repository assessment, source and parameter registries, pressure analysis, and remaining gaps |
 | [NASA Space Apps submission](demo/SUBMISSION.md) | Challenge mapping, research sources, and demo narration |

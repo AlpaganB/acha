@@ -26,6 +26,7 @@ export const environmentLabels: Record<MissionProfile['environment'], string> = 
 
 export const measurementLabels: Record<string, string> = {
   heart_rate: 'Heart rate',
+  respiratory_rate: 'Respiratory rate',
   spo2: 'Blood oxygen',
   blood_pressure: 'Blood pressure',
   body_temperature: 'Body temperature',

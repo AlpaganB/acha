@@ -4,10 +4,13 @@ import { measurementLabels } from './content'
 import { navigate } from './navigation'
 import { MeasurementHistory } from './MeasurementHistory'
 
-const units: Record<string, string> = { heart_rate: 'bpm', spo2: '%', blood_pressure: 'mmHg', body_temperature: '°C', sleep_duration: 'h' }
+const units: Record<string, string> = {
+  heart_rate: 'bpm', respiratory_rate: 'breaths/min', spo2: '%', blood_pressure: 'mmHg', body_temperature: '°C', sleep_duration: 'h',
+}
 
 const measurementGuides: Record<string, { equipment: string; steps: string[] }> = {
   heart_rate: { equipment: 'Heart rate monitor', steps: ['Select the heart rate reading on your monitor.', 'Record the displayed value in beats per minute (bpm). Do not enter an oxygen percentage here.'] },
+  respiratory_rate: { equipment: 'Respiratory monitor or timed observation', steps: ['Follow your approved measurement procedure.', 'Enter the recorded breathing rate in breaths per minute.'] },
   spo2: { equipment: 'Pulse oximeter', steps: ['Follow the device instructions and check that the reading is stable.', 'Enter the SpO₂ percentage, rather than the pulse rate shown on the same device.'] },
   blood_pressure: { equipment: 'Blood pressure monitor', steps: ['Use the monitor according to its instructions and your mission procedure.', 'Enter SYS as systolic and DIA as diastolic, both in mmHg. Enter the pulse reading separately as heart rate.'] },
   body_temperature: { equipment: 'Thermometer', steps: ['Follow the thermometer instructions and check its selected unit.', 'Enter the reading in Celsius (°C). Convert a Fahrenheit reading before entering it.'] },
@@ -81,7 +84,7 @@ export function Measurements({ crew, measurements, pending, reachable, onSave, o
             </select></label>
             <label>{kind === 'blood_pressure' ? 'Systolic' : kind === 'sleep_duration' ? 'Sleep in the previous 24 hours' : 'Reading'} ({units[kind]})
               <input key={kind} name="value" type="number" inputMode="decimal" required step="any" disabled={busy}
-                min={kind === 'spo2' || kind === 'sleep_duration' ? 0 : kind === 'body_temperature' ? -273.15 : 0.000001}
+                min={kind === 'spo2' || kind === 'sleep_duration' || kind === 'respiratory_rate' ? 0 : kind === 'body_temperature' ? -273.15 : 0.000001}
                 max={kind === 'spo2' ? 100 : kind === 'sleep_duration' ? 24 : undefined} />
             </label>
             {kind === 'blood_pressure' && <label>Diastolic (mmHg)

@@ -8,6 +8,8 @@ import { AssessmentHistory, AssessmentResult, Records } from './AssessmentResult
 import { Guidance } from './Guidance'
 import { Measurements } from './Measurements'
 import { AnatomyDashboard } from './AnatomyDashboard'
+import { Observations } from './Observations'
+import { Pressure } from './Pressure'
 import { Research } from './Research'
 import { environmentLabels, formatDate, measurementLabels } from './content'
 import { navigate } from './navigation'
@@ -171,7 +173,12 @@ function MissionProfiles({ mission }: { mission: Mission }) {
 
   return (
     <>
-      <header className="page-title"><h1>Mission profile</h1></header>
+      <header className="page-title split"><h1>Mission profile</h1>
+        <div className="overview-actions">
+          <a className="button secondary" href="/mission/pressure">Review cabin pressure</a>
+          <a className="button secondary" href="/mission/observations">Mission observations <ArrowRight size={17} aria-hidden="true" /></a>
+        </div>
+      </header>
       <section className="surface crew-panel">
         <label htmlFor="crew-select">Crew member</label>
         <div className="select-wrap">
@@ -292,6 +299,7 @@ export function App() {
               <header className="page-title">
                 <h1>Self-assessment</h1>
                 <p className="crew-context">{mission.selected?.display_name}</p>
+                <p>Use sample records in this public workspace. <a className="text-link" href="/mission/observations">Open mission observations</a></p>
               </header>
               {!mission.selected && (mission.connection !== 'checking' || !mission.online) && <p className="notice" role="status">
                 <Radio size={18} aria-hidden="true" /> A crew member must be loaded before saving.
@@ -312,7 +320,9 @@ export function App() {
             syncIssue={mission.syncIssues[id]} onRecord={mission.remember} onDiscard={mission.discard} />
             : <AssessmentHistory {...assessmentRecords} />)}
           {page === 'guides' && <Guidance profile={mission.profile} guideId={id} />}
-          {page === 'mission' && <MissionProfiles mission={mission} />}
+          {page === 'mission' && id === 'pressure' && <Pressure />}
+          {page === 'mission' && id === 'observations' && <Observations />}
+          {page === 'mission' && id !== 'pressure' && id !== 'observations' && <MissionProfiles mission={mission} />}
           {page === 'measurements' && <Measurements key={`${mission.selected?.id}:${initialKind}`} initialKind={initialKind} crew={mission.selected} measurements={mission.measurements}
             pending={mission.measurementsPending} reachable={mission.reachable} onSave={mission.recordMeasurement} onReconnect={mission.refreshWorkspace} />}
           {page === 'research' && <Research />}

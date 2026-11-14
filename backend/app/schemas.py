@@ -38,6 +38,7 @@ class Environment(StrEnum):
 
 class MeasurementKind(StrEnum):
     HEART_RATE = "heart_rate"
+    RESPIRATORY_RATE = "respiratory_rate"
     SPO2 = "spo2"
     BLOOD_PRESSURE = "blood_pressure"
     BODY_TEMPERATURE = "body_temperature"
@@ -46,6 +47,7 @@ class MeasurementKind(StrEnum):
 
 MEASUREMENT_UNITS = {
     MeasurementKind.HEART_RATE: "bpm",
+    MeasurementKind.RESPIRATORY_RATE: "breaths/min",
     MeasurementKind.SPO2: "%",
     MeasurementKind.BLOOD_PRESSURE: "mmHg",
     MeasurementKind.BODY_TEMPERATURE: "°C",
@@ -63,7 +65,7 @@ class MissionProfileCreate(ApiModel):
     environment: Environment
     equipment: list[Name] = Field(default_factory=list, max_length=50)
     constraints: list[Description] = Field(default_factory=list, max_length=50)
-    measurement_schedules: list[MeasurementSchedule] = Field(default_factory=list, max_length=5)
+    measurement_schedules: list[MeasurementSchedule] = Field(default_factory=list, max_length=len(MeasurementKind))
     guidance_protocol_ids: list[Code] = Field(default_factory=list, max_length=50)
 
     @model_validator(mode="after")
@@ -110,6 +112,8 @@ class MeasurementCreate(ApiModel):
             raise ValueError("SpO2 must be a percentage from 0 to 100.")
         if self.kind == MeasurementKind.HEART_RATE and self.value <= 0:
             raise ValueError("Heart rate must be positive.")
+        if self.kind == MeasurementKind.RESPIRATORY_RATE and self.value < 0:
+            raise ValueError("Respiratory rate cannot be negative.")
         if self.kind == MeasurementKind.BODY_TEMPERATURE and self.value < -273.15:
             raise ValueError("Body temperature cannot be below absolute zero.")
         if self.kind == MeasurementKind.SLEEP_DURATION and not 0 <= self.value <= 24:
