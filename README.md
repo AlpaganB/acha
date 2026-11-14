@@ -6,6 +6,21 @@ The Autonomous Crew Health Assistant backend stores crew, mission profiles, meas
 
 The [onboard demo](demo/START_HERE.md) includes observation entry, assessment, local history, cached guidance, and simulated ground handover. Run `python serve_demo.py` from `demo/` after installing Pydantic 2.
 
+## Run the crew health frontend
+
+Start the backend and seed the demo database, then run the following from `frontend/` using Node.js 22.12 or later.
+
+```sh
+npm ci
+npm run dev
+```
+
+Open [the development app](http://localhost:5173). Development and preview proxy `/api` to the backend at `127.0.0.1:8000`. For a deployed frontend, serve `/api/v1` on the same origin or set `VITE_API_URL` at build time and configure the backend's allowed origins.
+
+To verify offline guides, run `npm run build` and `npm run preview`. Open the preview once while connected, wait for “Demo guides saved on this device,” then go offline and reload an emergency guide. The app bundles the demonstration guides from `demo/mission_demo.json` and labels them as training content.
+
+The frontend can save an assessment locally and evaluate it when the app is open and the service returns. Use synthetic data with the prototype, which stores that data in the current browser. When FastAPI is reachable, the app displays the onboard engine result and its associated demo guide immediately.
+
 ## Run the backend
 
 Use Python 3.12 or later and PostgreSQL 15. From the repository root, `docker compose up -d db` starts the development database. An existing PostgreSQL database also works with its own connection URL.
@@ -39,6 +54,7 @@ Open [Swagger UI](http://127.0.0.1:8000/docs) or fetch the [OpenAPI JSON](http:/
 | `GET` | `/crew-members/{crew_id}/measurements/{measurement_id}` | Read one measurement |
 | `GET`, `POST` | `/crew-members/{crew_id}/assessments` | Browse history or submit an assessment |
 | `GET` | `/crew-members/{crew_id}/assessments/{assessment_id}` | Read assessment inputs and result |
+| `POST` | `/crew-members/{crew_id}/assessments/{assessment_id}/evaluate` | Run the demonstration engine for a pending record |
 | `PUT` | `/crew-members/{crew_id}/assessments/{assessment_id}/result` | Store the assessment engine's result |
 
 ### Measurements
@@ -66,7 +82,11 @@ Supply `id`, `kind`, `value`, and `recorded_at` with a time zone. Responses incl
 
 Supply `id`, `assessed_at`, and the `mission_profile_id` active at capture time, plus `symptoms` or `measurement_ids`. Each symptom has a `code` and an optional integer `severity` from 0 to 10. Measurement references must belong to the crew member. Optional `notes` can record context. A profile change leaves prior assessment records associated with their capture-time profile.
 
-A new record starts with `status: "pending"` and null result fields. The engine writes `status`, `rationale`, `next_step`, and optional `protocol_id` to `/result`. A final status is an engine-defined lowercase code. A stored result can be replayed idempotently. The demo's `demo_reviewed` status and text are synthetic examples for interface testing.
+The React app creates records using `POST /assessments?evaluate=true`. This evaluates the attached observations against the synthetic rules for the capture-time mission environment and saves the result with the record. The response preserves the existing `status`, `rationale`, `next_step` and `protocol_id` fields and includes the structured `engine_result`. The database also keeps the engine inputs and rules used.
+
+Creating without `evaluate=true` still produces a pending record. Clients can then run the built-in engine via `/evaluate` or store an external result via `/result`. Retries return the stored result. Existing `demo_reviewed` examples remain available.
+
+The integrated form lacks several NEWS2 inputs, including a measured pulse rate distinct from heart rate, respiratory rate, and crew context. It reports incomplete data where appropriate and still evaluates configured symptom rules. The full synthetic NEWS2, baseline and trend scenarios are available in the standalone demo.
 
 The application teams can use `guidance_protocol_ids` and `protocol_id` to resolve protocol content from their guidance catalog. Mission profiles store reminder intervals in `measurement_schedules` with `kind` and `interval_minutes`.
 

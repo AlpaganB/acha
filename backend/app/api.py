@@ -7,6 +7,7 @@ from sqlalchemy import select, text
 from .database import DbSession
 from .models import Assessment, CrewMember, Measurement, MissionProfile
 from .records import (
+    finish_assessment,
     history_page,
     measurement_read,
     require_record,
@@ -146,11 +147,12 @@ def get_measurement(crew_id: UUID, measurement_id: UUID, session: DbSession) -> 
     },
 )
 def create_assessment(
-    crew_id: UUID, payload: AssessmentCreate, session: DbSession, response: Response
+    crew_id: UUID, payload: AssessmentCreate, session: DbSession, response: Response,
+    evaluate: Annotated[bool, Query(description="Run the onboard demonstration engine")] = False,
 ) -> AssessmentRead:
     require_record(session, CrewMember, crew_id, "Crew member")
-    require_record(session, MissionProfile, payload.mission_profile_id, "Mission profile")
-    record, created = save_assessment(session, crew_id, payload)
+    profile = require_record(session, MissionProfile, payload.mission_profile_id, "Mission profile")
+    record, created = save_assessment(session, crew_id, payload, profile, evaluate=evaluate)
     if not created:
         response.status_code = 200
     return record
@@ -174,6 +176,14 @@ def get_assessment(crew_id: UUID, assessment_id: UUID, session: DbSession) -> As
     if record is None:
         raise HTTPException(404, "Assessment not found.")
     return AssessmentRead.model_validate(record)
+
+
+@router.post(
+    "/crew-members/{crew_id}/assessments/{assessment_id}/evaluate",
+    tags=["Assessments"],
+)
+def evaluate_saved_assessment(crew_id: UUID, assessment_id: UUID, session: DbSession) -> AssessmentRead:
+    return finish_assessment(session, crew_id, assessment_id)
 
 
 @router.put(

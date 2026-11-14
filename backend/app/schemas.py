@@ -165,6 +165,7 @@ class AssessmentRead(AssessmentCreate):
     rationale: str | None
     next_step: str | None
     protocol_id: str | None
+    engine_result: dict | None = None
 
 
 class HistoryQuery(ApiModel):

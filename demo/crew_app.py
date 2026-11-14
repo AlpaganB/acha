@@ -8,8 +8,12 @@ from pathlib import Path
 
 from pydantic import AwareDatetime, Field, StrictBool, model_validator
 
-from assessment_models import Measurement, Metric, Schema
-from health_assessment import AssessmentInput, evaluate_health_payload
+if __package__:
+    from .assessment_models import Measurement, Metric, Schema
+    from .health_assessment import AssessmentInput, evaluate_health_payload
+else:
+    from assessment_models import Measurement, Metric, Schema
+    from health_assessment import AssessmentInput, evaluate_health_payload
 
 ROOT = Path(__file__).resolve().parent
 CONFIG = json.loads((ROOT / "mission_demo.json").read_text(encoding="utf-8"))

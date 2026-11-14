@@ -188,6 +188,43 @@ def test_assessment_rejects_cross_crew_and_missing_inputs(client, crew):
     assert client.get(url).json() == []
 
 
+def test_onboard_engine_evaluates_and_replays_the_same_record(client, crew):
+    base = f"crew-members/{crew['id']}"
+    payload = assessment(crew, symptoms=[{"code": "shortness_of_breath", "severity": 5}])
+    path = f"{base}/assessments?evaluate=true"
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        responses = list(executor.map(lambda _: client.post(path, json=payload), range(2)))
+    assert sorted(response.status_code for response in responses) == [200, 201]
+    result = responses[0].json()
+    assert responses[1].json() == result
+    assert result["status"] == "urgent"
+    assert result["protocol_id"] == "demo-breathing"
+    assert result["engine_result"]["news2"]["total_score"] is None
+    assert any(
+        finding["code"] == "reported_symptom" and finding["symptom"] == "breathing_difficulty"
+        for finding in result["engine_result"]["rationale"]
+    )
+    saved = f"{base}/assessments/{payload['id']}"
+    assert client.get(saved).json() == result
+    assert client.post(f"{saved}/evaluate").json() == result
+
+
+def test_onboard_engine_handles_a_pending_record_with_incomplete_readings(client, crew):
+    base = f"crew-members/{crew['id']}"
+    reading = measurement(kind="spo2", value=98)
+    assert client.post(f"{base}/measurements", json=reading).status_code == 201
+    payload = assessment(crew, measurement_ids=[reading["id"]], symptoms=[])
+    assert client.post(f"{base}/assessments", json=payload).json()["status"] == "pending"
+    path = f"{base}/assessments/{payload['id']}"
+    response = client.post(f"{path}/evaluate")
+    assert response.status_code == 200
+    result = response.json()
+    assert result["status"] == "insufficient_data"
+    assert result["engine_result"]["news2"]["complete"] is False
+    assert result["protocol_id"] is None
+    assert client.get(path).json() == result
+
+
 def test_concurrent_assessment_result_preserves_first_write(client, crew):
     base = f"crew-members/{crew['id']}/assessments"
     payload = assessment(crew)

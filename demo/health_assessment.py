@@ -6,8 +6,12 @@ from typing import Annotated, Literal
 
 from pydantic import AwareDatetime, Field, FiniteFloat, StrictBool, model_validator
 
-from assessment_models import Code, Measurement, MeasurementFailure, Metric, Minutes, NonEmpty, Reading, Schema, Status, UNITS
-from news2 import NUMERIC_METRICS, News2Config, News2Context, News2Result, evaluate_news2, observation_issue
+if __package__:
+    from .assessment_models import Code, Measurement, MeasurementFailure, Metric, Minutes, NonEmpty, Reading, Schema, Status, UNITS
+    from .news2 import NUMERIC_METRICS, News2Config, News2Context, News2Result, evaluate_news2, observation_issue
+else:
+    from assessment_models import Code, Measurement, MeasurementFailure, Metric, Minutes, NonEmpty, Reading, Schema, Status, UNITS
+    from news2 import NUMERIC_METRICS, News2Config, News2Context, News2Result, evaluate_news2, observation_issue
 
 ENGINE_VERSION = "0.3.0"
 

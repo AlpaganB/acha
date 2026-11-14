@@ -96,6 +96,7 @@ class Assessment(Base):
     rationale: Mapped[str | None] = mapped_column(sa.Text)
     next_step: Mapped[str | None] = mapped_column(sa.Text)
     protocol_id: Mapped[str | None] = mapped_column(sa.String(64))
+    engine_snapshot: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True))
     created_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), server_default=sa.func.now())
     measurements: Mapped[list[Measurement]] = relationship(
         secondary=assessment_measurements, lazy="selectin", order_by=Measurement.id
@@ -104,3 +105,7 @@ class Assessment(Base):
     @property
     def measurement_ids(self) -> list[UUID]:
         return [measurement.id for measurement in self.measurements]
+
+    @property
+    def engine_result(self) -> dict | None:
+        return self.engine_snapshot["result"] if self.engine_snapshot else None

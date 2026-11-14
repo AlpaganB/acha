@@ -6,7 +6,8 @@ from sqlalchemy import Select, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import InstrumentedAttribute, Session
 
-from .models import Assessment, Base, Measurement, assessment_measurements
+from .evaluation import evaluate_assessment
+from .models import Assessment, Base, Measurement, MissionProfile, assessment_measurements
 from .schemas import (
     MEASUREMENT_UNITS,
     AssessmentCreate,
@@ -67,7 +68,8 @@ def save_measurement(session: Session, crew_id: UUID, payload: MeasurementCreate
 
 
 def save_assessment(
-    session: Session, crew_id: UUID, payload: AssessmentCreate
+    session: Session, crew_id: UUID, payload: AssessmentCreate, profile: MissionProfile,
+    *, evaluate: bool = False,
 ) -> tuple[AssessmentRead, bool]:
     statement = (
         insert(Assessment)
@@ -91,6 +93,8 @@ def save_assessment(
                 [{"assessment_id": inserted_id, "measurement_id": item} for item in payload.measurement_ids],
             )
         record = require_record(session, Assessment, inserted_id, "Assessment")
+        if evaluate:
+            evaluate_assessment(record, profile)
         response = AssessmentRead.model_validate(record)
         session.commit()
         return response, True
@@ -98,4 +102,20 @@ def save_assessment(
     existing = require_record(session, Assessment, payload.id, "Assessment")
     if existing.crew_member_id != crew_id or AssessmentCreate.model_validate(existing) != payload:
         raise HTTPException(409, "Assessment ID is already in use for different data.")
+    if evaluate and existing.status == "pending":
+        return finish_assessment(session, crew_id, existing.id), False
     return AssessmentRead.model_validate(existing), False
+
+
+def finish_assessment(session: Session, crew_id: UUID, assessment_id: UUID) -> AssessmentRead:
+    statement = select(Assessment).where(
+        Assessment.id == assessment_id, Assessment.crew_member_id == crew_id
+    ).with_for_update().execution_options(populate_existing=True)
+    record = session.scalar(statement)
+    if record is None:
+        raise HTTPException(404, "Assessment not found.")
+    if record.status == "pending":
+        profile = require_record(session, MissionProfile, record.mission_profile_id, "Mission profile")
+        evaluate_assessment(record, profile)
+        session.commit()
+    return AssessmentRead.model_validate(record)

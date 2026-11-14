@@ -11,7 +11,10 @@ from typing import Annotated, Literal
 
 from pydantic import AwareDatetime, Field, StrictBool, model_validator
 
-from assessment_models import Measurement, NonEmpty, Schema, UNITS
+if __package__:
+    from .assessment_models import Measurement, NonEmpty, Schema, UNITS
+else:
+    from assessment_models import Measurement, NonEmpty, Schema, UNITS
 
 NEWS2_VERSION = "RCP-NEWS2-2017"
 NEWS2_SOURCE = "https://www.rcp.ac.uk/resources/national-early-warning-score-news-2/"
