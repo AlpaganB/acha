@@ -1,0 +1,68 @@
+{
+  "engine_version": "0.3.0",
+  "python": "3.14.6",
+  "pydantic": "2.13.4",
+  "numpy": "2.5.1",
+  "real_data": {
+    "record": "bidmc_01_Numerics",
+    "rows": 481,
+    "metric_checks": 962,
+    "missing_readings": 13,
+    "mismatches": 0,
+    "sha256": "27d43794cf2e7150db10e8bfe61d2bfdb26873a8f1629ffc5fbee5c9a4eb6ef5"
+  },
+  "randomized": {
+    "seed": 4729,
+    "cases": 10000,
+    "mismatches": 0
+  },
+  "threshold_checks": {
+    "seed": 4730,
+    "cases": 10004,
+    "mismatches": 0
+  },
+  "performance": {
+    "100": {
+      "current": {
+        "evaluate_median_ms": 0.09655,
+        "evaluate_p95_ms": 0.10828999999999993,
+        "parse_and_evaluate_median_ms": 0.2738,
+        "repeats": 40
+      },
+      "previous": {
+        "evaluate_median_ms": 0.08135,
+        "evaluate_p95_ms": 0.08712999999999994,
+        "parse_and_evaluate_median_ms": 0.2308,
+        "repeats": 40
+      }
+    },
+    "10000": {
+      "current": {
+        "evaluate_median_ms": 1.087,
+        "evaluate_p95_ms": 1.1477199999999999,
+        "parse_and_evaluate_median_ms": 20.9848,
+        "repeats": 20
+      },
+      "previous": {
+        "evaluate_median_ms": 4.8011,
+        "evaluate_p95_ms": 4.98985,
+        "parse_and_evaluate_median_ms": 22.4007,
+        "repeats": 20
+      }
+    },
+    "100000": {
+      "current": {
+        "evaluate_median_ms": 10.00555,
+        "evaluate_p95_ms": 13.231439999999996,
+        "parse_and_evaluate_median_ms": 294.2698,
+        "repeats": 10
+      },
+      "previous": {
+        "evaluate_median_ms": 48.018,
+        "evaluate_p95_ms": 48.252235,
+        "parse_and_evaluate_median_ms": 326.9676,
+        "repeats": 10
+      }
+    }
+  }
+}

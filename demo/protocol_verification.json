@@ -1,0 +1,98 @@
+{
+  "complete_chart_combinations": {
+    "cases": {
+      "scale_1": 30000,
+      "scale_2": 52500
+    },
+    "mismatches": 0
+  },
+  "real_records": {
+    "records": [
+      {
+        "record": "bidmc_01_Numerics",
+        "rows": 481,
+        "metric_checks": 962,
+        "missing_readings": 13,
+        "mismatches": 0,
+        "sha256": "27d43794cf2e7150db10e8bfe61d2bfdb26873a8f1629ffc5fbee5c9a4eb6ef5"
+      },
+      {
+        "record": "bidmc_02_Numerics",
+        "rows": 481,
+        "metric_checks": 962,
+        "missing_readings": 0,
+        "mismatches": 0,
+        "sha256": "99aef20b2846815d45ecde184da753de58c8a85b7dd7af74a2f4c5282013704d"
+      },
+      {
+        "record": "bidmc_03_Numerics",
+        "rows": 481,
+        "metric_checks": 962,
+        "missing_readings": 0,
+        "mismatches": 0,
+        "sha256": "6666475c072fe079f35f1fffe0890a97b56d1086985f8a5d76a23b88eb6c6036"
+      },
+      {
+        "record": "bidmc_04_Numerics",
+        "rows": 481,
+        "metric_checks": 962,
+        "missing_readings": 0,
+        "mismatches": 0,
+        "sha256": "2d3f34558f11ae5ff4170793942c86fd76ecc9c11a3868fd9dbaabf3249ee121"
+      },
+      {
+        "record": "bidmc_05_Numerics",
+        "rows": 481,
+        "metric_checks": 962,
+        "missing_readings": 6,
+        "mismatches": 0,
+        "sha256": "b26e17895c9961bf36c0172e0da2fd58120e30ab6df5c21a3cfc56665630c308"
+      },
+      {
+        "record": "bidmc_06_Numerics",
+        "rows": 481,
+        "metric_checks": 962,
+        "missing_readings": 0,
+        "mismatches": 0,
+        "sha256": "d7b221639fe1baa3360544ac6507af78871ec190ac79a44f122ddde119c22d05"
+      },
+      {
+        "record": "bidmc_07_Numerics",
+        "rows": 481,
+        "metric_checks": 962,
+        "missing_readings": 0,
+        "mismatches": 0,
+        "sha256": "ea43103b33f9cb4d5b99076d642f79819b971a5b177dae8e30718f32bd240d00"
+      },
+      {
+        "record": "bidmc_08_Numerics",
+        "rows": 481,
+        "metric_checks": 962,
+        "missing_readings": 0,
+        "mismatches": 0,
+        "sha256": "a2d66b1e07d2845a3a9e50329bdea1288fa98f7adaca5cd8077cb091104c96f2"
+      },
+      {
+        "record": "bidmc_09_Numerics",
+        "rows": 481,
+        "metric_checks": 962,
+        "missing_readings": 0,
+        "mismatches": 0,
+        "sha256": "f73d989891d2eed70868750aa9529c148bd90d771b4c8b199e815c68f00f7932"
+      },
+      {
+        "record": "bidmc_10_Numerics",
+        "rows": 481,
+        "metric_checks": 962,
+        "missing_readings": 0,
+        "mismatches": 0,
+        "sha256": "fc697ba7af8bb74eed871ab0eba10f4913ad14633e9e6b6337cdc19d03fb6df0"
+      }
+    ],
+    "chart_component_checks": 23974,
+    "missing_chart_components": 38,
+    "mismatches": 0,
+    "clinical_outcomes_evaluated": false
+  },
+  "elapsed_seconds": 11.197
+}

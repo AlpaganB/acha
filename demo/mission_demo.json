@@ -1,0 +1,30 @@
+{
+  "metrics": {
+    "pulse_rate": ["Pulse rate", "bpm", 1, 300, 1, 72, "Use the mission pulse monitor at rest and record a steady reading. Compare with your own measurements taken in similar conditions."],
+    "spo2": ["Oxygen saturation", "%", 0, 100, 1, 98, "Follow your oximeter instructions. Keep still and wait for the reading to settle. Record symptoms alongside the value because sensor readings can be inaccurate."],
+    "systolic_bp": ["Systolic pressure", "mmHg", 1, 350, 1, 120, "Use the mission cuff and its positioning instructions. Record the upper number and keep the measurement context consistent."],
+    "diastolic_bp": ["Diastolic pressure", "mmHg", 1, 350, 1, 78, "Record the lower number from the same cuff reading. Review it alongside the systolic result."],
+    "temperature": ["Temperature", "C", 20, 50, 0.1, 37, "Use the same thermometer and measurement site for comparisons. Record in degrees Celsius."],
+    "respiratory_rate": ["Respiratory rate", "breaths/min", 0, 100, 1, 16, "Count breaths over a full minute at rest when practical. If someone is in distress, open the emergency guide immediately."]
+  },
+  "profiles": {
+    "orbital": {"name": "Orbital station", "interval_hours": 12, "version": "orbit-demo-1", "has_cuff": true},
+    "lunar": {"name": "Lunar habitat", "interval_hours": 8, "version": "lunar-demo-1", "has_cuff": true},
+    "transit": {"name": "Deep-space transit", "interval_hours": 6, "version": "transit-demo-1", "has_cuff": false}
+  },
+  "symptoms": {
+    "chest_pain": "New chest pain or pressure",
+    "breathing_difficulty": "Severe difficulty breathing",
+    "unresponsive": "Unresponsive crew member",
+    "new_confusion": "New confusion",
+    "dizziness": "Dizziness",
+    "fatigue": "Unusual fatigue"
+  },
+  "guides": {
+    "DEMO-CHEST": {"title": "Chest pain or pressure", "steps": ["Alert the crew medical officer immediately and activate the onboard emergency response.", "Have the person stop exertion. Stay with them and follow the mission medical procedure.", "Record onset and changes when this does not delay the response."], "source": "https://cpr.heart.org/en/resuscitation-science/2024-first-aid-guidelines"},
+    "DEMO-BREATHING": {"title": "Severe breathing difficulty", "steps": ["Alert the crew medical officer and activate the onboard emergency response.", "Stay with the person. Follow the onboard procedure and report changes in breathing or responsiveness."], "source": "https://www.redcross.org/take-a-class/resources/learn-first-aid/respiratory-distress"},
+    "DEMO-UNRESPONSIVE": {"title": "Unresponsive crew member", "steps": ["Alert the crew and activate the onboard emergency response. Ask another crew member to bring the emergency kit and AED if available.", "Check responsiveness and normal breathing as trained. If the person is not breathing normally or is only gasping, begin CPR and use the AED according to crew training and the onboard procedure.", "Use the mission-specific procedure for positioning and resuscitation in altered gravity."], "source": "https://www.redcross.org/take-a-class/first-aid/performing-first-aid/first-aid-steps"},
+    "DEMO-URGENT": {"title": "Immediate crew medical review", "steps": ["Alert the onboard crew medical officer. Follow the applicable mission medical procedure.", "Share the symptoms, times, available readings and any failed measurements. Record the handover for ground support when a link is available."], "source": "https://www.nasa.gov/centers-and-facilities/ames/ames-science/ames-space-biosciences/a-clinical-decision-support-system-for-earth-independent-medical-operations/"},
+    "DEMO-REVIEW": {"title": "Review the check-in", "steps": ["Compare the symptoms and measurements with the baseline and measurement conditions.", "Share repeat or persistent changes with the crew medical officer under the mission's review procedure."], "source": "https://www.rcp.ac.uk/resources/national-early-warning-score-news-2/"}
+  }
+}

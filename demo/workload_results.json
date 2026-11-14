@@ -1,0 +1,30 @@
+{
+  "engine_version": "0.3.0",
+  "single_news2_json": {
+    "median_ms": 0.0913,
+    "p95_ms": 0.10672999999999998,
+    "repeats": 1000
+  },
+  "sequential_20_news2_json": {
+    "median_ms": 1.82865,
+    "p95_ms": 2.185575,
+    "repeats": 100
+  },
+  "dense_100000_trend_json": {
+    "median_ms": 370.74365,
+    "p95_ms": 399.49872,
+    "repeats": 10
+  },
+  "includes": [
+    "Pydantic input validation",
+    "rule evaluation",
+    "profile hashing",
+    "JSON-ready response"
+  ],
+  "excludes": [
+    "HTTP",
+    "database",
+    "network",
+    "concurrent server load"
+  ]
+}

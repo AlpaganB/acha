@@ -1,0 +1,58 @@
+{
+  "mutations": [
+    {
+      "mutation": "respiratory_boundary",
+      "detected_by_assertion": true
+    },
+    {
+      "mutation": "spo2_boundary",
+      "detected_by_assertion": true
+    },
+    {
+      "mutation": "temperature_boundary",
+      "detected_by_assertion": true
+    },
+    {
+      "mutation": "emergency_threshold",
+      "detected_by_assertion": true
+    },
+    {
+      "mutation": "urgent_threshold",
+      "detected_by_assertion": true
+    },
+    {
+      "mutation": "single_red",
+      "detected_by_assertion": true
+    },
+    {
+      "mutation": "scale2_oxygen",
+      "detected_by_assertion": true
+    },
+    {
+      "mutation": "oxygen_points",
+      "detected_by_assertion": true
+    },
+    {
+      "mutation": "missing_total",
+      "detected_by_assertion": true
+    },
+    {
+      "mutation": "timestamp_boundary",
+      "detected_by_assertion": true
+    },
+    {
+      "mutation": "unit_check",
+      "detected_by_assertion": true
+    },
+    {
+      "mutation": "scope_check",
+      "detected_by_assertion": true
+    },
+    {
+      "mutation": "urgent_precedence",
+      "detected_by_assertion": true
+    }
+  ],
+  "detected": 13,
+  "total": 13
+}

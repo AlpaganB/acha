@@ -2,6 +2,10 @@
 
 The Autonomous Crew Health Assistant backend stores crew, mission profiles, measurements, and assessment records for the prototype.
 
+## Run the onboard demo
+
+The [onboard demo](demo/START_HERE.md) includes observation entry, assessment, local history, cached guidance, and simulated ground handover. Run `python serve_demo.py` from `demo/` after installing Pydantic 2.
+
 ## Run the backend
 
 Use Python 3.12 or later and PostgreSQL 15. From the repository root, `docker compose up -d db` starts the development database. An existing PostgreSQL database also works with its own connection URL.

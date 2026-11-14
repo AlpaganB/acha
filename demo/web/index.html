@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ACHA · Crew health</title><link rel="stylesheet" href="/app.css"><script src="/app.js" defer></script></head>
+<body>
+<header><div class="brand"><span class="mark" aria-hidden="true">✦</span> ACHA<span class="brand-detail">Crew health</span></div><div id="network" role="status">Connecting to onboard station…</div></header>
+<main>
+<section class="hero"><div><p class="eyebrow">NASA SPACE APPS 2026</p><h1>Crew health check-in</h1><p>Record observations, review changes, and open the crew response guide.</p></div><a class="emergency" href="#guides">Emergency guides ↓</a></section>
+<p class="notice">Training prototype · Synthetic crew profile · Follow mission medical procedures for real emergencies.</p>
+<div class="layout">
+<section class="panel"><h2>Observation set</h2>
+<form id="checkin">
+<label class="mission">Mission profile <select id="profile"></select></label><p id="reminder" class="muted"></p>
+<div class="measure-grid" id="measurements"></div>
+<details><summary>Measurement guide</summary><dl id="instructions"></dl></details>
+<fieldset><legend>Reported symptoms</legend><div id="symptoms" class="symptoms"></div><label class="option"><input id="confirm" type="checkbox" required> I reviewed the symptom list.</label></fieldset>
+<label class="mission">Supplemental oxygen <select id="oxygen"><option value="">Unknown</option><option value="false">No</option><option value="true">Yes</option></select></label>
+<button type="submit" class="primary">Save and evaluate</button><p id="message" role="status" class="muted"></p>
+</form></section>
+<aside>
+<section class="panel" id="result"><h2>Assessment</h2><div id="result-body"><p class="muted">Save an observation set to see an assessment.</p></div></section>
+<section class="panel"><h2>Demo scenarios</h2><div class="buttons"><button id="routine">Routine check-in</button><button id="drift">Pulse change</button><button id="urgent">Chest pain + missing data</button></div></section>
+<section class="panel"><h2>Ground handover</h2><p id="sync-status" class="muted"></p><button id="sync">Send to simulated ground inbox</button></section>
+</aside>
+</div>
+<section class="panel" id="history"><h2>Observation history</h2><div id="trend"></div><div id="history-body"></div></section>
+<section class="panel" id="guides"><h2>Emergency and review guides</h2><div id="guide-body"></div></section>
+</main><footer>Autonomous Crew Health Assistant</footer>
+</body></html>
