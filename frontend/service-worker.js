@@ -23,12 +23,23 @@ self.addEventListener('fetch', event => {
   const { request } = event
   if (request.method !== 'GET') return
   const url = new URL(request.url)
-  const pathname = url.origin + url.pathname
-  const isShell = request.mode === 'navigate' && (pathname === scope || pathname === index)
+  const isShell = request.mode === 'navigate' && url.origin === self.location.origin && (
+    /^\/(?:index\.html)?$/.test(url.pathname) ||
+    /^\/(assessment|assessments|measurements|guides|mission|research)(\/|$)/.test(url.pathname)
+  )
   if (!isShell && !urls.has(url.href)) return
 
   event.respondWith((async () => {
     const cache = await caches.open(name)
-    return (await cache.match(isShell ? index : url.href, { ignoreVary: true })) || fetch(request)
+    if (isShell) {
+      try {
+        const response = await fetch(request, { cache: 'no-cache', signal: AbortSignal.timeout(2500) })
+        if (response.ok) return response
+      } catch {
+        // Use the installed shell during a network interruption.
+      }
+      return (await cache.match(index)) || Response.error()
+    }
+    return (await cache.match(url.href, { ignoreVary: true })) || fetch(request)
   })())
 })

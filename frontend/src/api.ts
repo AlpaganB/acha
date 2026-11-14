@@ -27,6 +27,16 @@ export interface Measurement {
   recorded_at: string
 }
 
+export type MeasurementInput = Omit<Measurement, 'unit'>
+
+export interface ResearchRecord {
+  source: string
+  record: string
+  retrieval: 'physionet' | 'bundled'
+  samples: { seconds: number; heart_rate: number | null; pulse_rate: number | null; respiratory_rate: number | null; spo2: number | null }[]
+  medians: Record<string, number | null>
+}
+
 export interface AssessmentInput {
   id: string
   mission_profile_id: string
@@ -59,6 +69,12 @@ export interface EngineResult {
   profile_version: string
   rationale: EngineFinding[]
   news2: { complete: boolean; total_score: number | null } | null
+  comparisons?: Record<string, {
+    observed: number; unit: string; samples: number; reference: number | null; difference: number | null
+    median_absolute_deviation?: number | null; usable: boolean
+  }>
+  comparison_window_days?: number
+  comparison_min_samples?: number
 }
 
 export class ApiError extends Error {
@@ -116,6 +132,9 @@ export const api = {
   profiles: () => listAll<MissionProfile>('/mission-profiles'),
   measurements: (crewId: string) =>
     request<Measurement[]>(`/crew-members/${crewId}/measurements?limit=12`),
+  recordMeasurement: (crewId: string, input: MeasurementInput) =>
+    request<Measurement>(`/crew-members/${crewId}/measurements`, { method: 'POST', body: JSON.stringify(input) }),
+  researchRecord: (refresh = false) => request<ResearchRecord>(`/research/bidmc-01${refresh ? '?refresh=true' : ''}`),
   assessments: (crewId: string) =>
     request<Assessment[]>(`/crew-members/${crewId}/assessments?limit=20`),
   assessment: (crewId: string, id: string) =>

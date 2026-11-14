@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, ClipboardList, CloudUpload, Plus, RefreshCw } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronRight, Plus, RefreshCw } from 'lucide-react'
 import { api, type Assessment, type EngineFinding } from './api'
 import { formatDate, humanize, symptomLabel } from './content'
+import { navigate } from './navigation'
 import type { QueuedAssessment } from './storage'
 
 interface RecordsProps {
   records: Assessment[]
   queued: QueuedAssessment[]
   syncIssues: Record<string, string>
-  crewAvailable: boolean
+  available: boolean
+  pending: boolean
+  limit?: number
 }
 
 function recordTitle(input: Assessment | QueuedAssessment['input']) {
@@ -41,42 +44,37 @@ function findingText(finding: EngineFinding) {
   }
 }
 
-export function Records({ records, queued, syncIssues, crewAvailable }: RecordsProps) {
+export function Records({ records, queued, syncIssues, available, pending, limit }: RecordsProps) {
   const saved = new Set(records.map(record => record.id))
   const items = [
     ...records.map(record => ({
       id: record.id, title: recordTitle(record), date: record.assessed_at,
-      status: record.status, local: false,
+      status: record.status,
     })),
     ...queued.filter(item => !saved.has(item.input.id)).map(({ input }) => ({
       id: input.id, title: recordTitle(input), date: input.assessed_at,
-      status: syncIssues[input.id] ? 'needs_attention' : 'saved_locally', local: true,
+      status: syncIssues[input.id] ? 'needs_attention' : 'saved_locally',
     })),
   ].sort((a, b) => Date.parse(b.date) - Date.parse(a.date))
 
   if (!items.length) {
     return (
-      <div className="empty-state">
-        <span className="icon-tile"><ClipboardList size={21} aria-hidden="true" /></span>
-        <div><strong>{crewAvailable ? 'No assessments yet' : 'Assessment history unavailable'}</strong>
-          <p>{crewAvailable ? 'Saved assessments will appear here.' : 'Connect to the mission service to load your crew records.'}</p></div>
+      <div className="empty-state" role="status">
+        <strong>{pending ? 'Loading assessments…' : available ? 'No assessments yet' : 'Assessment history unavailable'}</strong>
       </div>
     )
   }
 
   return (
     <ul className="records">
-      {items.map(item => (
+      {items.slice(0, limit).map(item => (
         <li key={item.id}>
-          <a className="record-link" href={`#results/${item.id}`}>
-            <span className="icon-tile">
-              {item.local ? <CloudUpload size={19} aria-hidden="true" /> : <ClipboardList size={19} aria-hidden="true" />}
-            </span>
+          <a className="record-link" href={`/assessments/${item.id}`}>
             <span className="record-label"><strong>{item.title}</strong><small>{formatDate(item.date)}</small></span>
             <span className={`record-status ${statusStyle(item.status)}`}>
               {humanize(item.status)}
             </span>
-            <ArrowRight size={17} aria-hidden="true" />
+            <ChevronRight size={16} aria-hidden="true" />
           </a>
         </li>
       ))}
@@ -91,15 +89,17 @@ interface ResultProps {
   queued?: QueuedAssessment
   syncIssue?: string
   reachable: boolean
+  pending: boolean
   onRecord: (record: Assessment) => void
   onDiscard: (id: string) => void
 }
 
 export function AssessmentResult({
-  id, crewId, record, queued, syncIssue, reachable, onRecord, onDiscard,
+  id, crewId, record, queued, syncIssue, reachable, pending, onRecord, onDiscard,
 }: ResultProps) {
-  const [loading, setLoading] = useState(false)
+  const [evaluating, setEvaluating] = useState(false)
   const [error, setError] = useState('')
+  const [loadError, setLoadError] = useState('')
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const queuedLocally = Boolean(queued)
   const waiting = record?.status === 'pending'
@@ -107,21 +107,18 @@ export function AssessmentResult({
   useEffect(() => {
     if (!crewId || !reachable || queuedLocally) return
     let active = true
-    const load = async (showProgress: boolean) => {
-      if (showProgress) setLoading(true)
+    const load = async () => {
       try {
         const result = await api.assessment(crewId, id)
         if (!active) return
         onRecord(result)
-        setError('')
+        setLoadError('')
       } catch (reason) {
-        if (active) setError(reason instanceof Error ? reason.message : 'The result could not be loaded.')
-      } finally {
-        if (active) setLoading(false)
+        if (active) setLoadError(reason instanceof Error ? reason.message : 'The result could not be loaded.')
       }
     }
-    void load(true)
-    const interval = waiting ? window.setInterval(() => void load(false), 12_000) : undefined
+    void load()
+    const interval = waiting ? window.setInterval(() => void load(), 12_000) : undefined
     return () => {
       active = false
       window.clearInterval(interval)
@@ -129,25 +126,26 @@ export function AssessmentResult({
   }, [crewId, id, onRecord, queuedLocally, reachable, waiting])
 
   async function evaluate() {
-    if (!crewId || loading) return
-    setLoading(true)
+    if (!crewId || evaluating) return
+    setEvaluating(true)
     setError('')
     try {
       onRecord(await api.evaluate(crewId, id))
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The assessment could not be evaluated.')
     } finally {
-      setLoading(false)
+      setEvaluating(false)
     }
   }
 
   const input = record ?? queued?.input
   const status = record?.status ?? (syncIssue ? 'needs_attention' : 'saved_locally')
   const findings = [...new Set(record?.engine_result?.rationale.map(findingText))]
+  const engine = record?.engine_result
 
   return (
     <>
-      <a className="back-link" href="#results"><ArrowLeft size={16} aria-hidden="true" /> All assessments</a>
+      <a className="back-link" href="/assessments"><ArrowLeft size={16} aria-hidden="true" /> All assessments</a>
       <header className="page-title">
         <h1>Assessment result</h1>
         {input && <p>{formatDate(input.assessed_at)}</p>}
@@ -179,6 +177,23 @@ export function AssessmentResult({
               </details>
             )}
             {record?.next_step && <div className="result-block"><h3>Next step</h3><p>{record.next_step}</p></div>}
+            {engine?.comparisons && Object.keys(engine.comparisons).length > 0 && (
+              <div className="result-block">
+                <h3>Compared with previous readings</h3>
+                <p>Reference uses up to {engine.comparison_window_days} days of earlier readings for this crew member.</p>
+                <dl className="detail-list">{Object.entries(engine.comparisons).map(([metric, comparison]) => (
+                  <div key={metric}>
+                    <dt>{humanize(metric)}</dt>
+                    <dd>{!comparison.usable ? 'Check the entered reading.' : comparison.difference === null
+                      ? `${comparison.observed} ${comparison.unit}. ${comparison.samples} of ${engine.comparison_min_samples} prior readings needed for a reference.`
+                      : `${comparison.observed} ${comparison.unit} · Prior median ${comparison.reference} ${comparison.unit} (${comparison.samples} readings) · Change ${comparison.difference > 0 ? '+' : ''}${comparison.difference} ${comparison.unit}`}
+                      {comparison.usable && comparison.median_absolute_deviation != null && (
+                        <small className="muted">Median distance from prior median: {comparison.median_absolute_deviation} {comparison.unit}</small>
+                      )}</dd>
+                  </div>
+                ))}</dl>
+              </div>
+            )}
           </div>
           {(syncIssue || error) && <p className="notice error" role="alert">{syncIssue || error}</p>}
           <dl className="detail-list">
@@ -191,16 +206,16 @@ export function AssessmentResult({
           </dl>
           <div className="form-actions">
             {record?.protocol_id && (
-              <a className="button primary" href={`#guides/${encodeURIComponent(record.protocol_id)}`}>
+              <a className="button primary" href={`/guides/${encodeURIComponent(record.protocol_id)}`}>
                 Open referenced guide <ArrowRight size={17} aria-hidden="true" />
               </a>
             )}
-            {waiting && <button className="button secondary" disabled={!reachable || loading}
+            {waiting && <button className="button secondary" disabled={!reachable || evaluating}
               onClick={() => void evaluate()}>
-              <RefreshCw size={16} aria-hidden="true" /> {loading ? 'Checking…' : 'Run assessment'}
+              <RefreshCw size={16} aria-hidden="true" /> Run assessment
             </button>}
             {syncIssue && (confirmDiscard ? <>
-              <button className="button danger" onClick={() => { onDiscard(id); window.location.hash = 'results' }}>
+              <button className="button danger" onClick={() => { onDiscard(id); navigate('/assessments') }}>
                 Confirm discard
               </button>
               <button className="button secondary" onClick={() => setConfirmDiscard(false)}>Keep saved copy</button>
@@ -208,7 +223,7 @@ export function AssessmentResult({
           </div>
         </section>
       ) : (
-        <p className="notice" role="status">{error || (loading || reachable
+        <p className="notice" role="status">{loadError || (reachable || pending
           ? 'Loading assessment…' : 'This assessment is unavailable on this device.')}</p>
       )}
     </>
@@ -219,8 +234,8 @@ export function AssessmentHistory(props: RecordsProps) {
   return (
     <>
       <header className="page-title split">
-        <div><h1>Assessments</h1><p>Review submitted results and assessments saved on this device.</p></div>
-        <a className="button primary" href="#assessment"><Plus size={18} aria-hidden="true" /> Start assessment</a>
+        <h1>Assessments</h1>
+        <a className="button primary" href="/assessment"><Plus size={18} aria-hidden="true" /> Start assessment</a>
       </header>
       <section className="surface"><Records {...props} /></section>
     </>

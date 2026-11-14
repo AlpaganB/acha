@@ -94,7 +94,7 @@ def save_assessment(
             )
         record = require_record(session, Assessment, inserted_id, "Assessment")
         if evaluate:
-            evaluate_assessment(record, profile)
+            evaluate_assessment(session, record, profile)
         response = AssessmentRead.model_validate(record)
         session.commit()
         return response, True
@@ -116,6 +116,6 @@ def finish_assessment(session: Session, crew_id: UUID, assessment_id: UUID) -> A
         raise HTTPException(404, "Assessment not found.")
     if record.status == "pending":
         profile = require_record(session, MissionProfile, record.mission_profile_id, "Mission profile")
-        evaluate_assessment(record, profile)
+        evaluate_assessment(session, record, profile)
         session.commit()
     return AssessmentRead.model_validate(record)

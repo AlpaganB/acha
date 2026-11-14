@@ -1,8 +1,6 @@
-import { ArrowLeft, ArrowRight, BookOpen, HeartPulse, ShieldAlert, Wind } from 'lucide-react'
+import { ArrowLeft, ChevronRight, ShieldAlert } from 'lucide-react'
 import type { MissionProfile } from './api'
 import { guides, guideTopicId, humanize } from './content'
-
-const guideIcons = { chest_pain: HeartPulse, shortness_of_breath: Wind, loss_of_consciousness: ShieldAlert }
 
 export function EmergencyNotice() {
   return (
@@ -23,14 +21,13 @@ export function Guidance({ profile, guideId }: { profile?: MissionProfile; guide
   if (guideId) {
     return (
       <>
-        <a className="back-link" href="#guides"><ArrowLeft size={16} aria-hidden="true" /> All emergency guides</a>
+        <a className="back-link" href="/guides"><ArrowLeft size={16} aria-hidden="true" /> All emergency guides</a>
         <header className="page-title">
           <h1>{guide?.title ?? humanize(guideId)}</h1>
           <p>{guide?.description ?? 'Referenced by the mission or assessment service.'}</p>
         </header>
         {guide?.id !== 'demo-review' && <EmergencyNotice />}
         <section className="surface guide-detail">
-          <BookOpen size={24} aria-hidden="true" />
           <div>
             {guide && guide.handoff.length > 0 && <>
               <h2>What to report</h2>
@@ -64,23 +61,18 @@ export function Guidance({ profile, guideId }: { profile?: MissionProfile; guide
     <>
       <header className="page-title">
         <h1>Emergency guides</h1>
-        <p>Open a demonstration guide or find a reference for the active mission.</p>
       </header>
       <EmergencyNotice />
       <section className="surface guide-list" aria-label="Emergency topics">
         {[...displayGuides, ...missionGuides.map(id => ({
           id, title: humanize(id), description: 'Referenced by the active mission profile',
-        }))].map(item => {
-          const Icon = guideIcons[item.id as keyof typeof guideIcons] ?? BookOpen
-          return (
-            <a key={item.id} className="guide-row" href={`#guides/${encodeURIComponent(item.id)}`}>
-              <span className="icon-tile"><Icon size={20} aria-hidden="true" /></span>
-              <span><strong>{item.title}</strong><small>{item.description}</small></span>
+        }))].map(item => (
+            <a key={item.id} className="guide-row" href={`/guides/${encodeURIComponent(item.id)}`}>
+              <span className="record-label"><strong>{item.title}</strong><small>{item.description}</small></span>
               {profileIds.includes(item.id) && <span className="guide-profile">Mission profile</span>}
-              <ArrowRight size={18} aria-hidden="true" />
+              <ChevronRight size={17} aria-hidden="true" />
             </a>
-          )
-        })}
+        ))}
       </section>
     </>
   )

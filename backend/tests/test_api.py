@@ -245,13 +245,39 @@ def test_database_health_and_demo_data(client, test_database_url):
     assert client.get("health").json() == {"status": "ok"}
     for _ in range(2):
         seed_demo_data(test_database_url)
-    expected = {"Demo Crew 01": (4, "demo_reviewed"), "Demo Crew 02": (1, "pending")}
+    expected = {"Alpagan", "Emirhan", "Asım"}
     members = [row for row in client.get("crew-members").json() if row["display_name"] in expected]
     assert len(members) == len(expected)
     for member in members:
-        count, status = expected[member["display_name"]]
         base = f"crew-members/{member['id']}"
-        assert len(client.get(f"{base}/measurements").json()) == count
-        records = client.get(f"{base}/assessments").json()
-        assert len(records) == 1
-        assert records[0]["status"] == status
+        assert client.get(f"{base}/measurements").json() == []
+        assert client.get(f"{base}/assessments").json() == []
+
+
+def test_assessment_uses_earlier_readings_for_the_same_crew(client, crew):
+    base = f"crew-members/{crew['id']}"
+    for index, value in enumerate((64, 72, 68, 66, 70)):
+        reading = measurement(value=value, recorded_at=f"2026-11-{index + 6:02}T10:00:00Z")
+        assert client.post(f"{base}/measurements", json=reading).status_code == 201
+    observed = measurement(value=82)
+    assert client.post(f"{base}/measurements", json=observed).status_code == 201
+    later = measurement(value=160, recorded_at="2026-11-15T10:00:00Z")
+    assert client.post(f"{base}/measurements", json=later).status_code == 201
+    payload = assessment(crew, symptoms=[], measurement_ids=[observed["id"]])
+    result = client.post(f"{base}/assessments?evaluate=true", json=payload).json()["engine_result"]
+    assert result["comparisons"]["heart_rate"] == {
+        "observed": 82, "unit": "bpm", "samples": 5, "reference": 68,
+        "difference": 14, "median_absolute_deviation": 2, "usable": True,
+    }
+    assert result["news2"]["total_score"] is None
+
+
+def test_research_api_reads_attributed_observations(client):
+    response = client.get("research/bidmc-01")
+    assert response.status_code == 200
+    record = response.json()
+    assert len(record["samples"]) == 481
+    assert record["samples"][0] == {
+        "seconds": 0, "heart_rate": 94, "pulse_rate": 93, "respiratory_rate": 25, "spo2": 97,
+    }
+    assert record["source"] == "https://physionet.org/content/bidmc/1.0.0/"

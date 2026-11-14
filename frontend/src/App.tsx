@@ -1,110 +1,123 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
-  ArrowRight, ArrowUpRight, BadgeCheck, BookOpen, ChevronDown,
-  ClipboardList, CloudDownload, Orbit, Radio, ShieldAlert, UserRound, WifiOff,
+  ArrowRight, Check, ChevronDown, Radio, WifiOff,
 } from 'lucide-react'
 import { AssessmentForm } from './AssessmentForm'
 import { AssessmentHistory, AssessmentResult, Records } from './AssessmentResults'
 import { Guidance } from './Guidance'
-import { environmentLabels } from './content'
+import { Measurements } from './Measurements'
+import { Research } from './Research'
+import { environmentLabels, formatDate, measurementLabels } from './content'
+import { navigate } from './navigation'
 import { useMission } from './useMission'
-import type { MissionProfile } from './api'
+import type { Measurement, MissionProfile } from './api'
 
 type Mission = ReturnType<typeof useMission>
 
+function locationPath() {
+  const legacy = window.location.hash.match(/^#(assessment|results|guides|mission)(\/[a-zA-Z0-9_-]+)?$/)
+  if (legacy) return `/${legacy[1] === 'results' ? 'assessments' : legacy[1]}${legacy[2] ?? ''}`
+  return (window.location.pathname.replace(/\/+$/, '') + window.location.search) || '/'
+}
+
 function useRoute() {
-  const [route, setRoute] = useState(() => window.location.hash.slice(1))
+  const [route, setRoute] = useState(locationPath)
   useEffect(() => {
-    const update = () => setRoute(window.location.hash.slice(1))
+    const update = () => {
+      const path = locationPath()
+      if (window.location.hash && path !== window.location.pathname + window.location.search) {
+        window.history.replaceState(null, '', path)
+      }
+      setRoute(path)
+    }
+    update()
+    window.addEventListener('popstate', update)
     window.addEventListener('hashchange', update)
-    return () => window.removeEventListener('hashchange', update)
+    return () => {
+      window.removeEventListener('popstate', update)
+      window.removeEventListener('hashchange', update)
+    }
   }, [])
   return route
 }
 
 function useOfflineShell() {
-  const [ready, setReady] = useState(false)
   useEffect(() => {
     if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return
-    const controllerChanged = () => setReady(Boolean(navigator.serviceWorker.controller))
-    controllerChanged()
-    navigator.serviceWorker.addEventListener('controllerchange', controllerChanged)
-    void navigator.serviceWorker.register('./service-worker.js').catch(() => {})
-    return () => navigator.serviceWorker.removeEventListener('controllerchange', controllerChanged)
+    void navigator.serviceWorker.register('/service-worker.js').catch(() => {})
   }, [])
-  return ready
 }
 
-function safeRouteId(value: string | undefined) {
-  if (!value) return undefined
-  try {
-    const decoded = decodeURIComponent(value)
-    return /^[a-zA-Z0-9_-]{1,64}$/.test(decoded) ? decoded : undefined
-  } catch {
-    return undefined
+function LatestMeasurements({ measurements, pending, available }: {
+  measurements: Measurement[]; pending: boolean; available: boolean
+}) {
+  const latest = new Map<string, Measurement>()
+  for (const reading of measurements) {
+    const previous = latest.get(reading.kind)
+    if (!previous || Date.parse(reading.recorded_at) > Date.parse(previous.recorded_at)) {
+      latest.set(reading.kind, reading)
+    }
   }
-}
 
-function Connection({ mission }: { mission: Mission }) {
-  const label = !mission.online ? 'Offline' : mission.reachable ? 'Connected'
-    : mission.connection === 'checking' ? 'Connecting' : 'Service unavailable'
   return (
-    <span className={`connection ${mission.reachable ? 'connected' : ''}`} role="status">
-      <span className="connection-dot" />{label}
-    </span>
-  )
-}
-
-function MissionSummary({ mission }: { mission: Mission }) {
-  return (
-    <aside className="surface mission-card">
-      <div className="section-heading"><h2>Mission context</h2><Orbit size={20} aria-hidden="true" /></div>
-      <dl>
-        <div><dt>Active profile</dt><dd>{mission.profile?.name ?? 'Unavailable'}</dd></div>
-        <div><dt>Crew member</dt><dd>{mission.selected?.display_name ?? 'Unavailable'}</dd></div>
+    <section aria-labelledby="measurements-heading">
+      <div className="section-heading"><h2 id="measurements-heading">Recent measurements</h2>
+        <a className="text-link" href="/measurements">View readings</a>
+      </div>
+      <dl className="vital-grid surface" aria-busy={pending}>
+        {Object.entries(measurementLabels).map(([kind, label]) => {
+          const reading = latest.get(kind)
+          return (
+            <div key={kind}>
+              <dt>{label}</dt>
+              {reading ? (
+                <dd>
+                  <span className="vital-value">
+                    {reading.value}{reading.diastolic !== null && `/${reading.diastolic}`}
+                    <small>{reading.unit}</small>
+                  </span>
+                  <time dateTime={reading.recorded_at}>{formatDate(reading.recorded_at)}</time>
+                </dd>
+              ) : <dd className="missing-reading">
+                {pending ? <span className="reading-placeholder" aria-hidden="true" />
+                  : available ? 'No recent reading' : 'Unavailable'}
+              </dd>}
+            </div>
+          )
+        })}
       </dl>
-      <a className="text-link" href="#mission">Manage mission profile <ArrowUpRight size={16} aria-hidden="true" /></a>
-    </aside>
+    </section>
   )
 }
 
-function Home({ mission, offlineReady }: { mission: Mission; offlineReady: boolean }) {
+function Home({ mission }: { mission: Mission }) {
   return (
     <>
-      <section className="hero">
-        <div className="hero-content">
-          <p className="hero-context"><Orbit size={17} aria-hidden="true" />
-            {mission.profile ? environmentLabels[mission.profile.environment] : 'Autonomous Crew Health Assistant'}
-          </p>
+      <header className="overview-heading">
+        <div>
           <h1>Crew health</h1>
-          <p>Report symptoms, review an assessment, or open the emergency reference for your mission.</p>
-          <a className="button hero-button" href="#assessment">
-            Start assessment <ArrowRight size={19} aria-hidden="true" />
-          </a>
+          <p className="crew-context">{mission.selected?.display_name}
+            {mission.profile && <> <span aria-hidden="true">/</span> {mission.profile.name}</>}
+          </p>
+          <div className="overview-actions">
+            <a className="button primary" href="/assessment">Start assessment <ArrowRight size={17} aria-hidden="true" /></a>
+            <a className="button secondary" href="/measurements">Record measurement</a>
+          </div>
         </div>
-      </section>
+      </header>
       <div className="home-grid">
-        <div className="home-primary">
-          <section aria-labelledby="recent-heading">
-            <div className="section-heading">
-              <h2 id="recent-heading">Recent assessments</h2>
-              <a className="text-link" href="#results">View history <ArrowRight size={16} aria-hidden="true" /></a>
-            </div>
-            <div className="surface">
-              <Records records={mission.history.slice(0, 3)} queued={mission.queued}
-                crewAvailable={Boolean(mission.selected)} syncIssues={mission.syncIssues} />
-            </div>
-          </section>
-          <a href="#guides" className="emergency-card">
-            <span className="icon-tile"><BookOpen size={21} aria-hidden="true" /></span>
-            <span><strong>Emergency guides</strong><small>Response guidance and protocol references</small></span>
-            <ArrowRight size={20} aria-hidden="true" />
-          </a>
-        </div>
-        <div className="home-aside">
-          <MissionSummary mission={mission} />
-          {offlineReady && <p className="offline-ready"><CloudDownload size={17} aria-hidden="true" /> Demo guides saved on this device</p>}
-        </div>
+        <LatestMeasurements measurements={mission.measurements} pending={mission.measurementsPending}
+          available={mission.measurementsAvailable} />
+        <section aria-labelledby="recent-heading">
+          <div className="section-heading">
+            <h2 id="recent-heading">Recent assessments</h2>
+            <a className="text-link" href="/assessments">View all</a>
+          </div>
+          <div className="surface">
+            <Records records={mission.history} queued={mission.queued} limit={3} pending={mission.historyPending}
+              available={mission.historyAvailable} syncIssues={mission.syncIssues} />
+          </div>
+        </section>
       </div>
     </>
   )
@@ -126,9 +139,8 @@ function MissionProfiles({ mission }: { mission: Mission }) {
 
   return (
     <>
-      <header className="page-title"><h1>Mission profile</h1><p>Choose a crew member and set their active mission environment.</p></header>
+      <header className="page-title"><h1>Mission profile</h1></header>
       <section className="surface crew-panel">
-        <span className="icon-tile"><UserRound size={20} aria-hidden="true" /></span>
         <label htmlFor="crew-select">Crew member</label>
         <div className="select-wrap">
           <select id="crew-select" value={mission.selected?.id ?? ''} disabled={!mission.crew.length || mission.changingProfile}
@@ -139,7 +151,7 @@ function MissionProfiles({ mission }: { mission: Mission }) {
           <ChevronDown size={15} aria-hidden="true" />
         </div>
       </section>
-      {!mission.reachable && <p className="notice" role="status">
+      {!mission.reachable && (mission.connection !== 'checking' || !mission.online) && <p className="notice" role="status">
         <WifiOff size={18} aria-hidden="true" /> Connect to the mission service to change the active profile.
         {mission.online && <button className="text-link" onClick={() => void mission.refreshWorkspace()}>Retry connection</button>}
       </p>}
@@ -151,20 +163,18 @@ function MissionProfiles({ mission }: { mission: Mission }) {
             const active = profile.id === mission.profile?.id
             return (
               <article key={profile.id} className={`surface profile-card ${active ? 'current' : ''}`}>
-                <div className="section-heading">
-                  <span className="icon-tile"><Orbit size={20} aria-hidden="true" /></span>
-                  {active && <span className="active-profile"><BadgeCheck size={17} aria-hidden="true" /> Active</span>}
+                <div className="section-heading"><h2>{profile.name}</h2>
+                  {active && <span className="active-profile"><Check size={16} aria-hidden="true" /> Active</span>}
                 </div>
-                <h2>{profile.name}</h2><p>{environmentLabels[profile.environment]}</p>
+                <p>{environmentLabels[profile.environment]}</p>
                 <dl className="detail-list">
                   <div><dt>Equipment</dt><dd>{profile.equipment.join(', ') || 'None listed'}</dd></div>
                   {profile.constraints.length > 0 && <div><dt>Constraints</dt><dd>{profile.constraints.join(', ')}</dd></div>}
                 </dl>
-                <div className="form-actions">
-                  {active ? <a className="text-link" href="#guides">View guides <ArrowRight size={16} aria-hidden="true" /></a>
-                    : <button className="button secondary" disabled={!mission.reachable || !mission.selected || mission.changingProfile}
-                      onClick={() => void change(profile)}>Use this profile</button>}
-                </div>
+                {!active && <div className="form-actions">
+                  <button className="button secondary" disabled={!mission.reachable || !mission.selected || mission.changingProfile}
+                    onClick={() => void change(profile)}>Use this profile</button>
+                </div>}
               </article>
             )
           })}
@@ -177,77 +187,91 @@ function MissionProfiles({ mission }: { mission: Mission }) {
 export function App() {
   const mission = useMission()
   const route = useRoute()
-  const offlineReady = useOfflineShell()
+  useOfflineShell()
   const main = useRef<HTMLElement>(null)
-  const [page, rawId] = route.split('/')
-  const id = safeRouteId(rawId)
-  const home = !['assessment', 'results', 'guides', 'mission'].includes(page)
+  const previousRoute = useRef(route)
+  const [pathname, query] = route.split('?')
+  const [, page, rawId] = pathname.split('/')
+  const id = rawId && /^[a-zA-Z0-9_-]{1,64}$/.test(rawId) ? rawId : undefined
+  const initialMeasurementId = new URLSearchParams(query).get('measurement') ?? undefined
+  const home = !['assessment', 'assessments', 'measurements', 'guides', 'mission', 'research'].includes(page)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    if (previousRoute.current === route) return
+    previousRoute.current = route
     window.scrollTo(0, 0)
-    if (route) main.current?.focus({ preventScroll: true })
+    main.current?.focus({ preventScroll: true })
   }, [route])
 
   const assessmentRecords = {
     records: mission.history,
     queued: mission.queued,
     syncIssues: mission.syncIssues,
-    crewAvailable: Boolean(mission.selected),
+    available: mission.historyAvailable,
+    pending: mission.historyPending,
   }
 
   return (
-    <div className="app">
+    <div className="app" onClick={event => {
+      if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
+      const anchor = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>('a[href^="/"]') : null
+      if (!anchor || anchor.target || anchor.origin !== window.location.origin) return
+      event.preventDefault()
+      navigate(anchor.pathname + anchor.search)
+    }}>
       <a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); main.current?.focus() }}>Skip to content</a>
       <header className="site-header">
         <div className="header-inner">
-          <a href="#" className="brand" aria-label="ACHA home">
+          <a href="/" className="brand" aria-label="ACHA home">
             <img src={`${import.meta.env.BASE_URL}acha.svg`} width="36" height="36" alt="" />
             <span>ACHA</span>
           </a>
           <nav className="main-nav" aria-label="Primary navigation">
-            <a href="#" aria-current={home ? 'page' : undefined}>Overview</a>
-            <a href="#results" aria-current={page === 'assessment' || page === 'results' ? 'page' : undefined}>Assessments</a>
-            <a href="#mission" aria-current={page === 'mission' ? 'page' : undefined}>Mission profile</a>
+            <a href="/" aria-current={home ? 'page' : undefined}>Overview</a>
+            <a href="/measurements" aria-current={page === 'measurements' ? 'page' : undefined}>Measurements</a>
+            <a href="/assessments" aria-current={page === 'assessment' || page === 'assessments' ? 'page' : undefined}>Assessments</a>
+            <a href="/mission" aria-current={page === 'mission' ? 'page' : undefined}>Mission</a>
+            <a href="/guides" aria-label="Emergency guides" aria-current={page === 'guides' ? 'page' : undefined}>Guides</a>
           </nav>
-          <div className="header-actions">
-            <Connection mission={mission} />
-            <a className="emergency-button" href="#guides" aria-current={page === 'guides' ? 'page' : undefined}>
-              <ShieldAlert size={17} aria-hidden="true" /> <span>Emergency guides</span>
-            </a>
-          </div>
         </div>
       </header>
       <main ref={main} id="main-content" className={`main-content ${home ? 'home' : 'inner-page'}`} tabIndex={-1}>
-        {home && <Home mission={mission} offlineReady={offlineReady} />}
-        {page === 'assessment' && (
-          <>
-            <header className="page-title">
-              <h1>Self-assessment</h1>
-              <p>{mission.selected ? `Recording for ${mission.selected.display_name}.` : 'Report symptoms and attach recent measurements.'}</p>
-            </header>
-            {!mission.selected && <p className="notice" role="status">
-              <Radio size={18} aria-hidden="true" /> A crew member must be loaded before saving.
-              <a className="text-link" href="#mission">Open mission profile</a>
-            </p>}
-            <AssessmentForm key={mission.selected?.id} crew={mission.selected} measurements={mission.measurements}
-              reachable={mission.reachable} onSubmit={async input => {
-                await mission.submit(input)
-                window.location.hash = `results/${input.id}`
-              }} />
-          </>
-        )}
-        {page === 'results' && (id ? <AssessmentResult key={`${mission.selected?.id}:${id}`} id={id}
-          crewId={mission.selected?.id} reachable={mission.reachable}
-          record={mission.history.find(record => record.id === id)}
-          queued={mission.queued.find(entry => entry.input.id === id)}
-          syncIssue={mission.syncIssues[id]} onRecord={mission.remember} onDiscard={mission.discard} />
-          : <AssessmentHistory {...assessmentRecords} />)}
-        {page === 'guides' && <Guidance profile={mission.profile} guideId={id} />}
-        {page === 'mission' && <MissionProfiles mission={mission} />}
+        <div className="route-content">
+          {home && <Home mission={mission} />}
+          {page === 'assessment' && (
+            <>
+              <header className="page-title">
+                <h1>Self-assessment</h1>
+                <p className="crew-context">{mission.selected?.display_name}</p>
+              </header>
+              {!mission.selected && (mission.connection !== 'checking' || !mission.online) && <p className="notice" role="status">
+                <Radio size={18} aria-hidden="true" /> A crew member must be loaded before saving.
+                <a className="text-link" href="/mission">Open mission profile</a>
+              </p>}
+              <AssessmentForm key={initialMeasurementId} initialMeasurementId={initialMeasurementId}
+                crew={mission.selected} measurements={mission.measurements} measurementsPending={mission.measurementsPending}
+                reachable={mission.reachable} onSubmit={async input => {
+                  await mission.submit(input)
+                  navigate(`/assessments/${input.id}`)
+                }} />
+            </>
+          )}
+          {page === 'assessments' && (id ? <AssessmentResult key={`${mission.selected?.id}:${id}`} id={id}
+            crewId={mission.selected?.id} reachable={mission.reachable} pending={mission.historyPending}
+            record={mission.history.find(record => record.id === id)}
+            queued={mission.queued.find(entry => entry.input.id === id)}
+            syncIssue={mission.syncIssues[id]} onRecord={mission.remember} onDiscard={mission.discard} />
+            : <AssessmentHistory {...assessmentRecords} />)}
+          {page === 'guides' && <Guidance profile={mission.profile} guideId={id} />}
+          {page === 'mission' && <MissionProfiles mission={mission} />}
+          {page === 'measurements' && <Measurements crew={mission.selected} measurements={mission.measurements}
+            pending={mission.measurementsPending} reachable={mission.reachable} onSave={mission.recordMeasurement} />}
+          {page === 'research' && <Research />}
+        </div>
       </main>
       <footer className="site-footer">
         <span>Autonomous Crew Health Assistant</span>
-        <span><ClipboardList size={14} aria-hidden="true" /> Prototype</span>
+        <a className="text-link" href="/research">Research data</a>
       </footer>
     </div>
   )

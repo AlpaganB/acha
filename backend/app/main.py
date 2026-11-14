@@ -10,6 +10,7 @@ from sqlalchemy.exc import OperationalError
 
 from .api import router
 from .database import make_engine
+from .research import router as research_router
 
 
 def create_app(database_url: str | None = None) -> FastAPI:
@@ -41,6 +42,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
         return JSONResponse(status_code=503, content={"detail": "Database is unavailable."})
 
     app.include_router(router)
+    app.include_router(research_router, prefix="/api/v1")
     return app
 
 

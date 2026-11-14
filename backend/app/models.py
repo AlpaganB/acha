@@ -34,6 +34,7 @@ class CrewMember(Base):
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     display_name: Mapped[str] = mapped_column(sa.String(120))
+    archived: Mapped[bool] = mapped_column(server_default=sa.false())
     mission_profile_id: Mapped[UUID] = mapped_column(sa.ForeignKey("mission_profiles.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), server_default=sa.func.now())
 

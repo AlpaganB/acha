@@ -77,7 +77,8 @@ def create_crew_member(payload: CrewMemberCreate, session: DbSession) -> CrewMem
 @router.get("/crew-members", tags=["Crew"])
 def list_crew_members(session: DbSession, limit: Limit = 50, offset: Offset = 0) -> list[CrewMemberRead]:
     statement = (
-        select(CrewMember).order_by(CrewMember.display_name, CrewMember.id).offset(offset).limit(limit)
+        select(CrewMember).where(CrewMember.archived.is_(False))
+        .order_by(CrewMember.display_name, CrewMember.id).offset(offset).limit(limit)
     )
     return [CrewMemberRead.model_validate(record) for record in session.scalars(statement)]
 

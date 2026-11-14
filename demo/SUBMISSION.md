@@ -8,16 +8,19 @@ ACHA helps a crew record health observations, compare them with a personal refer
 
 ## How we address the challenge
 
-| Challenge goal | ACHA demonstration |
-| --- | --- |
-| Gather health indicators | Manual entry with units, instrument availability, quality checks, timestamps and persistent history |
-| Evaluate health status | Personal baseline comparison, time-window trends, symptoms, and optional NEWS2 reference calculation |
-| Act on a result | Visible rationale and immediate access to cached emergency and review guidance |
-| Operate during communications outages | Local assessment, cached guides, persistent queued browser entries and a simulated ground receipt |
+| Challenge goal | Public React site | Local onboard demo |
+| --- | --- | --- |
+| Gather health indicators | Enter symptoms or record heart rate, oxygen saturation, blood pressure and temperature for later review and assessment | Manual observations with units, timestamps, instrument availability, quality checks and persistent history |
+| Evaluate health status | Rule-based evaluation of symptoms and supported readings, plus a descriptive comparison with the same crew member’s recent history | Symptom and vital-sign rules, a synthetic baseline and time-window trends, and optional NEWS2 reference scoring |
+| Act on a result | Visible rationale and access to cached demonstration guidance | Visible rationale, demonstration guidance and simulated ground handover |
+| Operate during communications outages | Cached records and guides, plus an assessment queue that syncs when the API returns | Local evaluation while the onboard server is running, with no Earth connection required |
 
 ## Data and references
 
 - [NASA Space Apps 2026 challenge](https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/) frames the design.
+- [NASA's five spaceflight hazards](https://www.nasa.gov/hrp/hazards/) connects distance from Earth to the need for an onboard workflow. [NASA's spaceflight risks](https://www.nasa.gov/hrp/risks/) provides cardiovascular context for tracking heart rate and blood pressure.
+- [Ongoing NASA HRP research](https://www.nasa.gov/hrp/ongoing-hrp-research/) describes studies such as Standard Measures and ARCHeR. They provide research context for consistent observations and possible future sleep and well-being indicators.
+- [CSA research on the ISS](https://www.asc-csa.gc.ca/eng/iss/science/why-do-we-conduct-science-experiments-in-space.asp) describes how experiments investigate health changes in space. [CSA radiation monitoring](https://www.asc-csa.gc.ca/eng/news/articles/2026/2026-02-26-monitoring-radiation-astronaut-health.asp) describes the specialized instruments used for radiation exposure, which is outside the current ACHA measurement set.
 - [NASA autonomous clinical decision support research](https://www.nasa.gov/centers-and-facilities/ames/ames-science/ames-space-biosciences/a-clinical-decision-support-system-for-earth-independent-medical-operations/) supports the onboard decision workflow.
 - [SpaceX Inspiration4 crew study](https://www.nature.com/articles/s41586-024-07648-x) informs monitoring context and personal comparisons. Crew records in the interactive demo are synthetic.
 - [Royal College of Physicians NEWS2](https://www.rcp.ac.uk/resources/national-early-warning-score-news-2/) supplies reference score arithmetic.

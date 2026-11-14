@@ -32,7 +32,11 @@ def seed_demo_data(value: str | None = None) -> None:
                     {key: val for key, val in item.items() if key != "id"}
                 )
                 statement = insert(MissionProfile).values(id=UUID(item["id"]), **row.model_dump(mode="json"))
-                connection.execute(statement.on_conflict_do_nothing(index_elements=[MissionProfile.id]))
+                connection.execute(statement.on_conflict_do_update(
+                    index_elements=[MissionProfile.id],
+                    set_={"name": statement.excluded.name},
+                    where=MissionProfile.name.in_(("Orbital Station Demo", "Lunar Habitat Demo")),
+                ))
 
             for item in data["crew_members"]:
                 row = CrewMemberCreate.model_validate({key: val for key, val in item.items() if key != "id"})

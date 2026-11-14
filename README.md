@@ -36,7 +36,16 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 For PowerShell, set a variable with `$env:DATABASE_URL = 'postgresql+psycopg://acha:acha_dev@127.0.0.1:5432/acha'`. In Bash, use `export DATABASE_URL='postgresql+psycopg://acha:acha_dev@127.0.0.1:5432/acha'`.
 
-The fixtures include two fictional crew members, two mission profiles, vital-sign history, and assessment examples. The seed command can be run again without duplicating or resetting records. Use the API locally with synthetic data. This prototype exposes its routes without authentication.
+The seed creates workspaces for Alpagan, Asım, and Emirhan and two mission profiles. Their measurement and assessment histories start empty. The seed can be rerun without overwriting measurements or assessments. Use sample readings in the public deployment, which exposes its routes without authentication.
+
+## Deploy the public demo
+
+1. On Railway, add a PostgreSQL service and a GitHub service for `AlpaganB/acha` in the same project. Leave the backend service's Root Directory at the repository root so its image can include the shared code in `demo/`.
+2. Name the Railway backend service `acha-api` and set `DATABASE_URL` to `${{Postgres.DATABASE_URL}}` (use the name of your database service). From the linked repository root, install the Railway SDK with `npm install --no-save --no-package-lock railway`. Run `railway config plan` and `railway config apply` to configure the health check. The container applies migrations and loads synthetic demo records before it begins serving requests. Generate a public domain for the backend and check that `https://<railway-domain>/api/v1/health` returns HTTP 200.
+3. In Vercel, import `AlpaganB/acha` with the Vite preset and Root Directory `frontend`. Enable **Include source files outside of the Root Directory in the Build Step** so Vite can read `demo/mission_demo.json`. The rewrite in `frontend/vercel.json` forwards `/api/v1` to Railway. Update its destination if you deploy to a different Railway hostname.
+4. Add `acha.tr` in the Vercel project's Domains settings. At the authoritative DNS provider, set the apex `A` record to the value shown for that domain in Vercel. After HTTPS is active, open `https://acha.tr`, confirm the synthetic crew loads, and submit a demo assessment.
+
+Use only synthetic data in this public demo. The API exposes its records without authentication.
 
 ## API integration
 
@@ -83,6 +92,10 @@ Supply `id`, `kind`, `value`, and `recorded_at` with a time zone. Responses incl
 Supply `id`, `assessed_at`, and the `mission_profile_id` active at capture time, plus `symptoms` or `measurement_ids`. Each symptom has a `code` and an optional integer `severity` from 0 to 10. Measurement references must belong to the crew member. Optional `notes` can record context. A profile change leaves prior assessment records associated with their capture-time profile.
 
 The React app creates records using `POST /assessments?evaluate=true`. This evaluates the attached observations against the synthetic rules for the capture-time mission environment and saves the result with the record. The response preserves the existing `status`, `rationale`, `next_step` and `protocol_id` fields and includes the structured `engine_result`. The database also keeps the engine inputs and rules used.
+
+Record a measurement in the React app at `/measurements` and use **Assess saved measurement** to attach it to a new assessment. The API supports heart rate, blood oxygen, blood pressure, and temperature. The result can show the difference from the median of at least five prior readings of the same kind for the same crew member, within 30 days of the attached reading. The comparison is descriptive. Systolic pressure is used for the blood pressure comparison.
+
+The `/research` page reads `/api/v1/research/bidmc-01`, which parses the published PhysioNet hospital record and computes medians. **Fetch from PhysioNet** downloads the original public file again and repeats the calculation. Research data is kept separate from crew histories. [Dataset and attribution](demo/DATA_SOURCE.md)
 
 Creating without `evaluate=true` still produces a pending record. Clients can then run the built-in engine via `/evaluate` or store an external result via `/result`. Retries return the stored result. Existing `demo_reviewed` examples remain available.
 

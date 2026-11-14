@@ -1,23 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ApiError, api, type Assessment, type AssessmentInput, type Measurement } from './api'
+import { ApiError, api, type Assessment, type AssessmentInput, type Measurement, type MeasurementInput } from './api'
 import {
   listQueued, queueAssessment, readLocal, removeQueued, saveLocal,
   type Workspace,
 } from './storage'
 
+type CrewRecords<T> = Record<string, T[] | null>
+
 export function useMission() {
   const [online, setOnline] = useState(navigator.onLine)
-  const [workspace, setWorkspace] = useState(() => readLocal<Workspace>('workspace'))
+  const [workspace, setWorkspace] = useState(() => readLocal<Workspace>('active-workspace'))
   const [crewId, setCrewId] = useState(() => readLocal<string>('crew'))
   const [connection, setConnection] = useState<'checking' | 'connected' | 'unreachable'>('checking')
-  const [measurements, setMeasurements] = useState<{ crewId: string; records: Measurement[] }>()
-  const [history, setHistory] = useState<Record<string, Assessment[]>>({})
+  const [measurements, setMeasurements] = useState<CrewRecords<Measurement>>({})
+  const [history, setHistory] = useState<CrewRecords<Assessment>>({})
   const [queued, setQueued] = useState(() => listQueued())
   const [syncIssues, setSyncIssues] = useState<Record<string, string>>({})
   const [changingProfile, setChangingProfile] = useState(false)
   const syncing = useRef(false)
   const profileWrite = useRef(false)
   const workspaceRequest = useRef(0)
+  const measurementRevisions = useRef(new Map<string, number>())
   const selected = workspace?.crew.find(crew => crew.id === crewId) ?? workspace?.crew[0]
   const activeCrewId = selected?.id
   const reachable = online && connection === 'connected'
@@ -67,12 +70,15 @@ export function useMission() {
   useEffect(() => {
     if (!activeCrewId || !reachable) return
     let active = true
+    const revision = measurementRevisions.current.get(activeCrewId)
 
     void api.measurements(activeCrewId).then(records => {
-      if (!active) return
+      if (!active || revision !== measurementRevisions.current.get(activeCrewId)) return
       saveLocal(`measurements.${activeCrewId}`, records)
-      setMeasurements({ crewId: activeCrewId, records })
-    }).catch(() => {})
+      setMeasurements(current => ({ ...current, [activeCrewId]: records }))
+    }).catch(() => {
+      if (active) setMeasurements(current => ({ ...current, [activeCrewId]: current[activeCrewId] ?? null }))
+    })
 
     void api.assessments(activeCrewId).then(records => {
       if (!active) return
@@ -86,13 +92,17 @@ export function useMission() {
         }
         return { ...current, [activeCrewId]: sortAssessments([...byId.values()]) }
       })
-    }).catch(() => {})
+    }).catch(() => {
+      if (active) setHistory(current => ({ ...current, [activeCrewId]: current[activeCrewId] ?? null }))
+    })
 
     return () => { active = false }
   }, [activeCrewId, reachable])
 
   useEffect(() => {
-    for (const [crewId, records] of Object.entries(history)) saveLocal(`history.${crewId}`, records)
+    for (const [crewId, records] of Object.entries(history)) {
+      if (records) saveLocal(`history.${crewId}`, records)
+    }
   }, [history])
 
   const remember = useCallback((record: Assessment) => {
@@ -159,7 +169,7 @@ export function useMission() {
   }
 
   useEffect(() => {
-    if (workspace) saveLocal('workspace', workspace)
+    if (workspace) saveLocal('active-workspace', workspace)
   }, [workspace])
 
   async function submit(input: AssessmentInput) {
@@ -181,12 +191,29 @@ export function useMission() {
     return null
   }
 
+  async function recordMeasurement(input: MeasurementInput) {
+    if (!activeCrewId) throw new Error('Choose a crew member before saving.')
+    const saved = await api.recordMeasurement(activeCrewId, input)
+    measurementRevisions.current.set(activeCrewId, (measurementRevisions.current.get(activeCrewId) ?? 0) + 1)
+    const previous = readLocal<Measurement[]>(`measurements.${activeCrewId}`) ?? measurements[activeCrewId] ?? []
+    const records = [saved, ...previous.filter(record => record.id !== saved.id)]
+      .sort((a, b) => Date.parse(b.recorded_at) - Date.parse(a.recorded_at)).slice(0, 12)
+    saveLocal(`measurements.${activeCrewId}`, records)
+    setMeasurements(current => ({ ...current, [activeCrewId]: records }))
+    return saved
+  }
+
   function discard(id: string) {
     removeQueued(id)
     setQueued(listQueued())
   }
 
   const profile = workspace?.profiles.find(profile => profile.id === selected?.mission_profile_id)
+  const measurementsForCrew = activeCrewId
+    ? measurements[activeCrewId] ?? readLocal<Measurement[]>(`measurements.${activeCrewId}`) : null
+  const historyForCrew = activeCrewId
+    ? history[activeCrewId] ?? readLocal<Assessment[]>(`history.${activeCrewId}`) : null
+  const connecting = online && connection === 'checking'
 
   return {
     online,
@@ -196,11 +223,16 @@ export function useMission() {
     profiles: workspace?.profiles ?? [],
     selected,
     profile,
-    measurements: measurements?.crewId === activeCrewId
-      ? measurements?.records ?? []
-      : readLocal<Measurement[]>(`measurements.${activeCrewId}`) ?? [],
-    history: activeCrewId ? history[activeCrewId]
-      ?? readLocal<Assessment[]>(`history.${activeCrewId}`) ?? [] : [],
+    measurements: measurementsForCrew ?? [],
+    measurementsPending: !measurementsForCrew && (connecting || (
+      reachable && Boolean(activeCrewId && measurements[activeCrewId] === undefined)
+    )),
+    measurementsAvailable: measurementsForCrew !== null,
+    history: historyForCrew ?? [],
+    historyPending: !historyForCrew && (connecting || (
+      reachable && Boolean(activeCrewId && history[activeCrewId] === undefined)
+    )),
+    historyAvailable: historyForCrew !== null,
     queued: queued.filter(entry => entry.crewId === activeCrewId),
     syncIssues,
     changingProfile,
@@ -209,6 +241,7 @@ export function useMission() {
     refreshWorkspace,
     remember,
     submit,
+    recordMeasurement,
     discard,
   }
 }

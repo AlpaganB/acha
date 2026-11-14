@@ -2,15 +2,15 @@ import demoCatalog from '../../demo/mission_demo.json'
 import type { MissionProfile } from './api'
 
 export const symptoms = [
-  { code: 'headache', label: 'Headache', icon: 'head' },
-  { code: 'dizziness', label: 'Dizziness', icon: 'waves' },
-  { code: 'nausea', label: 'Nausea', icon: 'stomach' },
-  { code: 'fatigue', label: 'Fatigue', icon: 'battery' },
-  { code: 'chest_pain', label: 'Chest pain', icon: 'heart' },
-  { code: 'shortness_of_breath', label: 'Shortness of breath', icon: 'wind' },
-  { code: 'loss_of_consciousness', label: 'Loss of consciousness', icon: 'heart' },
-  { code: 'new_confusion', label: 'New confusion', icon: 'head' },
-  { code: 'other', label: 'Other symptom', icon: 'plus' },
+  { code: 'headache', label: 'Headache' },
+  { code: 'dizziness', label: 'Dizziness' },
+  { code: 'nausea', label: 'Nausea' },
+  { code: 'fatigue', label: 'Fatigue' },
+  { code: 'chest_pain', label: 'Chest pain' },
+  { code: 'shortness_of_breath', label: 'Shortness of breath' },
+  { code: 'loss_of_consciousness', label: 'Loss of consciousness' },
+  { code: 'new_confusion', label: 'New confusion' },
+  { code: 'other', label: 'Other symptom' },
 ] as const
 
 export const environmentLabels: Record<MissionProfile['environment'], string> = {
@@ -77,9 +77,6 @@ export const guides = guideTopics.map(topic => ({
   ...topic,
   ...demoCatalog.guides[topic.demoReference],
   title: topic.title,
-  source: topic.demoReference === 'DEMO-BREATHING'
-    ? 'https://www.redcross.org/content/dam/redcross/training-services/no-index/First%20Aid-CPR-AED-Participant%27s-Manual.pdf'
-    : demoCatalog.guides[topic.demoReference].source,
 }))
 
 export function guideTopicId(reference: string) {
