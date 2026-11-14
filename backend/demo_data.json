@@ -1,0 +1,94 @@
+{
+  "mission_profiles": [
+    {
+      "id": "edbfc839-5cbc-4c19-bd50-df843f541101",
+      "name": "Orbital Station Demo",
+      "environment": "orbital_station",
+      "equipment": ["Pulse oximeter", "Thermometer", "Blood pressure cuff"],
+      "measurement_schedules": [
+        {"kind": "heart_rate", "interval_minutes": 1440},
+        {"kind": "spo2", "interval_minutes": 1440}
+      ]
+    },
+    {
+      "id": "edbfc839-5cbc-4c19-bd50-df843f541102",
+      "name": "Lunar Habitat Demo",
+      "environment": "lunar_habitat",
+      "equipment": ["Thermometer"],
+      "constraints": ["Simulated intermittent connectivity"],
+      "measurement_schedules": [{"kind": "body_temperature", "interval_minutes": 1440}]
+    }
+  ],
+  "crew_members": [
+    {
+      "id": "83c5be82-2bc3-4bdb-a7a6-7d191a560101",
+      "display_name": "Demo Crew 01",
+      "mission_profile_id": "edbfc839-5cbc-4c19-bd50-df843f541101"
+    },
+    {
+      "id": "83c5be82-2bc3-4bdb-a7a6-7d191a560102",
+      "display_name": "Demo Crew 02",
+      "mission_profile_id": "edbfc839-5cbc-4c19-bd50-df843f541102"
+    }
+  ],
+  "measurements": [
+    {
+      "id": "9b60a880-5d80-4f3c-896a-335d0cdc0101",
+      "crew_member_id": "83c5be82-2bc3-4bdb-a7a6-7d191a560101",
+      "kind": "heart_rate",
+      "value": 68,
+      "recorded_at": "2026-11-13T08:00:00Z"
+    },
+    {
+      "id": "9b60a880-5d80-4f3c-896a-335d0cdc0102",
+      "crew_member_id": "83c5be82-2bc3-4bdb-a7a6-7d191a560101",
+      "kind": "heart_rate",
+      "value": 73,
+      "recorded_at": "2026-11-14T08:00:00Z"
+    },
+    {
+      "id": "9b60a880-5d80-4f3c-896a-335d0cdc0103",
+      "crew_member_id": "83c5be82-2bc3-4bdb-a7a6-7d191a560101",
+      "kind": "spo2",
+      "value": 98,
+      "recorded_at": "2026-11-14T08:01:00Z"
+    },
+    {
+      "id": "9b60a880-5d80-4f3c-896a-335d0cdc0104",
+      "crew_member_id": "83c5be82-2bc3-4bdb-a7a6-7d191a560101",
+      "kind": "blood_pressure",
+      "value": 118,
+      "diastolic": 76,
+      "recorded_at": "2026-11-14T08:02:00Z"
+    },
+    {
+      "id": "9b60a880-5d80-4f3c-896a-335d0cdc0105",
+      "crew_member_id": "83c5be82-2bc3-4bdb-a7a6-7d191a560102",
+      "kind": "body_temperature",
+      "value": 36.7,
+      "recorded_at": "2026-11-14T09:00:00Z"
+    }
+  ],
+  "assessments": [
+    {
+      "id": "8760b86a-84a8-40ca-90b7-19eadc785101",
+      "crew_member_id": "83c5be82-2bc3-4bdb-a7a6-7d191a560101",
+      "mission_profile_id": "edbfc839-5cbc-4c19-bd50-df843f541101",
+      "assessed_at": "2026-11-14T08:05:00Z",
+      "measurement_ids": ["9b60a880-5d80-4f3c-896a-335d0cdc0102"],
+      "result": {
+        "status": "demo_reviewed",
+        "rationale": "Synthetic result used to demonstrate the assessment screen.",
+        "next_step": "Continue the demo by opening measurement history."
+      }
+    },
+    {
+      "id": "8760b86a-84a8-40ca-90b7-19eadc785102",
+      "crew_member_id": "83c5be82-2bc3-4bdb-a7a6-7d191a560102",
+      "mission_profile_id": "edbfc839-5cbc-4c19-bd50-df843f541102",
+      "assessed_at": "2026-11-14T09:10:00Z",
+      "symptoms": [{"code": "fatigue", "severity": 2}],
+      "measurement_ids": ["9b60a880-5d80-4f3c-896a-335d0cdc0105"]
+    }
+  ]
+}
