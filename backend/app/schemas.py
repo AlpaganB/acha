@@ -41,6 +41,7 @@ class MeasurementKind(StrEnum):
     SPO2 = "spo2"
     BLOOD_PRESSURE = "blood_pressure"
     BODY_TEMPERATURE = "body_temperature"
+    SLEEP_DURATION = "sleep_duration"
 
 
 MEASUREMENT_UNITS = {
@@ -48,6 +49,7 @@ MEASUREMENT_UNITS = {
     MeasurementKind.SPO2: "%",
     MeasurementKind.BLOOD_PRESSURE: "mmHg",
     MeasurementKind.BODY_TEMPERATURE: "°C",
+    MeasurementKind.SLEEP_DURATION: "h",
 }
 
 
@@ -61,7 +63,7 @@ class MissionProfileCreate(ApiModel):
     environment: Environment
     equipment: list[Name] = Field(default_factory=list, max_length=50)
     constraints: list[Description] = Field(default_factory=list, max_length=50)
-    measurement_schedules: list[MeasurementSchedule] = Field(default_factory=list, max_length=4)
+    measurement_schedules: list[MeasurementSchedule] = Field(default_factory=list, max_length=5)
     guidance_protocol_ids: list[Code] = Field(default_factory=list, max_length=50)
 
     @model_validator(mode="after")
@@ -110,6 +112,8 @@ class MeasurementCreate(ApiModel):
             raise ValueError("Heart rate must be positive.")
         if self.kind == MeasurementKind.BODY_TEMPERATURE and self.value < -273.15:
             raise ValueError("Body temperature cannot be below absolute zero.")
+        if self.kind == MeasurementKind.SLEEP_DURATION and not 0 <= self.value <= 24:
+            raise ValueError("Sleep duration must be between 0 and 24 hours for the previous 24 hours.")
         return self
 
 

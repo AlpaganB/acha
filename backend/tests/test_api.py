@@ -71,6 +71,25 @@ def test_mission_profile_and_crew_validation(client):
     )
 
 
+def test_sleep_duration_roundtrip_filter_and_evaluation(client, crew):
+    base = f"crew-members/{crew['id']}"
+    entry = measurement(kind="sleep_duration", value=7.5)
+    response = client.post(f"{base}/measurements", json=entry)
+    assert response.status_code == 201
+    assert response.json()["unit"] == "h"
+    assert client.post(f"{base}/measurements", json=entry).status_code == 200
+    history = client.get(f"{base}/measurements", params={"kind": "sleep_duration"}).json()
+    assert [row["id"] for row in history] == [entry["id"]]
+    assert client.get(f"{base}/measurements", params={"kind": "heart_rate"}).json() == []
+    for value in [-1, 24.1]:
+        assert client.post(f"{base}/measurements", json=measurement(kind="sleep_duration", value=value)).status_code == 422
+    payload = assessment(crew, symptoms=[], measurement_ids=[entry["id"]])
+    evaluated = client.post(f"{base}/assessments?evaluate=true", json=payload)
+    assert evaluated.status_code == 201
+    assert evaluated.json()["status"] == "insufficient_data"
+    assert evaluated.json()["engine_result"]["comparisons"] == {}
+
+
 def test_measurement_history_and_retry(client, crew):
     path = f"crew-members/{crew['id']}/measurements"
     earlier = measurement(recorded_at="2026-11-14T09:00:00Z", value=70)

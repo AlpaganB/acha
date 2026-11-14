@@ -49,6 +49,9 @@ def evaluate_assessment(session: Session, record: Assessment, profile: MissionPr
     current = {}
     evidence = {}
     for reading in sorted(record.measurements, key=lambda item: item.recorded_at, reverse=True):
+        # Sleep is a recorded wellbeing observation, outside the NEWS2 engine's scope.
+        if reading.kind not in ASSESSMENT_METRICS:
+            continue
         if reading.recorded_at > record.assessed_at or abs(reading.value) > 1e12:
             continue
         metric, unit, _, _ = ASSESSMENT_METRICS[reading.kind]

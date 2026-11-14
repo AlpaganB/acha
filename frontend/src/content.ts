@@ -11,6 +11,10 @@ export const symptoms = [
   { code: 'loss_of_consciousness', label: 'Loss of consciousness' },
   { code: 'new_confusion', label: 'New confusion' },
   { code: 'other', label: 'Other symptom' },
+  { code: 'abdominal_discomfort', label: 'Abdominal discomfort' },
+  { code: 'constipation', label: 'Constipation' },
+  { code: 'diarrhea', label: 'Diarrhea' },
+  { code: 'urinary_discomfort', label: 'Urinary discomfort' },
 ] as const
 
 export const environmentLabels: Record<MissionProfile['environment'], string> = {
@@ -25,6 +29,7 @@ export const measurementLabels: Record<string, string> = {
   spo2: 'Blood oxygen',
   blood_pressure: 'Blood pressure',
   body_temperature: 'Body temperature',
+  sleep_duration: 'Sleep duration',
 }
 
 interface Guide {

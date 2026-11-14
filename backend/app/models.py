@@ -51,7 +51,8 @@ class Measurement(Base):
             " OR (diastolic IS NULL AND ("
             "(kind = 'heart_rate' AND value > 0)"
             " OR (kind = 'spo2' AND value BETWEEN 0 AND 100)"
-            " OR (kind = 'body_temperature' AND value >= -273.15)))",
+            " OR (kind = 'body_temperature' AND value >= -273.15)"
+            " OR (kind = 'sleep_duration' AND value BETWEEN 0 AND 24)))",
             name="ck_measurements_values_by_kind",
         ),
         sa.Index("ix_measurements_crew_history", "crew_member_id", "recorded_at", "id"),

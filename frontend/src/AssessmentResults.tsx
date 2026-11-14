@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, ChevronRight, Plus, RefreshCw } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronRight, Plus, RefreshCw, TriangleAlert, Clock3, Info, CircleCheck } from 'lucide-react'
 import { api, type Assessment, type EngineFinding } from './api'
 import { formatDate, humanize, symptomLabel } from './content'
 import { navigate } from './navigation'
@@ -23,7 +23,14 @@ function recordTitle(input: Assessment | QueuedAssessment['input']) {
 function statusStyle(status: string) {
   if (status === 'urgent') return 'urgent'
   if (['pending', 'review', 'insufficient_data', 'needs_attention', 'saved_locally'].includes(status)) return 'pending'
+  if (['completed', 'demo_reviewed'].includes(status)) return 'completed'
   return ''
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const style = statusStyle(status)
+  const Icon = style === 'urgent' ? TriangleAlert : style === 'pending' ? Clock3 : style === 'completed' ? CircleCheck : Info
+  return <span className={`record-status ${style}`}><Icon size={12} aria-hidden="true" />{humanize(status)}</span>
 }
 
 function findingText(finding: EngineFinding) {
@@ -71,9 +78,7 @@ export function Records({ records, queued, syncIssues, available, pending, limit
         <li key={item.id}>
           <a className="record-link" href={`/assessments/${item.id}`}>
             <span className="record-label"><strong>{item.title}</strong><small>{formatDate(item.date)}</small></span>
-            <span className={`record-status ${statusStyle(item.status)}`}>
-              {humanize(item.status)}
-            </span>
+            <StatusBadge status={item.status} />
             <ChevronRight size={16} aria-hidden="true" />
           </a>
         </li>
@@ -154,7 +159,7 @@ export function AssessmentResult({
         <section className="surface result-panel">
           <div className="section-heading">
             <h2>{recordTitle(input)}</h2>
-            <span className={`record-status ${statusStyle(status)}`}>{humanize(status)}</span>
+            <StatusBadge status={status} />
           </div>
           <div aria-live="polite">
             {queuedLocally && !record && <p>{syncIssue

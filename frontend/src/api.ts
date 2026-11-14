@@ -130,8 +130,13 @@ async function listAll<T>(path: string): Promise<T[]> {
 export const api = {
   crew: () => listAll<CrewMember>('/crew-members'),
   profiles: () => listAll<MissionProfile>('/mission-profiles'),
-  measurements: (crewId: string) =>
-    request<Measurement[]>(`/crew-members/${crewId}/measurements?limit=12`),
+  measurements: (crewId: string, query: { kind?: string; since?: string; until?: string; limit?: number; offset?: number } = {}) => {
+    const params = new URLSearchParams({ limit: '12' })
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== '') params.set(key, String(value))
+    }
+    return request<Measurement[]>(`/crew-members/${crewId}/measurements?${params}`)
+  },
   recordMeasurement: (crewId: string, input: MeasurementInput) =>
     request<Measurement>(`/crew-members/${crewId}/measurements`, { method: 'POST', body: JSON.stringify(input) }),
   researchRecord: (refresh = false) => request<ResearchRecord>(`/research/bidmc-01${refresh ? '?refresh=true' : ''}`),
