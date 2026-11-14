@@ -150,7 +150,7 @@ Open [the web app](http://localhost:5173/) or [the API explorer](http://127.0.0.
 <details>
 <summary>Integration notes</summary>
 
-- Measurement writes use client-generated UUIDs and timestamps with a time zone. For blood pressure, send the systolic reading as `value` and the diastolic reading as `diastolic`.
+- Measurement writes use client generated UUIDs and timestamps with a time zone. For blood pressure, send the systolic reading as `value` and the diastolic reading as `diastolic`.
 - Sleep logs use `kind: "sleep_duration"`, a value from 0 to 24 hours for the previous 24 hours, and no `diastolic`. The API returns unit `h`. Apply migration `0004` with `python -m alembic upgrade head` and restart the API before recording sleep. Sleep is displayed as a wellbeing observation and is excluded from NEWS2 scoring.
 - Send measurements before assessments that reference them. Use `POST /api/v1/crew-members/{crew_id}/assessments?evaluate=true` to calculate and persist an assessment. Without that query parameter, the record starts pending for later evaluation.
 - A new record returns `201`. An identical retry returns the existing record with `200`. Reusing the identifier for different input returns `409`.
