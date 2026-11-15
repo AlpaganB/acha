@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, ChevronRight, Plus, RefreshCw, TriangleAlert, Clock3, Info, CircleCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronRight, Plus, RefreshCw, TriangleAlert, Clock3, Info, CircleCheck, ClipboardList } from 'lucide-react'
 import { ExternalAssessmentResult } from './WorkspaceTools'
 import { api, type Assessment, type EngineFinding, type Measurement } from './api'
 import { AssessmentFollowUp } from './AssessmentFollowUp'
@@ -69,7 +69,12 @@ export function Records({ records, queued, syncIssues, available, pending, limit
   if (!items.length) {
     return (
       <div className="empty-state" role="status">
-        <strong>{pending ? 'Loading assessments…' : available ? 'No assessments yet' : 'Assessment history unavailable'}</strong>
+        {pending ? <Clock3 size={20} aria-hidden="true" /> : available ? <ClipboardList size={20} aria-hidden="true" /> : <TriangleAlert size={20} aria-hidden="true" />}
+        <div><span className="technical-label">Assessment log / {pending ? 'loading' : available ? 'no entries' : 'unavailable'}</span>
+          <strong>{pending ? 'Retrieving crew check-ins' : available ? 'No assessments recorded' : 'History could not be retrieved'}</strong>
+          <p>{pending ? 'Waiting for the mission service.' : available ? 'Start a check-in to record symptoms and review measurements.' : 'Check the service connection. Missing records do not indicate a healthy status.'}</p>
+          {!pending && <a className="text-link" href={available ? '/assessment' : '/mission'}>{available ? 'Start assessment' : 'View mission connection'} <ArrowRight size={12} aria-hidden="true" /></a>}
+        </div>
       </div>
     )
   }

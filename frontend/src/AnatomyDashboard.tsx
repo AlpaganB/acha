@@ -85,7 +85,7 @@ export function AnatomyDashboard({ crewId, measurements, assessments, reachable,
   const revision = measurements.map(record => record.id).join(',')
   const stopped = hidden || !ready || (paused && !stage.manual)
   const travelling = stage.phase !== 'hold'
-  const cardsVisible = stage.phase === 'hold' || stage.phase === 'intro'
+  const cardsVisible = ['hold', 'intro', 'in'].includes(stage.phase)
 
   useEffect(() => {
     if (ready && !introStarted.current && showIntro) { introStarted.current = true; onIntroStarted() }
@@ -148,7 +148,7 @@ export function AnatomyDashboard({ crewId, measurements, assessments, reachable,
 
   return <section className={`anatomy-dashboard ${ready ? 'is-ready' : ''} ${stopped ? 'is-paused' : ''} ${travelling ? 'is-travelling' : ''}`} aria-label="Body systems overview">
     <header className="anatomy-toolbar">
-      <h2>Health systems</h2>
+      <div><span className="technical-label">02 / Anatomical overview</span><h2>Body systems</h2></div>
       <button className="anatomy-pause" onClick={() => setPaused(value => !value)} aria-label={paused ? 'Play body system rotation' : 'Pause body system rotation'}>{paused ? <Play size={15} /> : <Pause size={15} />}<span>{paused ? 'Play' : 'Pause'}</span></button>
     </header>
     <nav className="anatomy-navigation" aria-label="Body system views">
@@ -158,13 +158,15 @@ export function AnatomyDashboard({ crewId, measurements, assessments, reachable,
         <span className="anatomy-progress-rail" aria-hidden="true"><SystemSignal index={index + 1} /><span className="anatomy-progress">{stage.phase === 'hold' && stage.index === index + 1 && <span key={stage.sequence} />}</span></span>
       </button>)}
     </nav>
-    {reachable && failedVisibleKinds.length > 0 && <p className="anatomy-history-error" role="status">Couldn’t load {failedVisibleKinds.map(kind => measurementLabels[kind].toLowerCase()).join(', ')} history. <button className="text-link" onClick={() => setRetry(value => value + 1)}>Retry</button></p>}
+    <div className="anatomy-data-status" role="status">
+      {reachable && failedVisibleKinds.length > 0 ? <><TriangleAlert size={13} aria-hidden="true" /><span>Couldn't load {failedVisibleKinds.map(kind => measurementLabels[kind].toLowerCase()).join(', ')} history.</span><button className="text-link" onClick={() => setRetry(value => value + 1)}>Retry</button></> : <><span className="technical-label">Observation view</span><span>Recorded data only · Not a diagnostic scan</span></>}
+    </div>
     <div className="anatomy-stage" data-phase={stage.phase} data-system={stage.index}>
-      {views.map((view, index) => <div key={view.title} className={`anatomy-panel ${cardsVisible && stage.index === index ? 'is-active' : ''}`} aria-hidden={!cardsVisible || stage.index !== index} inert={!cardsVisible || stage.index !== index}>
+      {views.map((view, index) => <div key={view.title} className={`anatomy-panel ${cardsVisible && stage.index === index ? 'is-active' : ''} ${stage.phase === 'out' && stage.index === index ? 'is-exiting' : ''}`} aria-hidden={!cardsVisible || stage.index !== index} inert={!cardsVisible || stage.index !== index}>
         <div className="anatomy-column anatomy-column-left">
           {index === 0 && <>
             <article className="anatomy-card"><h3><Thermometer size={15} /> Body temperature</h3>{cardReading('body_temperature')}</article>
-            <article className={`anatomy-card ${flagged ? 'anatomy-attention' : ''}`}><h3><TriangleAlert size={15} /> Latest assessment</h3>
+            <article className={`anatomy-card ${flagged ? 'anatomy-attention' : ''} ${assessment?.status === 'urgent' ? 'anatomy-urgent' : ''}`}><h3><TriangleAlert size={15} /> Latest assessment</h3>
               <p className="anatomy-assessment-label">{assessment ? assessment.status.replaceAll('_', ' ') : 'No assessment yet'}</p>
               {assessment?.rationale && <p className="anatomy-empty">{assessment.rationale}</p>}
               <a className="text-link" href={assessment ? `/assessments/${assessment.id}` : '/assessment'}>Review check-in <ChevronRight size={12} /></a>
@@ -197,9 +199,6 @@ export function AnatomyDashboard({ crewId, measurements, assessments, reachable,
       </div>)}
       <div className="anatomy-camera-grid">
         <figure className={`anatomy-visual anatomy-camera phase-${stage.phase}`} style={{
-          '--focus-y': ['50%', '25%', '6%', '41%'][stage.index],
-          '--focus-shift': ['0%', '25%', '44%', '9%'][stage.index],
-          '--focus-scale': [1, 2.8, 5, 2.7][stage.index],
           '--phase-duration': `${phaseDuration[stage.phase]}ms`,
         } as CSSProperties}>
           <div className="anatomy-orbit orbit-outer" aria-hidden="true" />

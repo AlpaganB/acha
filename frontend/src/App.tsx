@@ -131,8 +131,8 @@ function LatestMeasurements({ measurements, pending, available }: {
   }
 
   return (
-    <section aria-labelledby="measurements-heading">
-      <div className="section-heading"><h2 id="measurements-heading">Recent measurements</h2>
+    <section className="telemetry-strip" aria-labelledby="measurements-heading">
+      <div className="section-heading"><h2 id="measurements-heading"><span className="technical-label">01 /</span> Latest telemetry</h2>
         <a className="text-link" href="/measurements">View readings</a>
       </div>
       <dl className="vital-grid surface" aria-busy={pending}>
@@ -170,7 +170,9 @@ function Home({ mission, showIntro, onIntroStarted }: { mission: Mission; showIn
     <>
       <header className="overview-heading">
         <div>
-          <h1>Health overview</h1>
+          <span className="technical-label">Flight medicine / crew systems</span>
+          <h1>Astronaut health console</h1>
+          <p>Recorded observations, body systems and crew follow-up.</p>
         </div>
         <div className="overview-actions">
           <a className="button secondary" href="/monitoring">Crew monitoring</a>
@@ -178,30 +180,30 @@ function Home({ mission, showIntro, onIntroStarted }: { mission: Mission; showIn
           <a className="button primary" href="/measurements"><Plus size={17} /> Record measurement</a>
         </div>
       </header>
-      <AnatomyDashboard crewId={mission.selected?.id} measurements={mission.measurements} assessments={mission.history}
-        reachable={mission.reachable} load={mission.records.measurements} showIntro={showIntro} onIntroStarted={onIntroStarted} />
       <LatestMeasurements measurements={mission.measurements} pending={mission.measurementsPending}
           available={mission.measurementsAvailable} />
-      <div className="dashboard-support">
-      <div className="overview-aside">
-        <section aria-labelledby="recent-heading">
+      <div className="console-grid">
+        <AnatomyDashboard crewId={mission.selected?.id} measurements={mission.measurements} assessments={mission.history}
+          reachable={mission.reachable} load={mission.records.measurements} showIntro={showIntro} onIntroStarted={onIntroStarted} />
+        <aside className="console-briefing" aria-label="Mission briefing">
+        <section className="surface briefing-records" aria-labelledby="recent-heading">
           <div className="section-heading">
-            <h2 id="recent-heading">Recent assessments</h2>
+            <h2 id="recent-heading"><span className="technical-label">03 /</span> Crew log</h2>
             <a className="text-link" href="/assessments">View all</a>
           </div>
-          <div className="surface">
+          <div>
             <Records records={mission.history} queued={mission.queued} limit={3} pending={mission.historyPending}
               available={mission.historyAvailable} syncIssues={mission.syncIssues} />
           </div>
         </section>
         <section className="surface mission-summary" aria-labelledby="mission-summary-heading">
-          <div className="section-heading"><h2 id="mission-summary-heading">Mission</h2></div>
-          <div className="mission-emblem"><Orbit size={30} aria-hidden="true" /><span>{mission.profile?.name ?? 'Unavailable'}<small>{mission.profile ? environmentLabels[mission.profile.environment] : ''}</small></span></div>
-          <dl className="detail-list"><div><dt>Available equipment</dt><dd>{mission.profile?.equipment.join(', ') || 'No equipment listed'}</dd></div></dl>
+          <div className="section-heading"><h2 id="mission-summary-heading"><span className="technical-label">04 /</span> Mission context</h2></div>
+          <div className="mission-emblem"><Orbit size={24} aria-hidden="true" /><span>{mission.profile?.name ?? 'No mission selected'}<small>{mission.profile ? environmentLabels[mission.profile.environment] : 'Mission context unavailable'}</small></span></div>
+          <dl className="detail-list"><div><dt>Crew member</dt><dd>{mission.selected?.display_name ?? 'Not selected'}</dd></div><div><dt>Equipment</dt><dd>{mission.profile?.equipment.join(', ') || 'No equipment listed'}</dd></div></dl>
           <a className="text-link" href="/mission">View mission profile <ArrowRight size={14} /></a>
         </section>
-        <a className="surface guide-shortcut" href="/guides"><BookOpen size={20} /><span><strong>Medical guides</strong><small>Procedures and emergency contacts</small></span><ArrowRight size={17} /></a>
-      </div>
+        <a className="surface guide-shortcut" href="/guides"><BookOpen size={20} /><span><span className="technical-label">Reference / procedures</span><strong>Medical guides</strong><small>Procedures and emergency contacts</small></span><ArrowRight size={17} /></a>
+        </aside>
       </div>
     </>
   )
@@ -407,6 +409,7 @@ function MissionApp({ local, changeMode, modeError }: { local: boolean; changeMo
             <span className="brand-copy"><span className="brand-name">ACHA</span><small>Crew Health Assistant</small></span>
           </a>
         </div>
+          <span className="sidebar-section-label technical-label">Operations</span>
           <nav className="main-nav" aria-label="Primary navigation">
             <a href="/" aria-label="Overview" title="Overview" aria-current={home ? 'page' : undefined}><MenuIcon name="overview" pulse={navPulse.href === '/' ? navPulse.sequence : 0} /><span>Overview</span></a>
             <a href="/monitoring" aria-label="Crew monitoring" title="Crew monitoring" aria-current={page === 'monitoring' ? 'page' : undefined}><MenuIcon name="monitoring" pulse={navPulse.href === '/monitoring' ? navPulse.sequence : 0} /><span>Crew monitoring</span></a>
@@ -422,6 +425,12 @@ function MissionApp({ local, changeMode, modeError }: { local: boolean; changeMo
           </a>
       </aside>
       <main ref={main} id="main-content" className={`main-content ${home ? 'home' : 'inner-page'}`} tabIndex={-1} inert={isMobile && mobileMenuOpen}>
+        <div className="console-statusbar" aria-label="Mission service status">
+          <span className="console-identity"><Radio size={13} aria-hidden="true" /> ACHA <span>/</span> CREW HEALTH OPERATIONS</span>
+          <div className="console-context"><span>{mission.selected?.display_name ?? 'Crew not selected'}</span><span className="service-state" data-state={local ? 'simulation' : !mission.online ? 'offline' : mission.connection}>
+            {local ? 'Synthetic scenario' : !mission.online ? 'Offline · cached records' : mission.connection === 'connected' ? 'Service connected' : mission.connection === 'checking' ? 'Connecting' : 'Service unavailable'}
+          </span></div>
+        </div>
         {local && <div className="connection-notice scenario-banner"><strong>Synthetic scenario</strong><span>Fictional crew records · Stored on this device</span>
           <button className="text-link" onClick={() => changeMode(false)}>Return to mission service</button></div>}
         {!mission.reachable && (mission.connection !== 'checking' || !mission.online) && <div className="connection-notice" role="status"><WifiOff size={15} />{mission.online ? 'Couldn’t refresh mission-service records.' : 'You’re offline. Recently cached mission records are available.'}{mission.online && <button className="text-link" onClick={() => void mission.refreshWorkspace()}>Retry</button>}{!home && <button className="text-link" onClick={() => changeMode(true)}>Open synthetic scenario</button>}</div>}

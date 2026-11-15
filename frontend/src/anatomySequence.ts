@@ -1,6 +1,6 @@
 export type AnatomyPhase = 'intro' | 'out' | 'wide' | 'in' | 'hold'
 export type AnatomyStage = { index: number; target: number; phase: AnatomyPhase; sequence: number; manual: boolean }
-export const phaseDuration: Record<AnatomyPhase, number> = { intro: 1500, out: 1000, wide: 250, in: 1200, hold: 4000 }
+export const phaseDuration: Record<AnatomyPhase, number> = { intro: 900, out: 700, wide: 180, in: 700, hold: 4000 }
 export function initialStage(showIntro: boolean): AnatomyStage {
   return { index: showIntro ? 0 : 1, target: 1, phase: showIntro ? 'intro' : 'hold', sequence: 0, manual: false }
 }

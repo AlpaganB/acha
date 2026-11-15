@@ -33,3 +33,8 @@ test('reduced motion selection goes directly to the requested system', () => {
   assert.equal(selectStage(stage, 9, false), stage)
   assert.equal(selectStage(stage, 3, false), stage)
 })
+
+test('both anatomy crossfades use the same controlled 600–800 ms timing', () => {
+  assert.ok(phaseDuration.out >= 600 && phaseDuration.out <= 800)
+  assert.equal(phaseDuration.in, phaseDuration.out)
+})
