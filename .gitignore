@@ -7,5 +7,6 @@ __pycache__/
 node_modules/
 frontend/node_modules/
 frontend/dist/
+frontend/dist-restricted/
 /PROGRESS.md
 /implementation.md

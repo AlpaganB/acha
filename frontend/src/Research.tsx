@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { api, type IssResearchRecord, type ResearchRecord } from './api'
 import { RadiationResearch } from './RadiationResearch'
 import { WellbeingResearch } from './WellbeingResearch'
+import { AssayResearch, WaveformResearch } from './MeasurementResearch'
 
 const SleepResearch = lazy(() => import('./SleepResearch').then(module => ({ default: module.SleepResearch })))
 
@@ -133,13 +134,16 @@ export function Research({ view }: { view: string }) {
   return <>
     <header className="page-title"><h1>Research data</h1></header>
     <nav className="monitoring-tabs" aria-label="Research datasets">
-      <a className="button secondary" aria-current={!['sleep', 'radiation', 'wellbeing'].includes(view) ? 'page' : undefined}
+      <a className="button secondary" aria-current={!['sleep', 'radiation', 'wellbeing', 'waveforms', 'laboratory'].includes(view) ? 'page' : undefined}
         href="/research">Vitals and cabin</a>
       <a className="button secondary" aria-current={view === 'sleep' ? 'page' : undefined} href="/research?view=sleep">Sleep</a>
       <a className="button secondary" aria-current={view === 'radiation' ? 'page' : undefined} href="/research?view=radiation">Radiation</a>
       <a className="button secondary" aria-current={view === 'wellbeing' ? 'page' : undefined} href="/research?view=wellbeing">Well-being</a>
+      <a className="button secondary" aria-current={view === 'waveforms' ? 'page' : undefined} href="/research?view=waveforms">Waveforms</a>
+      <a className="button secondary" aria-current={view === 'laboratory' ? 'page' : undefined} href="/research?view=laboratory">Laboratory</a>
     </nav>
     {view === 'sleep' ? <Suspense fallback={<p className="notice" role="status">Loading scored sleep research…</p>}>
-      <SleepResearch /></Suspense> : view === 'radiation' ? <RadiationResearch /> : view === 'wellbeing' ? <WellbeingResearch /> : <OtherRecords />}
+      <SleepResearch /></Suspense> : view === 'radiation' ? <RadiationResearch /> : view === 'wellbeing' ? <WellbeingResearch />
+        : view === 'waveforms' ? <WaveformResearch /> : view === 'laboratory' ? <AssayResearch /> : <OtherRecords />}
   </>
 }

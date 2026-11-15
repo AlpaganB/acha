@@ -106,16 +106,17 @@ export class ApiError extends Error {
 
 const apiUrl = (import.meta.env.VITE_API_URL || '/api/v1').replace(/\/+$/, '')
 
-async function request<T>(path: string, options?: RequestInit): Promise<T> {
+async function request<T>(path: string, options?: RequestInit, timeoutMs = 8000): Promise<T> {
   let response: Response
   const headers = new Headers(options?.headers)
   if (options?.body) headers.set('Content-Type', 'application/json')
+  const timeout = AbortSignal.timeout(timeoutMs)
   try {
     response = await fetch(apiUrl + path, {
       ...options,
       cache: 'no-store',
       headers,
-      signal: options?.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(8000)]) : AbortSignal.timeout(8000),
+      signal: options?.signal ? AbortSignal.any([options.signal, timeout]) : timeout,
     })
   } catch {
     throw new ApiError(0, 'The mission service could not be reached.')
@@ -149,6 +150,8 @@ async function listAll<T>(path: string): Promise<T[]> {
 export const api = {
   crew: () => listAll<CrewMember>('/crew-members'),
   profiles: () => listAll<MissionProfile>('/mission-profiles'),
+  monitoring: (crewId: string, query: URLSearchParams, signal: AbortSignal) =>
+    request<IndicatorReport>(`/crew-members/${crewId}/monitoring?${query}`, { signal }),
   measurements: (crewId: string, query: { kind?: string; since?: string; until?: string; limit?: number; offset?: number } = {}) => {
     const params = new URLSearchParams({ limit: '12' })
     for (const [key, value] of Object.entries(query)) {
@@ -159,6 +162,10 @@ export const api = {
   recordMeasurement: (crewId: string, input: MeasurementInput) =>
     request<Measurement>(`/crew-members/${crewId}/measurements`, { method: 'POST', body: JSON.stringify(input) }),
   researchRecord: (refresh = false) => request<ResearchRecord>(`/research/bidmc-01${refresh ? '?refresh=true' : ''}`),
+  waveforms: (start: number, signal: AbortSignal) =>
+    request<WaveformWindow>(`/research/bidmc-01-waveforms?start=${start}`, { signal }, 20_000),
+  assayCoverage: (study: AssayCoverage['study'], signal: AbortSignal) =>
+    request<AssayCoverage>(`/research/osdr-assays/${study}`, { signal }, 20_000),
   issResearchRecord: (window: 'day' | 'week' = 'day') => request<IssResearchRecord>(`/research/nasa-rr6-iss?window=${window}`),
   doseResearchRecord: (window: 'sample' | 'day' = 'sample') => request<DoseResearchRecord>(`/research/nasa-dostel1?window=${window}`),
   assessments: (crewId: string) =>
@@ -180,7 +187,178 @@ export const api = {
 }
 
 export type ObservationScope = 'environment' | 'crew'
+export interface WaveformWindow {
+  record: string
+  source: string
+  header: string
+  download: string
+  start_seconds: number
+  sample_rate_hz: number
+  channels: { code: 'II' | 'PLETH' | 'RESP'; unit: string; values: (number | null)[] }[]
+}
+export interface AssayCoverage {
+  study: 'OSD-575' | 'OSD-656'
+  specimen: string
+  source: string
+  download: string
+  rows: number
+  fields: { name: string; unit: string; numeric_rows: number; other_rows: number }[]
+}
 export type MissionPhase = 'preflight' | 'in_flight' | 'eva' | 'postflight'
+interface SessionConditions {
+  shift: string
+  utc_offset_minutes: number
+  illuminance_lux: number | null
+  workload: number | null
+}
+export interface SleepEpisode extends SessionConditions {
+  kind: 'sleep_episode'
+  method: 'self_report' | 'actigraphy' | 'polysomnography'
+  attempted_sleep_at: string
+  sleep_onset_at: string
+  final_wake_at: string
+  out_of_bed_at: string
+  awake_after_onset_minutes: number
+  interruptions: number
+}
+export type ObservationContext = SleepEpisode
+  | (SessionConditions & { kind: 'performance'; protocol: string; version: string; trials: number; valid_trials: number })
+  | { kind: 'radiation'; source_ref: string; geometry_ref: string; shielding_ref: string; particle_class: string }
+  | { kind: 'dose_estimate'; source_ref: string; model_version: string; tissue: string | null }
+  | { kind: 'protocol'; protocol: string; version: string; source_ref: string; body_site: string | null; specimen: string | null }
+  | { kind: 'reading'; posture: string; timing: string }
+  | { kind: 'exercise_interval'; start: string; end: string; mode: string; intensity: string }
+  | { kind: 'gravity_interval'; start: string; end: string; regime: string; source_ref: string }
+  | RadiationAssessmentContext
+
+export interface RadiationAssessmentContext {
+  kind: 'radiation_assessment'
+  basis: 'nasa_career_effective' | 'organ_gray_equivalent' | 'hippocampal_absorbed' | 'lifetime_cancer_risk'
+  model: string
+  model_version: string
+  source_ref: string
+  input_manifest_ref: string
+  review_ref: string
+  exposure_start: string
+  exposure_end: string
+  lower: number
+  upper: number
+  interval_description: string
+  tissue: string | null
+  complete_history: boolean
+  includes_mission_projection: boolean
+  excludes_medical_exposure: boolean
+}
+
+export type HealthReviewAction = 'reviewed' | 'recheck_requested' | 'referred_to_flight_team'
+
+export interface HealthReviewAcknowledgment {
+  decision_key: string
+  actor: string
+  action: HealthReviewAction
+  recorded_at: string
+}
+
+export interface HealthReviewDecision {
+  rule_id: string
+  title: string
+  status: 'insufficient_data' | 'boundary_uncertain' | 'within_rule' | 'review_required'
+  explanation: string
+  unit: string
+  minimum: number | null
+  maximum: number | null
+  maximum_exclusive: boolean
+  value: number | null
+  lower: number | null
+  upper: number | null
+  observed_at: string | null
+  observation_ids: string[]
+  procedure_ref: string
+  evidence: string
+  source_url: string | null
+  decision_key: string | null
+  acknowledgment: HealthReviewAcknowledgment | null
+}
+
+interface HealthReviewApproval {
+  authority: string
+  reference: string
+}
+
+export interface HealthReviewReport {
+  evaluated_at: string
+  policy: {
+    version: string
+    flight_medicine: HealthReviewApproval | null
+    radiation_safety: HealthReviewApproval | null
+  } | null
+  decisions: HealthReviewDecision[]
+  references: {
+    rule_id: string; title: string; limit: number; unit: string; requirement: string; standard: string
+    comparator: 'minimum_inclusive' | 'maximum_inclusive' | 'maximum_exclusive'
+    required_evidence: string; source_url: string
+  }[]
+  model_results: MissionObservation[]
+  recent_acknowledgments: (HealthReviewAcknowledgment & { policy_version: string; title: string })[]
+}
+
+export interface Indicator {
+  parameter: string
+  label: string
+  unit: string
+  value: number
+  recorded_at: string
+  phase: MissionPhase | null
+  activity: ObservationInput['activity'] | null
+  posture: string | null
+  timing: string | null
+  device: string | null
+  quality: string
+  reference: {
+    start: string; end: string; days: number; median: number | null; change: number | null
+    lower: number | null; upper: number | null
+    status: 'collecting' | 'flat_history' | 'within' | 'above' | 'below' | 'quality' | 'conflict'
+  }
+}
+
+export interface IndicatorReport {
+  through: string
+  indicators: Indicator[]
+}
+
+export interface CrewReport extends IndicatorReport {
+  adaptation: {
+    parameter: string; label: string; unit: string; phase: MissionPhase; value: number; recorded_at: string
+    preflight: number | null; change: number | null; percentage_change: number | null; days: number
+  }[]
+  daily_context: {
+    date: string; intake: Record<string, number | null>; exercise_minutes: number | null
+    exercise_by_mode: Record<string, number>; exercise_conflict_minutes: number; untimed_exercise_minutes: number | null
+  }[]
+  gravity: { since: string; through: string; hours: Record<string, number>; conflict_hours: number; unlogged_hours: number } | null
+}
+
+export interface CrewIdentity {
+  crew_code: string
+  last_observation: string | null
+}
+
+export interface CrewRadiationReport {
+  start: string
+  end: string
+  start_source: 'selected_period' | 'mission_clock' | 'first_record'
+  channels: {
+    channel: string; location: string; calibration: string; parameter: string; unit: string; reported_rate_unit: string
+    context: Extract<ObservationContext, { kind: 'radiation' }>
+    last_rate: number | null; last_sample: string | null; dose: number | null; rad: number | null
+    lower: number | null; upper: number | null; coverage: number; covered_hours: number; gap_intervals: number
+    daily: { date: string; covered_hours: number; dose: number; running_observed_dose: number }[]
+  }[]
+  counters: { observation: MissionObservation; change: number | null; rad: number | null; reset: boolean }[]
+  estimates: MissionObservation[]
+  reported_rates: MissionObservation[]
+}
+
 export interface ParameterDefinition {
   id: string
   label: string
@@ -194,6 +372,7 @@ export interface ParameterDefinition {
   minimum: number | null
   maximum: number | null
   input_kind: 'number' | 'event'
+  context_kind?: ObservationContext['kind'] | null
 }
 export interface ObservationAccess {
   actor: string
@@ -214,19 +393,76 @@ export interface ObservationInput {
   calibration: string | null
   uncertainty: number | null
   recorded_at: string
+  context?: ObservationContext | null
 }
 export interface MissionObservation extends ObservationInput {
   mission_code: string
   scope: ObservationScope
   unit: string
-  provenance: 'SYNTHETIC' | 'USER_REPORTED' | 'MANUAL_OBSERVATION' | 'CLINICAL_RECORD'
+  provenance: 'SYNTHETIC' | 'USER_REPORTED' | 'MANUAL_OBSERVATION' | 'CLINICAL_RECORD' | 'DEVICE_REPORTED'
   method: string
   created_at: string
 }
 
+export interface ChannelQuality {
+  channel: string
+  parameter: string
+  unit: string
+  firmware: string
+  calibration: string
+  sample_interval_ms: number | null
+  last_sample_at: string | null
+  last_received_at: string | null
+  missing_sequences: number
+  counts: Record<string, number>
+}
+
+export interface RadiationReviewInput {
+  channel: string
+  end: string
+  boundary: number
+  window_seconds: number
+  maximum_gap_seconds: number
+  minimum_coverage: number
+  minimum_exceedance_seconds: number
+  uncertainty_margin: number
+}
+
+export interface RadiationReview {
+  parameter: string
+  unit: string
+  start: string
+  end: string
+  coverage: number
+  longest_exceedance_seconds: number
+  result: 'insufficient_data' | 'boundary_exceeded' | 'boundary_not_observed'
+}
+
 export const observationsApi = {
+  deployment: (signal: AbortSignal) => request<{ status: string; workspace?: string }>('/health', { signal }),
   parameters: () => request<ParameterDefinition[]>('/observations/parameters'),
   access: (token: string) => request<ObservationAccess>('/observations/access', { headers: { Authorization: `Bearer ${token}` } }),
+  crew: (token: string, mission: string, signal: AbortSignal) =>
+    request<CrewIdentity[]>(`/observations/missions/${encodeURIComponent(mission)}/crew`, {
+      headers: { Authorization: `Bearer ${token}` }, signal,
+    }),
+  monitoring: (token: string, mission: string, crew: string, query: URLSearchParams, signal: AbortSignal) =>
+    request<CrewReport>(`/observations/missions/${encodeURIComponent(mission)}/crew/${encodeURIComponent(crew)}/monitoring?${query}`, {
+      headers: { Authorization: `Bearer ${token}` }, signal,
+    }),
+  healthReview: (token: string, mission: string, crew: string, signal: AbortSignal) =>
+    request<HealthReviewReport>(`/observations/missions/${encodeURIComponent(mission)}/crew/${encodeURIComponent(crew)}/health-review`, {
+      headers: { Authorization: `Bearer ${token}` }, signal,
+    }),
+  acknowledgeHealthReview: (token: string, mission: string, crew: string, input: { decision_key: string; action: HealthReviewAction },
+    signal: AbortSignal) =>
+    request<HealthReviewAcknowledgment>(`/observations/missions/${encodeURIComponent(mission)}/crew/${encodeURIComponent(crew)}/health-review/acknowledgments`, {
+      headers: { Authorization: `Bearer ${token}` }, method: 'POST', body: JSON.stringify(input), signal,
+    }),
+  radiation: (token: string, mission: string, crew: string, query: URLSearchParams, signal: AbortSignal) =>
+    request<CrewRadiationReport>(`/observations/missions/${encodeURIComponent(mission)}/crew/${encodeURIComponent(crew)}/radiation?${query}`, {
+      headers: { Authorization: `Bearer ${token}` }, signal,
+    }, 20_000),
   list: (token: string, mission: string, query: URLSearchParams, signal: AbortSignal) =>
     request<MissionObservation[]>(`/observations/missions/${encodeURIComponent(mission)}?${query}`, {
       headers: { Authorization: `Bearer ${token}` }, signal,
@@ -234,5 +470,13 @@ export const observationsApi = {
   save: (token: string, mission: string, input: ObservationInput) =>
     request<MissionObservation>(`/observations/missions/${encodeURIComponent(mission)}`, {
       method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(input),
+    }),
+  channels: (token: string, mission: string, query: URLSearchParams, signal: AbortSignal) =>
+    request<ChannelQuality[]>(`/observations/missions/${encodeURIComponent(mission)}/devices?${query}`, {
+      headers: { Authorization: `Bearer ${token}` }, signal,
+    }),
+  reviewRadiation: (token: string, mission: string, input: RadiationReviewInput, signal: AbortSignal) =>
+    request<RadiationReview>(`/observations/missions/${encodeURIComponent(mission)}/radiation/review`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify(input), signal,
     }),
 }

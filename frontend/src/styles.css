@@ -433,6 +433,35 @@ select, textarea {
 .monitoring-metrics dd { margin: 5px 0; font-weight: 620; font-size: 21px; font-variant-numeric: tabular-nums; }
 .monitoring-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
 .monitoring-tabs [aria-current] { background: var(--accent-light); border-color: var(--accent); }
+
+.crew-roster { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 22px; }
+.crew-roster button { align-items: flex-start; }
+.crew-roster button:has(small) { flex-direction: column; gap: 4px; }
+.crew-roster small { color: var(--muted); }
+.crew-roster [aria-pressed="true"] { background: var(--accent-light); border-color: var(--accent); }
+.crew-monitoring-stack { display: grid; gap: 18px; margin-block: 16px 0; }
+.crew-reference-form .section-heading h2 { display: flex; align-items: center; gap: 8px; }
+.crew-workspace-tabs { margin-top: 20px; }
+.crew-indicator-grid, .crew-exposure-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: 14px;
+}
+.crew-indicator { padding: clamp(14px, 2vw, 22px); }
+.crew-indicator-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.crew-indicator-header h3 { margin: 0; font-size: 1rem; }
+.crew-indicator-status { font-size: .8rem; color: var(--accent); }
+.crew-indicator[data-deviation] { border-color: var(--warning); }
+.crew-indicator[data-deviation] .crew-indicator-status { color: var(--warning); }
+.crew-indicator-value { margin: 16px 0 4px; font-size: clamp(1.65rem, 3vw, 2.3rem); font-variant-numeric: tabular-nums; }
+.crew-indicator-value small, .crew-indicator time, .crew-indicator-context, .crew-indicator-reference dt,
+.crew-exposure-metrics dt, .crew-exposure-metrics small { color: var(--muted); font-size: .8rem; }
+.crew-indicator-context { margin: 7px 0 0; }
+.crew-indicator-reference { display: flex; flex-wrap: wrap; gap: 10px 22px; margin: 16px 0 0; padding-top: 12px; border-top: 1px solid var(--line); }
+.crew-exposure-metrics > div { padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+.crew-indicator-reference dd, .crew-exposure-metrics dd { margin: 4px 0 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.crew-exposure-metrics small { display: block; margin-top: 5px; }
+.crew-dose-channel { margin-block: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
 .monitoring-figure { margin: 18px 0; }
 .monitoring-figure svg { width: 100%; min-height: 100px; }
 .monitoring-figure .pressure-time-axis { flex-wrap: wrap; gap: 4px 12px; }

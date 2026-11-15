@@ -25,6 +25,17 @@ test('baseline and phase summaries require comparable subject, device, and conte
   ])
 })
 
+test('performance baselines start over on protocol, device or shift changes', () => {
+  const conditions = { kind: 'performance', protocol: 'browser-reaction', version: 'v1', trials: 5,
+    valid_trials: 5, shift: 'alpha', utc_offset_minutes: 0, illuminance_lux: 100, workload: 2 }
+  const task = (minute, value, fields = {}, context = {}) => reading(minute, value, {
+    parameter: 'reaction_time', unit: 'ms', method: 'protocol_transcribed', context: { ...conditions, ...context }, ...fields,
+  })
+  const history = [task(1, 100, {}, { version: 'v2' }), task(2, 100, {}, { shift: 'bravo' }),
+    task(3, 100, { device: 'monitor-2' }), ...Array.from({ length: 6 }, (_, index) => task(index + 4, 200 + index))]
+  assert.deepEqual(priorBaseline(usableSeries(history, 'reaction_time')), { value: 202, count: 5, delta: 3 })
+})
+
 test('pairing requires matching location, time and provenance class and never reuses an observation', () => {
   const first = [0, 2, 10, 15, 20, 25].map((minute, index) => reading(minute, index + 1, { crew_code: null }))
   const second = [1, 12, 17, 22, 27].map((minute, index) => reading(minute, [1, 3, 4, 5, 6][index], { parameter: 'spo2' }))

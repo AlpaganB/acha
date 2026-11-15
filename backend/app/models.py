@@ -144,6 +144,7 @@ class MissionObservation(Base):
     uncertainty: Mapped[float | None] = mapped_column(sa.Float)
     provenance: Mapped[str] = mapped_column(sa.String(24))
     method: Mapped[str] = mapped_column(sa.String(24))
+    context: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True))
     recorded_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), server_default=sa.func.now())
 
@@ -159,3 +160,72 @@ class ObservationAudit(Base):
     crew_code: Mapped[str | None] = mapped_column(sa.String(64))
     observation_id: Mapped[UUID | None] = mapped_column(sa.Uuid)
     created_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), server_default=sa.func.now())
+
+
+class MissionClock(Base):
+    __tablename__ = "mission_clocks"
+
+    code: Mapped[str] = mapped_column(sa.String(64), primary_key=True)
+    epoch: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+
+
+class DeviceChannel(Base):
+    __tablename__ = "mission_device_channels"
+    __table_args__ = (sa.UniqueConstraint("sha256", name="uq_device_channel_credential"),)
+
+    mission_code: Mapped[str] = mapped_column(sa.ForeignKey("mission_clocks.code"), primary_key=True)
+    code: Mapped[str] = mapped_column(sa.String(64), primary_key=True)
+    crew_code: Mapped[str | None] = mapped_column(sa.String(64))
+    sha256: Mapped[str | None] = mapped_column(sa.String(64))
+    configuration: Mapped[dict] = mapped_column(JSONB)
+
+
+class DeviceReceipt(Base):
+    __tablename__ = "mission_device_receipts"
+    __table_args__ = (
+        sa.ForeignKeyConstraint(["mission_code", "channel_code"],
+                                ["mission_device_channels.mission_code", "mission_device_channels.code"]),
+        sa.Index("ix_device_receipt_time", "mission_code", "channel_code", "recorded_at"),
+    )
+
+    mission_code: Mapped[str] = mapped_column(sa.String(64), primary_key=True)
+    channel_code: Mapped[str] = mapped_column(sa.String(64), primary_key=True)
+    sequence: Mapped[int] = mapped_column(sa.BigInteger, primary_key=True)
+    recorded_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    fingerprint: Mapped[str] = mapped_column(sa.String(64))
+    status: Mapped[str] = mapped_column(sa.String(24))
+    received_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), server_default=sa.func.now())
+    observation_id: Mapped[UUID | None] = mapped_column(sa.ForeignKey("mission_observations.id", ondelete="CASCADE"))
+
+
+class HealthReviewPolicy(Base):
+    __tablename__ = "health_review_policies"
+    __table_args__ = (
+        sa.Index("ix_health_review_active", "mission_code", unique=True, postgresql_where=sa.text("retired_at IS NULL")),
+    )
+
+    mission_code: Mapped[str] = mapped_column(sa.String(64), primary_key=True)
+    version: Mapped[str] = mapped_column(sa.String(64), primary_key=True)
+    configuration: Mapped[dict] = mapped_column(JSONB)
+    published_by: Mapped[str] = mapped_column(sa.String(64))
+    published_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    retired_at: Mapped[datetime | None] = mapped_column(sa.DateTime(timezone=True))
+    retired_by: Mapped[str | None] = mapped_column(sa.String(64))
+
+
+class HealthReviewAcknowledgment(Base):
+    __tablename__ = "health_review_acknowledgments"
+    __table_args__ = (
+        sa.ForeignKeyConstraint(
+            ["mission_code", "policy_version"], ["health_review_policies.mission_code", "health_review_policies.version"],
+        ),
+    )
+
+    mission_code: Mapped[str] = mapped_column(sa.String(64), primary_key=True)
+    crew_code: Mapped[str] = mapped_column(sa.String(64), primary_key=True)
+    decision_key: Mapped[str] = mapped_column(sa.String(64), primary_key=True)
+    policy_version: Mapped[str] = mapped_column(sa.String(64))
+    action: Mapped[str] = mapped_column(sa.String(32))
+    actor: Mapped[str] = mapped_column(sa.String(64))
+    recorded_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True))
+    snapshot: Mapped[dict] = mapped_column(JSONB)

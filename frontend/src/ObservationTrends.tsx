@@ -108,7 +108,7 @@ export function ObservationTrends({ records, definitions }: { records: MissionOb
       <strong>{first.label} and {second.label}</strong>
       <p>{pairs.length} matched pairs · {correlation === null ? 'Correlation requires five pairs and variation in both series.'
         : `Pearson r = ${printable(correlation)} · Median lag ${printable(median(pairs.map(pair => pair.lag)))} min.`}</p>
-      <p>Pairs use the nearest unused later or simultaneous reading in the same phase and location. Each series uses its latest device and calibration context.
+      <p>Pairs use the nearest unused later or simultaneous reading in the same phase and location. Each series uses its latest device, calibration and recorded session conditions.
         Activity, workload and shared trends may affect associations.</p>
       {pairs.length > 0 && <details className="research-observations">
         <summary>View matched readings</summary>

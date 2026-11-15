@@ -16,9 +16,31 @@ function sameContext(a: MissionObservation, b: MissionObservation) {
     && (a.provenance === 'SYNTHETIC') === (b.provenance === 'SYNTHETIC')
 }
 
+function comparisonContext(record: MissionObservation) {
+  const context = record.context
+  switch (context?.kind) {
+    case 'reading':
+      return [context.kind, context.posture, context.timing]
+    case 'sleep_episode':
+      return [context.kind, context.method, context.shift, context.utc_offset_minutes, context.illuminance_lux, context.workload]
+    case 'performance':
+      return [context.kind, context.protocol, context.version, context.trials, context.shift, context.utc_offset_minutes,
+        context.illuminance_lux, context.workload]
+    case 'protocol':
+      return [context.kind, context.protocol, context.version, context.body_site, context.source_ref]
+    case 'radiation':
+      return [context.kind, context.source_ref, context.geometry_ref, context.shielding_ref, context.particle_class]
+    case 'dose_estimate':
+      return [context.kind, context.source_ref, context.model_version, context.tissue]
+    default:
+      return []
+  }
+}
+
 export function comparableTo(a: MissionObservation, b: MissionObservation) {
   return sameContext(a, b) && a.crew_code === b.crew_code && a.unit === b.unit && a.device === b.device
-    && a.calibration === b.calibration && a.provenance === b.provenance
+    && a.calibration === b.calibration && a.provenance === b.provenance && a.method === b.method
+    && JSON.stringify(comparisonContext(a)) === JSON.stringify(comparisonContext(b))
 }
 
 export function usableSeries(records: MissionObservation[], key: string) {
@@ -26,7 +48,7 @@ export function usableSeries(records: MissionObservation[], key: string) {
   for (const record of records) {
     if (record.parameter !== key || record.quality !== 'verified' || record.value === null) continue
     const id = JSON.stringify([record.mission_code, record.location, record.crew_code, record.phase,
-      record.provenance, Date.parse(record.recorded_at)])
+      record.provenance, record.device, record.calibration, comparisonContext(record), Date.parse(record.recorded_at)])
     const group = buckets.get(id) ?? []
     group.push({ ...record, value: record.value })
     buckets.set(id, group)

@@ -20,6 +20,7 @@ from .schemas import (
     MeasurementCreate,
     MissionProfileCreate,
 )
+from .workspace import public_workspace_enabled
 
 
 def seed_demo_data(value: str | None = None) -> None:
@@ -87,5 +88,6 @@ def seed_demo_data(value: str | None = None) -> None:
 
 
 if __name__ == "__main__":
-    seed_demo_data()
-    print("Demo data is available.")
+    if public_workspace_enabled():
+        seed_demo_data()
+        print("Demo data is available.")

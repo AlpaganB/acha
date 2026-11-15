@@ -48,7 +48,7 @@ The [runtime parameter registry](../backend/app/observation_registry.py) defines
 
 | Priority and parameter | Unit and collection | Primary NASA source · alternative | Availability and analysis status |
 | --- | --- | --- | --- |
-| P0 heart rate and SpO₂ | bpm and %, spot sensor readings or continuous device stream | NLSP study search · BIDMC | Existing manual records and baseline comparisons. Research replay and synthetic pressure timeline available. Live sensors and authenticated flight telemetry pending. |
+| P0 heart rate and SpO₂ | bpm and %, spot sensor readings or continuous device stream | NLSP study search · BIDMC | Manual records, baseline comparisons and registered numeric device intake. Hardware-specific adapters depend on the selected instruments. |
 | P0 respiratory rate | breaths/min, periodic count or sensor | NLSP study search · BIDMC and [RCP NEWS2](https://www.rcp.ac.uk/resources/national-early-warning-score-news-2/) | New stored measurement and same-crew history comparison. Eligible for the existing partial terrestrial NEWS2 assessment. Also shown in the pressure scenario and existing BIDMC replay. |
 | P0 systolic and diastolic BP, body temperature, acute symptoms | mmHg, °C, symptom code and optional severity, intermittent cuff or thermometer readings and self-report | NASA-STD-3001 Vol. 1 and NLSP · RCP NEWS2 | Existing manual records and assessment history. Baseline BP comparison uses systolic pressure. Temperature modality is unspecified. |
 | P0 cabin total pressure, change rate, exposure time, transitions and pressure-related symptoms | kPa absolute, kPa/min, min, events and symptom scores, 5 min in demo | NASA-STD-3001 Vol. 2 · restricted Dragon telemetry catalog in [OSDR Public API examples](https://api.nasa.gov/) | Synthetic timeline with data gaps, rule evidence and baseline comparisons. The restricted log records pressure, transition events and symptoms and estimates rates and sampled exposure from comparable readings. No verified public matched subject series. |
@@ -61,16 +61,16 @@ The [runtime parameter registry](../backend/app/observation_registry.py) defines
 | P1 core/skin/resting temperature, exercise response, cooling, fever reports, sweating and thermal exposure | modality-tagged °C, min, symptom or event, sensor or manual report | NASA-STD-3001 Vol. 2 and NLSP · RR-6 for cabin temperature | Generic body temperature exists. Core, skin and ambient observations need their own modality. Heat exposure and recovery analysis pending. |
 | P1 grip, strength, endurance, exercise duration and intensity, resistance and aerobic load, recovery, joint range, flexibility, balance, functionality, fatigue and pain | N or kg per instrument, min, workload/protocol units, degrees and task/symptom scores, periodic tests and logs | [NASA HRP Evidence](https://humanresearchroadmap.nasa.gov/evidence/) · CSA analog studies | Priority for pre-/in-/post-mission comparisons. No matching protocol files or review workflow imported. |
 | P2 muscle mass, bone mineral density/content/change, bone turnover, calcium, vitamin D and fracture history | kg, g/cm² or g, assay units and clinical record, periodic body composition, DXA and lab work | NASA HRP Evidence and Vol. 1 · ESA/CSA analog studies | Specialized equipment and periodic clinical records required. Exercise adherence and nutrition remain supporting logs. |
-| P1 reaction time, attention, working memory, processing speed, decision accuracy, task errors, executive tests and concentration | ms, accuracy and task-specific scores, repeatable cognitive battery and self-report | [NASA ISS Cognition study](https://ntrs.nasa.gov/citations/20240012108) · CSA confinement analogs | Protected manual transcription and protocol ID for reaction time and accuracy. No test battery or verified subject recording was imported. |
+| P1 reaction time, attention, working memory, processing speed, decision accuracy, task errors, executive tests and concentration | ms, accuracy and task-specific scores, repeatable cognitive battery and self-report | [NASA ISS Cognition study](https://ntrs.nasa.gov/citations/20240012108) · CSA confinement analogs | The restricted log captures reaction time and accuracy with versioned protocol context, and includes a five-attempt browser reaction task. A mission cognitive battery requires an instrument-specific protocol. |
 | P1 spatial orientation, coordination, balance, dizziness, headache, motion sickness, vestibular symptoms and cognitive fatigue | task scores or symptom events, periodic tests and logs | NASA HRP Evidence and ExMC · CSA analogs | Synthetic symptom timestamps available. Mission-phase tracking and formal assessments pending. |
-| P1 sleep duration/onset/wake, latency, efficiency, interruptions, regularity, quality, circadian timing, light, night HR/HRV, work-rest and sleep symptoms | min, UTC times, %, lux, bpm/ms and logs, overnight actigraphy and daily self-report | [NASA astronaut sleep study](https://ntrs.nasa.gov/citations/20140017140) · CSA confinement analogs | Restricted self-report supports duration, latency and interruptions. Synthetic records demonstrate pairing with reaction time. No actigraphy or sleep stages were imported. |
+| P1 sleep duration/onset/wake, latency, efficiency, interruptions, regularity, quality, circadian timing, light, night HR/HRV, work-rest and sleep symptoms | min, UTC times, %, lux, bpm/ms and logs, overnight actigraphy and daily self-report | [NASA astronaut sleep study](https://ntrs.nasa.gov/citations/20140017140) · CSA confinement analogs | Restricted reports accept sleep episodes from self-report, actigraphy or polysomnography with method and uncertainty. Sleep-EDF scored stages remain in Research. |
 | P1 mood, stress, motivation, workload, emotional fatigue, anxiety and depressive symptoms, isolation, loneliness, support, conflict, satisfaction and well-being | instrument-specific score or report, consented check-ins and clinician assessments | [NASA Behavioral Health Evidence](https://humanresearchroadmap.nasa.gov/evidence/reports/HRP-ER-BMED-HFBP-20250210.pdf) · CSA confinement analogs | Restricted 0–10 self-reports for mood, stress and workload. The scales are descriptive. Validated/licensed questionnaires, consent and clinical interpretation remain open. |
 | P1 food, energy, macro/micronutrients, fiber, fluid, sodium, potassium, calcium, vitamin D, meal timing, appetite, body mass and estimated energy expenditure | kcal, grams or milligrams by nutrient, mL, time, kg, derived kcal, meal/device logs | NASA Vol. 1, HRP Evidence and NLSP · ESA/CSA analog studies | Missing structured intake and body mass context. Device/estimation provenance required. |
 | P1 urinary frequency/volume, pH, specific gravity, urinary calcium, renal biomarkers, electrolytes, stone history, constipation, diarrhea, nausea, vomiting and abdominal symptoms | count, mL, pH, specific gravity, lab-specific units and symptom/clinical records | NASA HRP renal evidence and OSD-575 for serum context · CSA analogs | Symptoms can use existing codes. Structured intake/output, clinical records and periodic assays need authorized sources. |
 | P2 immune and infection status, differential counts, inflammation, wound healing, allergy and microbiology | counts, clinical findings and assay-specific units, periodic exams or lab work | OSD-575, NASA HRP Evidence · no verified alternative file | Catalog and publications only. Broad temperature and symptom logging are available. Specialty test values require assay metadata, including units and detection limits. |
 | P2 acuity, field, refraction, Amsler, IOP, OCT, optic disc, ocular ultrasound and visual symptoms | optotype score, degrees, diopters, mmHg, µm, images and findings, periodic exams | [NASA SANS Evidence](https://humanresearchroadmap.nasa.gov/Evidence/reports/SANS.pdf) · no verified alternative file | No exams or images integrated. Pre-/in-/post-flight schedules and comparable devices required. |
 | P1 environmental noise, lighting, particulates, CO, VOCs, contaminants, drinking water and microbial monitoring | dB by convention, lux, mass or concentration, assay units, sensors or periodic samples | NASA-STD-3001 Vol. 2 · EDA for adjacent environment only | No verified source files integrated for these fields. Continuous and lab-based channels need separate schedules. |
-| P1 ambient/personal radiation dose rate, cumulative dose, exposure duration, EVA, shielding/location, uncertainty and solar events | Gy or Sv by defined quantity with rate/time as applicable, instrument readings, location and event logs | [NASA RadLab](https://visualization.osdr.nasa.gov/radlab/gui/overview/) and [SRAG](https://srag.jsc.nasa.gov/) · CSA analog/instrument catalog | DosTel1 absorbed-dose-rate research view and distinct manual instrument rate types. Personal, cumulative and effective dose remain pending. P2 organ dose estimates require a verified model. |
+| P1 ambient/personal radiation dose rate, cumulative dose, exposure duration, EVA, shielding/location, uncertainty and solar events | Gy or Sv by defined quantity with rate/time as applicable, instrument readings, location and event logs | [NASA RadLab](https://visualization.osdr.nasa.gov/radlab/gui/overview/) and [SRAG](https://srag.jsc.nasa.gov/) · CSA analog/instrument catalog | DosTel1 archive, separate fixed and personal rates, device-reported personal totals and model-referenced organ and effective estimates. The restricted review evaluates sampled intervals for one registered rate channel. |
 | P2 gravity, acceleration magnitude/direction/duration, gravity transitions and related cardiovascular, balance and functional response | m/s², axis, s, mission phase and protocol-tagged tests | [NASA Artificial Gravity Evidence](https://humanresearchroadmap.nasa.gov/Evidence/other/AG%20Evidence%20Report.pdf) · CSA analogs | No verified stream with aligned body position or task outcomes. |
 | P2 suit pressure, O₂/CO₂ partial pressure, habitat-to-suit transitions, prebreathe, suit temperature/humidity, EVA workload, duration, O₂ reserve, cooling, alerts and exams | kPa, °C, %, min, protocol and life-support channel values, sensors and checklists | NASA-STD-3001 Vol. 2 §§ 6.2 and 11.3 · no verified alternative file | Manual suit pressures, EVA phase and EVA/prebreathe/life-support event logs. No EVA feed or program-specific alert rules. |
 | P2 medical history, allergies, conditions, injuries, medication/dose/timing/missed doses/reactions, exams, labs, procedures, treatment/encounters and equipment/supplies | clinical coding, timestamp, medication-specific dose/unit and inventory count, clinician records | NASA-STD-3001 Vol. 1 and NASA ExMC · no verified alternative file | Restricted narrative records for encounters, history, allergy, administration/missed doses and adverse reaction. Selected clinical and lab fields use explicit numeric units. Medication coding, scheduling, dose validation, supply inventory and an EHR interface remain pending. |
@@ -95,7 +95,13 @@ The [runtime parameter registry](../backend/app/observation_registry.py) defines
 
 ## Restricted log setup
 
-The public demo continues to support sample data by default. An operator can set `ACHA_PUBLIC_WORKSPACE=disabled` to disable the legacy crew and mission-profile APIs for a restricted installation. The log is disabled for every credential until `ACHA_OBSERVATION_ACCESS` is configured. Use HTTPS in deployment and generate a high-entropy access key per actor. Keep the original key out of application configuration and repository files. Store only its SHA-256 hex digest in the environment value.
+Deploy the restricted workspace on its own browser origin, API service and PostgreSQL database. The public demo uses the default frontend build and API configuration for sample data.
+
+1. Set `ACHA_PUBLIC_WORKSPACE=disabled` on the restricted API. This removes the public crew and mission-profile routes and skips demo seeding. Run the same Alembic migrations as the demo.
+2. Add the restricted frontend origin to `CORS_ORIGINS` on the API. Set `VITE_API_URL` in the frontend build environment to the restricted API's absolute HTTPS URL ending in `/api/v1`. Loopback HTTP is supported for local testing.
+3. Run `npm run build:restricted` in `frontend/` and serve `dist-restricted/` on the restricted origin. Open `/` to reach the log. The build omits the demo offline shell. The key form appears after the API returns `200` with `workspace` set to `restricted` from `/api/v1/health`. Verify that `/api/v1/crew-members` returns `404` and `/api/v1/observations/access` returns `401` without a key.
+
+Set `ACHA_OBSERVATION_ACCESS` on the restricted API to provision access. Generate a high-entropy key per actor and store only its SHA-256 hex digest in the environment value. Issue the original key directly to the actor.
 
 ```json
 {
@@ -108,8 +114,101 @@ Operations can read and write environmental records. Medical staff can read envi
 
 Successful list requests and first writes are audited by actor, mission, scope and optional crew code. Audit entries omit the health value and narrative. Reverse proxy and access logs can still contain route and filter identifiers. Role provisioning, database encryption, access logging configuration, backups, retention policy, individual assignment, consent and independent security review are deployment responsibilities. The application is a prototype. Use fictional data in an unreviewed environment.
 
-## Later work
+## Device intake and quality
 
-1. Obtain a permitted, time-aligned vehicle and crew source with documented instrument accuracy, location and mission context. Integrate its formats and compare the outputs with a documented reference implementation.
-2. Review identity, consent, retention and deployment controls for genuine records. Validate contextual pressure and gas rules with operations and flight medicine staff before enabling alarms.
-3. Bring in a repeatable cognitive protocol and validated, licensed instruments where appropriate. Validate data quality and window alignment before interpreting associations. In an ISS study, exploratory results did not establish a clear pattern of sleep/cognition associations. [NASA ISS Cognition study](https://ntrs.nasa.gov/citations/20240012108)
+Apply Alembic revision `0007` on the restricted API. Each channel has one parameter, unit, location and optional crew assignment. Its registration stores the hardware, firmware, calibration, operating limits reference, cadence and mission clock tolerance. Register a new channel code for a replacement instrument or a changed calibration. Rotation changes the credential for the same channel and sequence.
+
+Run these commands from `backend/` with the restricted deployment's database connection.
+
+```powershell
+python -m alembic upgrade head
+python -m app.device_admin set-clock mission-a --actor installer --data mission-clock.json
+python -m app.device_admin register mission-a pressure-a --actor installer --data device-channel.json
+python -m app.device_admin rotate-key mission-a pressure-a --actor installer --data new-key-hash.json
+python -m app.device_admin revoke-key mission-a pressure-a --actor installer
+```
+
+`mission-clock.json` carries an aware timestamp such as `{"epoch":"2025-01-01T00:00:00Z"}`. The clock epoch is immutable after registration. The registration below illustrates the input structure. Use the instrument's documented values and a different high-entropy key for each channel. `new-key-hash.json` carries only `credential_sha256`.
+
+```json
+{
+  "credential_sha256": "<64 lowercase hex characters>",
+  "configuration": {
+    "parameter": "cabin_pressure",
+    "unit": "kPa",
+    "hardware": "instrument-a",
+    "firmware": "v1",
+    "calibration": "calibration-a",
+    "operating_limits_ref": "instrument-manual-a",
+    "location": "habitat-a",
+    "location_ref": "vehicle-layout-a",
+    "phase": "in_flight",
+    "sample_interval_ms": 1000,
+    "clock_tolerance_ms": 20,
+    "minimum": 0,
+    "maximum": 200
+  }
+}
+```
+
+Send one sample per request to `POST /api/v1/observations/missions/{mission}/devices/{channel}/samples` with the device bearer key. The [request schema](../backend/app/telemetry.py) includes a nonnegative sequence, an aware sample timestamp, elapsed milliseconds from the mission epoch, the reported clock error, firmware, value, optional uncertainty and quality. Increment the sequence for each acquisition slot on fixed-rate channels. Enter `null` as the sample interval for event-based streams such as individual ECG R–R intervals. Reuse the original body on retry. Identical retries return the existing receipt. Conflicting bodies for the same sequence return `409`.
+
+Saturation, disconnection, artefact and out-of-range readings receive quality receipts and are excluded from numeric trends. The device panel shows each QA count and missing sequence slots between the first and last observed slots in the selected range. It reports sample and upload times separately. The [device queue](../backend/app/telemetry_queue.py) holds pending readings in the running process and retries them on subsequent `flush()` calls. A full queue raises an error before it accepts another sample.
+
+Medical keys can specify `"crew": {"mission-a": ["crew-a"]}` to restrict access to selected crew codes, including device quality and radiation reviews. Existing keys without a crew list retain mission-wide medical access.
+
+## Structured observation review
+
+- Radiation rates, device-reported total equivalent dose, organ estimates and effective estimates are distinct parameters. Registered radiation channels record the source, detector geometry, shielding and particle class. The radiation window review uses a boundary entered by the reviewer. It estimates sampled coverage using adjacent accepted readings with known uncertainty, and compares the lower bounds of both endpoints with the entered boundary.
+- Sleep episode entry preserves attempted sleep, onset, final wake and time out of bed. The API calculates total sleep after subtracting wake time after onset. The log shows latency, time in bed and efficiency. Device-derived episodes require a device and uncertainty. The daily self-report view remains a separate summary.
+- Performance sessions include protocol version, trial counts, shift, light and workload. The log also offers a five-attempt browser reaction task and fills an unverified observation with the median valid response. Comparable trends use the saved measurement method and session context.
+- Laboratory, bone and ocular records can carry a source reference, measurement protocol version and specimen or body site. NASA OSDR Research shows file coverage by named assay and published unit without publishing participant rows. The BIDMC Research view shows time-aligned ECG lead II, PPG and impedance respiration from a public hospital record. [NASA OSD-575](https://osdr.nasa.gov/bio/repo/data/studies/OSD-575) · [NASA OSD-656](https://osdr.nasa.gov/bio/repo/data/studies/OSD-656) · [BIDMC](https://physionet.org/content/bidmc/1.0.0/)
+
+## Crew dashboard before scenario development
+
+The demo home page displays the selected crew member and their recorded numeric channels. The restricted dashboard also offers Records, Nutrition and gravity, Radiation, and Devices. Its roster comes from authorized crew assignments and stored observations. A crew entry shows the latest recorded time or that readings are pending.
+
+- Personal indicators use the last 30 days before each latest reading or an explicitly selected historical period. The latest reading is excluded. Each UTC day contributes one median. Five matched days are required for an observational band based on median absolute deviation and available measurement uncertainty. Sparse, flat, suspect and conflicting history have separate states. Restricted comparisons match person, location, mission phase, activity, device, calibration and applicable protocol, posture or timing fields. The dashboard marks deviations in the interface.
+- Nutrition shows recorded energy, protein, fluid and sodium by UTC day. Store a reported meal total for a nutrient at a given timestamp. Duplicate timestamps with equal values count once and conflicting totals are excluded. Timed exercise sessions are split at UTC midnight, and overlapping reports are reconciled by recorded mode and intensity. Legacy untimed totals remain visible on their own. Timing and posture separate post-exercise or post-meal readings from comparable resting measurements.
+- Gravity exposure comes from verified person-level intervals with a recorded regime and source. Overlapping matching intervals count once. Conflicting and missing hours are visible. The app compares measured strength, mass, aerobic capacity or bone density with comparable preflight readings where the recorded method matches. Its output describes observed differences. [NASA human performance evidence](https://www.nasa.gov/reference/4-0-human-performance/)
+- Personal radiological reporting separates instrument-absorbed dose from dose equivalent and modelled organ or effective dose. Registered consecutive samples are integrated within the documented cadence. Missing or rejected samples break intervals. Each channel shows coverage, the daily accumulated series, and bounds where the instrument specifies uncertainty. A compiled mission window starts at the configured mission epoch or the first available verified dosimetry record. A verified instrument counter is shown independently and a counter decrease suppresses the window change. Absorbed dose in mGy can also be displayed in rad using 1 mGy = 0.1 rad. [NASA SRAG dosimetry](https://srag.jsc.nasa.gov/SpaceRadiation/FAQ/FAQ.cfm) · [NASA radiation health research](https://www.nasa.gov/directorates/esdmd/hhp/space-radiation/)
+
+The dashboard requests observation reports and a separate radiation report for one subject and a review timestamp. Tests exercise the contracts with scoped participants and deterministic measurements. Scenario definitions can provide their own samples and dates through the existing observation and device endpoints.
+
+## Mission medical review
+
+The restricted workspace provides a Medical review tab for the selected crew member. It shows the signed NASA references in every mission and evaluates only the rules installed under that mission's documented policy. While the crew workspace stays open, the panel refreshes every 30 seconds and the tab shows the number of findings awaiting acknowledgment. Acknowledgments record an action already taken by a clinician, with actor, time, policy version and evidence IDs. The underlying finding remains visible with its recorded follow-up.
+
+### Published references and required evidence
+
+- The in-mission aerobic capacity and skeletal muscle strength criteria use 80% of a comparable preflight result. Bone density uses 95% for the total hip and lumbar spine and 90% for the femoral neck. An approved binding fixes the protocol, version, preflight date range and anatomical site when applicable. The comparison uses the latest matching preflight assessment and a fresh in-flight assessment with the same device, calibration, method and activity. Measurement uncertainty is carried through both measurements. The aerobic protocol approval must establish that the recorded `vo2_peak` is the program's accepted assessment of aerobic capacity. Handgrip results have their own parameter and are separate from the strength rule. [NASA-STD-3001 Vol. 1 Rev. C, V1 4003, V1 4024 and V1 4027](https://standards.nasa.gov/sites/default/files/standards/NASA/C//nasa-std-3001-vol-1-rev-c-signature.pdf)
+- The 600 mSv career limit applies to the documented NASA effective-dose convention, including all prior spaceflight and the upcoming mission projection. An exact value of 600 mSv is outside that limit. Thirty-day organ comparisons use mGy-Eq for the lens, skin, blood-forming organs and circulatory system and mGy at the hippocampus. The model, version, uncertainty interval, exposure period, input manifest and external review reference are recorded. ACHA uses the dose quantity and time period specified in the reference. [NASA-STD-3001 Vol. 1 Rev. C, V1 4030 and Table 4.8-1](https://standards.nasa.gov/sites/default/files/standards/NASA/C//nasa-std-3001-vol-1-rev-c-signature.pdf)
+- Mission-specific vital-sign rules require the mission's documented boundaries, device, calibration, location, activity, measurement conditions, age limit and repeat requirements. Verified readings entirely outside the configured boundary on the same side can enter clinical review. A broken sequence, missing uncertainty, contradictory data or a stale report leaves the result unevaluable. An uncertainty interval that straddles a boundary is shown separately.
+- Clinicians can transcribe reviewed REID and REIC model outputs as percentages in Records. The review displays the supplied interval and exposure window with the model version and report references. OLTARIS uses the radiation environment, geometry and material inputs, and access requires a NASA-approved account. Use the dose or cancer-risk results from an authorized model run and its associated uncertainty report. ACHA preserves those results on the mission server. [NASA OLTARIS access and capabilities](https://spaceradiation.larc.nasa.gov/oltaris.html) · [NASA Space Cancer Risk operational implementation](https://ntrs.nasa.gov/citations/20210013314)
+
+### Publish a mission policy
+
+Apply migration `0008` and run the policy command from the restricted deployment shell using its database connection. A policy stores the approving authority and document reference supplied by the operator. The operator confirms the external authorization before publishing the policy.
+
+```powershell
+python -m alembic upgrade head
+python -m app.health_review_admin publish <mission-code> --actor <operator-code> --data approved-review.json
+python -m app.health_review_admin retire <mission-code> --actor <operator-code>
+```
+
+Use `ReviewPolicy` in [health_review_rules.py](../backend/app/health_review_rules.py) for the accepted JSON fields. A policy has a version, an array of rules, and `flight_medicine`, `radiation_safety`, or both approval objects. Each approval object contains `authority` and `reference`.
+
+| Rule kind | Configuration beyond rule ID, maximum age in minutes and procedure reference |
+| --- | --- |
+| `ratio` | Protocol code and version, preflight start and end, and anatomical site for strength and bone density |
+| `radiation` | Reviewed model name and version |
+| `vital` | Mission-defined `vital-` rule ID, source reference, parameter, instrument and calibration, location, activity, reading posture and timing, one or both limits, confirmation count and maximum sample gap |
+
+Publishing a new version retires the previous one. Recorded acknowledgments retain the earlier policy version and evidence snapshot. Review thresholds are observed while the browser workspace is open. Mission-wide notification delivery and flight procedures are part of the final operational verification.
+
+## Remaining work before final acceptance
+
+1. Define the three scenario timelines, their active measurement channels, and their expected outputs. Verify crew switching, missing data, timestamps, alert transitions and device changes against each timeline.
+2. Connect the actual instruments or vendor formats. Validate calibration, device replacement, time synchronization and the rate-to-dose calculation against a reference trace. Verify long-window performance and connection loss at the target cadence.
+3. Supply the mission's clinical and radiation-safety approvals, instrument-specific protocols and reviewed model reports. Verify alert delivery and flight-team escalation on the operational deployment, including when the review workspace is closed.
+4. Verify restart and offline recovery for the final deployment. Provision participant identities, credentials and retaining or erasing records through the approved operational process, and verify network and storage protections with the deployment owner.

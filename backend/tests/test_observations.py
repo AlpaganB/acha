@@ -21,6 +21,7 @@ def restricted(test_database_url, monkeypatch):
     def digest(headers):
         return sha256(headers["Authorization"].removeprefix("Bearer ").encode()).hexdigest()
 
+    monkeypatch.setenv("ACHA_PUBLIC_WORKSPACE", "disabled")
     monkeypatch.setenv("ACHA_OBSERVATION_ACCESS", json.dumps({
         "test-operations": {"sha256": digest(OPERATIONS), "role": "operations", "missions": ["test-mission"]},
         "test-medical": {"sha256": digest(MEDICAL), "role": "medical", "missions": ["test-mission"]},
@@ -131,7 +132,64 @@ def test_invalid_and_duplicate_credential_configuration_fails_startup(monkeypatc
 def test_public_workspace_can_be_disabled_without_disabling_catalog(monkeypatch, test_database_url):
     monkeypatch.setenv("ACHA_PUBLIC_WORKSPACE", "disabled")
     with TestClient(create_app(test_database_url), base_url="http://testserver/api/v1/") as app:
-        assert app.get("crew-members").status_code == 404
-        assert app.post("mission-profiles", json={"name": "Test", "environment": "spacecraft"}).status_code == 404
+        assert app.get("crew-members", follow_redirects=False).status_code == 404
+        assert app.get(f"crew-members/{uuid4()}/measurements").status_code == 404
+        assert app.post("mission-profiles", follow_redirects=False).status_code == 404
+        paths = app.get("http://testserver/openapi.json").json()["paths"]
+        assert all(not path.startswith(("/api/v1/crew-members", "/api/v1/mission-profiles")) for path in paths)
         assert app.get("observations/parameters").status_code == 200
-        assert app.get("health").status_code == 200
+        assert app.get("observations/access").status_code == 401
+        health = app.get("health")
+        assert health.status_code == 200
+        assert health.headers["cache-control"] == "no-store"
+        assert health.json() == {"status": "ok", "workspace": "restricted"}
+
+
+def test_invalid_workspace_configuration_fails_startup(monkeypatch):
+    monkeypatch.setenv("ACHA_PUBLIC_WORKSPACE", "invalid")
+    with pytest.raises(RuntimeError, match="ACHA_PUBLIC_WORKSPACE must be enabled or disabled"):
+        create_app()
+
+
+def test_sleep_episode_duration_is_derived_and_keeps_acquisition_method(restricted):
+    episode = {"kind": "sleep_episode", "method": "actigraphy",
+               "attempted_sleep_at": "2026-11-14T22:00:00+03:00", "sleep_onset_at": "2026-11-14T22:15:00+03:00",
+               "final_wake_at": "2026-11-15T05:45:00+03:00", "out_of_bed_at": "2026-11-15T06:00:00+03:00",
+               "awake_after_onset_minutes": 20, "interruptions": 2, "shift": "alpha", "utc_offset_minutes": 180}
+    item = observation(parameter="sleep_episode_minutes", crew_code="crew-a", value=None,
+                       quality="verified", device="actigraph-a", uncertainty=5, context=episode)
+    response = restricted.post(MISSION, headers=MEDICAL, json=item)
+    assert response.status_code == 201, response.text
+    result = response.json()
+    assert result["value"] == 430 and result["method"] == "actigraphy"
+    assert result["context"]["sleep_onset_at"] == "2026-11-14T19:15:00Z"
+    assert restricted.post(MISSION, headers=MEDICAL, json=item).status_code == 200
+    assert restricted.post(MISSION, headers=MEDICAL, json={**item, "value": 440}).status_code == 422
+    assert restricted.post(MISSION, headers=MEDICAL, json={**item, "uncertainty": None}).status_code == 422
+    backwards = episode | {"final_wake_at": episode["attempted_sleep_at"]}
+    assert restricted.post(MISSION, headers=MEDICAL, json=item | {"context": backwards}).status_code == 422
+
+
+def test_estimates_and_protocol_sessions_preserve_their_distinct_context(restricted):
+    estimate = {"kind": "dose_estimate", "source_ref": "dosimetry-document", "model_version": "model-v2"}
+    payload = observation(crew_code="crew-a", parameter="organ_equivalent_dose_estimate", value=1.25,
+                          context=estimate)
+    assert restricted.post(MISSION, headers=MEDICAL, json=payload).status_code == 422
+    result = restricted.post(MISSION, headers=MEDICAL, json=payload | {"context": estimate | {"tissue": "lens"}})
+    assert result.status_code == 201
+    assert result.json()["context"]["tissue"] == "lens" and result.json()["unit"] == "mSv"
+    total = observation(crew_code="crew-a", parameter="personal_equivalent_dose_total", value=5, context=estimate)
+    assert restricted.post(MISSION, headers=MEDICAL, json=total).status_code == 422
+
+    task = {"kind": "performance", "protocol": "reaction-task", "version": "v1",
+            "trials": 5, "valid_trials": 4, "shift": "alpha", "utc_offset_minutes": 0}
+    session = observation(crew_code="crew-a", parameter="reaction_time", value=210, context=task)
+    assert restricted.post(MISSION, headers=MEDICAL, json=session).status_code == 201
+    assert restricted.post(MISSION, headers=MEDICAL,
+                           json=session | {"context": task | {"valid_trials": 6}}).status_code == 422
+
+    lab = observation(crew_code="crew-a", parameter="serum_creatinine", value=91,
+                      context={"kind": "protocol", "protocol": "cmp", "version": "v1", "source_ref": "lab-a"})
+    assert restricted.post(MISSION, headers=MEDICAL, json=lab).status_code == 422
+    response = restricted.post(MISSION, headers=MEDICAL, json=lab | {"context": lab["context"] | {"specimen": "serum-a"}})
+    assert response.status_code == 201 and response.json()["provenance"] == "CLINICAL_RECORD"

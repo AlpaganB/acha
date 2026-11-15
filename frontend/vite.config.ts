@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import react from '@vitejs/plugin-react'
-import { defineConfig, type Plugin } from 'vite'
+import { defineConfig, loadEnv, type Plugin } from 'vite'
 
 function offlineShell(): Plugin {
   return {
@@ -25,9 +25,22 @@ function offlineShell(): Plugin {
   }
 }
 
-export default defineConfig({
-  plugins: [react(), offlineShell()],
-  base: '/',
-  server: { proxy: { '/api': 'http://127.0.0.1:8000' } },
-  preview: { proxy: { '/api': 'http://127.0.0.1:8000' } },
+export default defineConfig(({ mode }) => {
+  if (mode === 'restricted') {
+    const { VITE_API_URL: apiUrl } = loadEnv(mode, process.cwd())
+    const url = apiUrl && URL.canParse(apiUrl) ? new URL(apiUrl) : null
+    const loopback = url?.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+    if (!url || (url.protocol !== 'https:' && !loopback) || !/^\/api\/v1\/?$/.test(url.pathname)
+      || apiUrl !== url.origin + url.pathname) {
+      throw new Error('The restricted workspace requires VITE_API_URL to be an absolute HTTPS URL ending in /api/v1. Local loopback may use HTTP.')
+    }
+    return { plugins: [react()], base: '/', build: { outDir: 'dist-restricted' } }
+  }
+
+  return {
+    plugins: [react(), offlineShell()],
+    base: '/',
+    server: { proxy: { '/api': 'http://127.0.0.1:8000' } },
+    preview: { proxy: { '/api': 'http://127.0.0.1:8000' } },
+  }
 })

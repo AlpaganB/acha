@@ -1,11 +1,13 @@
+from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query, Response
-from sqlalchemy import select, text
+from fastapi import APIRouter, HTTPException, Query, Request, Response
+from sqlalchemy import Float, cast, null, select, text
 
 from .database import DbSession
 from .models import Assessment, CrewMember, Measurement, MissionProfile
+from .monitoring_baseline import Indicator, IndicatorReport, MonitoringWindow, calculate_reference, daily_readings, reference_bounds
 from .records import (
     finish_assessment,
     history_page,
@@ -22,22 +24,65 @@ from .schemas import (
     CrewMemberRead,
     CrewMissionUpdate,
     HistoryQuery,
+    MEASUREMENT_UNITS,
     MeasurementCreate,
     MeasurementHistoryQuery,
+    MeasurementKind,
     MeasurementRead,
     MissionProfileCreate,
     MissionProfileRead,
 )
 
 router = APIRouter(prefix="/api/v1")
+health_router = APIRouter(prefix="/api/v1", tags=["Health"])
 Limit = Annotated[int, Query(ge=1, le=200)]
 Offset = Annotated[int, Query(ge=0)]
+DEMO_INDICATORS = {
+    MeasurementKind.HEART_RATE: "Heart rate",
+    MeasurementKind.SPO2: "Blood oxygen saturation",
+    MeasurementKind.RESPIRATORY_RATE: "Respiratory rate",
+    MeasurementKind.BLOOD_PRESSURE: "Systolic blood pressure",
+    MeasurementKind.BODY_TEMPERATURE: "Body temperature",
+    MeasurementKind.SLEEP_DURATION: "Reported sleep duration",
+}
 
 
-@router.get("/health", tags=["Health"])
-def health(session: DbSession) -> dict[str, str]:
+@health_router.get("/health")
+def health(request: Request, response: Response, session: DbSession) -> dict[str, str]:
     session.execute(text("SELECT 1"))
+    response.headers["Cache-Control"] = "no-store"
+    if not request.app.state.public_workspace_enabled:
+        return {"status": "ok", "workspace": "restricted"}
     return {"status": "ok"}
+
+
+@router.get("/crew-members/{crew_id}/monitoring", tags=["Measurements"])
+def demo_monitoring(crew_id: UUID, window: Annotated[MonitoringWindow, Query()], session: DbSession,
+                    response: Response) -> IndicatorReport:
+    require_record(session, CrewMember, crew_id, "Crew member")
+    through = window.through or datetime.now(UTC)
+    point = Measurement
+    conditions = (point.crew_member_id == crew_id, point.recorded_at <= through)
+    latest = {item.kind: item for item in session.scalars(
+        select(point).where(*conditions, point.kind.in_(DEMO_INDICATORS))
+        .order_by(point.kind, point.recorded_at.desc(), point.id.desc()).distinct(point.kind)
+    )}
+    indicators = []
+    for kind, label in DEMO_INDICATORS.items():
+        current = latest.get(kind)
+        if current is None:
+            continue
+        start, end = reference_bounds(current.recorded_at, window.reference_start, window.reference_end)
+        history = daily_readings(session, select(point.recorded_at, point.value, cast(null(), Float).label("uncertainty"))
+                                 .where(*conditions, point.kind == kind, point.recorded_at >= start, point.recorded_at < end))
+        conflict = session.scalar(select(point.id).where(*conditions, point.kind == kind,
+                                  point.recorded_at == current.recorded_at, point.value != current.value).limit(1))
+        indicators.append(Indicator(parameter=kind, label=label, unit=MEASUREMENT_UNITS[kind], value=current.value,
+                                    recorded_at=current.recorded_at, quality="reported",
+                                    reference=calculate_reference(current.value, None, history, start, end,
+                                                                  blocked="conflict" if conflict else None)))
+    response.headers["Cache-Control"] = "no-store"
+    return IndicatorReport(through=through, indicators=indicators)
 
 
 @router.post("/mission-profiles", tags=["Mission profiles"], status_code=201)

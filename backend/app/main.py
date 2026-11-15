@@ -8,11 +8,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import OperationalError
 
-from .api import router
+from .api import health_router, router
+from .crew_monitoring import router as crew_monitoring_router
+from .crew_radiation import router as crew_radiation_router
 from .database import make_engine
+from .health_review import router as health_review_router
 from .observation_access import load_observation_access
 from .observations import router as observation_router
+from .radiation_review import router as radiation_router
 from .research import router as research_router
+from .research_measurements import router as research_measurements_router
+from .telemetry import router as telemetry_router
+from .workspace import public_workspace_enabled
 
 
 def create_app(database_url: str | None = None) -> FastAPI:
@@ -27,7 +34,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
             engine.dispose()
 
     app = FastAPI(title="ACHA API", version="1.0.0", lifespan=lifespan)
-    public_workspace = os.getenv("ACHA_PUBLIC_WORKSPACE", "enabled") != "disabled"
+    app.state.public_workspace_enabled = public_workspace_enabled()
     origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173")
     app.add_middleware(
         CORSMiddleware,
@@ -48,18 +55,23 @@ def create_app(database_url: str | None = None) -> FastAPI:
     @app.middleware("http")
     async def protect_observation_responses(request: Request, call_next):
         path = request.url.path
-        if not public_workspace and path.split("/")[1:4] in (
-            ["api", "v1", "crew-members"], ["api", "v1", "mission-profiles"],
-        ):
-            return JSONResponse(status_code=404, content={"detail": "The public workspace is disabled."})
         response = await call_next(request)
         if path.startswith("/api/v1/observations/"):
             response.headers["Cache-Control"] = "private, no-store"
         return response
 
-    app.include_router(router)
+    app.include_router(health_router)
+    if app.state.public_workspace_enabled:
+        app.include_router(router)
     app.include_router(observation_router)
+    app.include_router(crew_monitoring_router)
+    if not app.state.public_workspace_enabled:
+        app.include_router(health_review_router)
+        app.include_router(crew_radiation_router)
+        app.include_router(telemetry_router)
+        app.include_router(radiation_router)
     app.include_router(research_router, prefix="/api/v1")
+    app.include_router(research_measurements_router, prefix="/api/v1")
     return app
 
 

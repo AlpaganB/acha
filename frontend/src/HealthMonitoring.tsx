@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Activity, ArrowRight, Gauge, Moon, Radio } from 'lucide-react'
-import { api, type CrewMember, type Measurement, type MissionObservation } from './api'
+import { api, type CrewMember, type Measurement, type MissionObservation, type SleepEpisode, type ParameterDefinition } from './api'
 import { formatDate } from './content'
 import { reviewSleepLogs } from './monitoringAnalysis'
 import { comparableTo, usableSeries } from './observationAnalysis'
+import { printable, utcTime } from './ObservationTrends'
 
 export const nasaSleepSource = 'https://ntrs.nasa.gov/citations/20230003916'
 export const nasaRadiationSource = 'https://www.nasa.gov/directorates/esdmd/hhp/space-radiation/'
@@ -115,14 +116,49 @@ export function HealthMonitoring({ crew, reachable }: { crew?: CrewMember; reach
   </>
 }
 
-export function RestrictedHealthReview({ records }: { records: MissionObservation[] }) {
+function episodeMinutes(start: string, end: string) {
+  return (Date.parse(end) - Date.parse(start)) / 60_000
+}
+
+function EpisodeReview({ episodes }: { episodes: (MissionObservation & { context: SleepEpisode })[] }) {
+  return <details className="research-observations" open>
+    <summary>Sleep episodes</summary>
+    <div className="research-table" role="region" aria-label="Sleep episodes" tabIndex={0}><table>
+      <thead><tr><th scope="col">Sleep onset (UTC)</th><th scope="col">Final wake (UTC)</th><th scope="col">Method and shift</th>
+        <th scope="col">Latency (min)</th><th scope="col">Awake after onset (min)</th><th scope="col">Interruptions</th>
+        <th scope="col">Time in bed (min)</th><th scope="col">Sleep (min)</th><th scope="col">Efficiency</th></tr></thead>
+      <tbody>{episodes.map(record => {
+        const episode = record.context
+        const inBed = episodeMinutes(episode.attempted_sleep_at, episode.out_of_bed_at)
+        return <tr key={record.id}>
+          <th scope="row">{utcTime.format(new Date(episode.sleep_onset_at))}</th>
+          <td>{utcTime.format(new Date(episode.final_wake_at))}</td>
+          <td>{episode.method.replaceAll('_', ' ')} · {episode.shift} · {record.quality}</td>
+          <td>{printable(episodeMinutes(episode.attempted_sleep_at, episode.sleep_onset_at))}</td>
+          <td>{printable(episode.awake_after_onset_minutes)}</td><td>{episode.interruptions}</td><td>{printable(inBed)}</td>
+          <td>{printable(record.value)}</td><td>{record.value === null ? '—' : printable(record.value / inBed * 100) + '%'}</td>
+        </tr>
+      })}</tbody>
+    </table></div>
+  </details>
+}
+
+export function RestrictedHealthReview({ records, definitions }: { records: MissionObservation[]; definitions: ParameterDefinition[] }) {
   const sleep = records.flatMap(item => item.parameter === 'sleep_minutes' && item.value !== null && item.quality !== 'suspect'
     ? [{ kind: 'sleep_duration', value: item.value / 60, recorded_at: item.recorded_at }] : [])
-  const personal = usableSeries(records, 'personal_dose_equivalent_rate')
-  const latest = personal.at(-1)
-  const comparable = latest ? personal.filter(item => comparableTo(item, latest) && item.phase === latest.phase) : []
-  const rejected = records.filter(item => item.parameter === 'personal_dose_equivalent_rate').length - personal.length
-  if (!sleep.length && !latest && !rejected) return null
+  const episodes = records.filter((record): record is MissionObservation & { context: SleepEpisode } => record.context?.kind === 'sleep_episode')
+  const doseParameters = ['absorbed_dose_rate', 'dose_equivalent_rate', 'personal_dose_equivalent_rate',
+    'personal_equivalent_dose_total', 'organ_equivalent_dose_estimate', 'effective_dose_estimate']
+  const dose = doseParameters.flatMap(parameter => {
+    const observed = records.filter(record => record.parameter === parameter)
+    if (!observed.length) return []
+    const series = usableSeries(observed, parameter)
+    const latest = series.at(-1)
+    const comparable = latest ? series.filter(item => comparableTo(item, latest) && item.phase === latest.phase).length : 0
+    return [{ parameter, latest, comparable, rejected: observed.length - series.length }]
+  })
+  const performance = records.filter(record => record.context?.kind === 'performance')
+  if (!sleep.length && !episodes.length && !dose.length && !performance.length) return null
 
   return <section className="surface form-panel observation-stack" aria-labelledby="restricted-health-review">
     <h2 id="restricted-health-review"><Activity size={18} /> Crew monitoring review</h2>
@@ -130,11 +166,23 @@ export function RestrictedHealthReview({ records }: { records: MissionObservatio
       <p className="muted">Based on the self-reports loaded for this location. Suspect entries are excluded.</p>
       <SleepHistory records={sleep} days={30} />
     </details>}
-    {(latest || rejected > 0) && <details className="research-observations" open><summary>Individual dosimeter review</summary>
-      {latest && <p>{latest.value} {latest.unit} · {formatDate(latest.recorded_at)} · {latest.device} · {comparable.length} comparable verified readings</p>}
-      {rejected > 0 && <p className="notice" role="status">{rejected === 1 ? 'One reading was' : `${rejected} readings were`} excluded from the analysis.</p>}
-      <p className="muted">Device-reported rate. Personal accumulated dose, organ dose and risk assessment require mission-approved dosimetry.</p>
+    {episodes.length > 0 && <EpisodeReview episodes={episodes} />}
+    {dose.length > 0 && <details className="research-observations" open><summary>Radiation observations</summary>
+      <dl className="detail-list">{dose.map(({ parameter, latest, comparable, rejected }) => <div key={parameter}>
+        <dt>{definitions.find(item => item.id === parameter)?.label ?? parameter}</dt>
+        <dd>{latest ? `${printable(latest.value)} ${latest.unit} · ${formatDate(latest.recorded_at)} · ${latest.device} · ${comparable} comparable verified readings`
+          : 'No verified reading'}
+          {rejected > 0 && <small className="muted"> · {rejected === 1 ? 'One reading was' : `${rejected} readings were`} excluded from the analysis.</small>}
+        </dd>
+      </div>)}</dl>
+      <p className="muted">Clinical interpretation of personal accumulated dose, organ dose and radiation risk requires mission-approved dosimetry.</p>
       <a className="text-link" href={nasaCrewStandard}>NASA crew health standard</a>
+    </details>}
+    {performance.length > 0 && <details className="research-observations"><summary>Performance sessions</summary>
+      <dl className="detail-list">{performance.map(record => record.context?.kind === 'performance' && <div key={record.id}>
+        <dt>{record.context.protocol} · {record.context.version} · {record.context.shift}</dt>
+        <dd>{printable(record.value)} {record.unit} · {record.context.valid_trials}/{record.context.trials} valid attempts · {record.quality}</dd>
+      </div>)}</dl>
     </details>}
   </section>
 }
