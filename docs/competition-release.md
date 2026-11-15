@@ -1,6 +1,6 @@
 # ACHA competition release handoff
 
-15 November 2026. The local release candidate is on `codex/mission-health-command-center`. Open the Overview and choose **Try a 90-second training scenario**. For a clean launch at the pulse review, open `/?scenario=lunar-fatigue&step=3` on the candidate preview. [Judge script and draft submission](../demo/SUBMISSION.md)
+15 November 2026. The local release candidate is on `main`. Open the Overview and choose **Try a 90-second training scenario**. For a clean launch at the pulse review, open `/?scenario=lunar-fatigue&step=3` on the candidate preview. [Judge script and draft submission](../demo/SUBMISSION.md)
 
 ## Submission checklist
 
@@ -69,7 +69,7 @@ The `--test-api http://127.0.0.1:8009` option adds a connected measurement and a
 
 | Item | Value |
 | --- | --- |
-| Date and branch | 15 November 2026, `codex/mission-health-command-center` |
+| Date and branch | 15 November 2026, local `main` |
 | Starting commit | `f4aa68c503631a30e7a4e68d1e7ba6dfb9826bf6` |
 | Application code commit | `77c830142be103cfa7d9d9af23c4657b51e98ff2` |
 | Candidate build | Vite 8.3.8 public build in `frontend/dist`, cache version `253a0aea2a91`. Verified against PostgreSQL migration `0009` locally. |
