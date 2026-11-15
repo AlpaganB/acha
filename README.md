@@ -85,8 +85,6 @@ flowchart LR
     Onboard --> Engine
 ~~~
 
-Run PostgreSQL and apply `python -m alembic upgrade head` from `backend/` before launching or deploying the API. The latest revision is `0009`. The public Vite server proxies `/api` to `127.0.0.1:8000`. The Vercel deployment uses the Railway rewrite in `frontend/vercel.json`.
-
 ## Documentation
 
 | Document | Scope |
