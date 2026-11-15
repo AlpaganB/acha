@@ -114,6 +114,21 @@ class Assessment(Base):
         return self.engine_snapshot["result"] if self.engine_snapshot else None
 
 
+class AssessmentFollowUp(Base):
+    __tablename__ = "assessment_follow_ups"
+    __table_args__ = (
+        sa.CheckConstraint("outcome IN ('continue_review', 'workflow_complete')", name="ck_follow_up_outcome"),
+        sa.UniqueConstraint("assessment_id", "measurement_id", name="uq_follow_up_measurement"),
+    )
+
+    assessment_id: Mapped[UUID] = mapped_column(sa.ForeignKey("assessments.id"), primary_key=True)
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    measurement_id: Mapped[UUID] = mapped_column(sa.ForeignKey("measurements.id"))
+    outcome: Mapped[str] = mapped_column(sa.String(24))
+    recorded_at: Mapped[datetime] = mapped_column(sa.DateTime(timezone=True), server_default=sa.func.clock_timestamp())
+    measurement: Mapped[Measurement] = relationship(lazy="joined")
+
+
 class MissionObservation(Base):
     __tablename__ = "mission_observations"
     __table_args__ = (

@@ -12,8 +12,8 @@ ACHA helps crew members record health observations, compare measurements with th
 | --- | --- | --- |
 | Gather health indicators | Report symptoms or record heart rate, respiratory rate, blood oxygen saturation, blood pressure, body temperature, and sleep duration | Record observations with units and timestamps, report unavailable instruments, and review saved readings |
 | Evaluate health status | Rule-based evaluation of symptoms and supported readings, plus a descriptive comparison with the same crew member’s recent history | Symptom and vital-sign rules, a synthetic baseline and time-window trends, and optional NEWS2 reference scoring |
-| Act on a result | Visible rationale and access to cached demonstration guidance | Visible rationale, demonstration guidance and simulated ground handover |
-| Operate during communications outages | Cached records and guides, plus an assessment queue that syncs when the API returns | Local evaluation while the onboard server is running, with no Earth connection required |
+| Act on a result | Visible rationale, linked repeat measurements, and recorded follow-up or check-in closure | Visible rationale, demonstration guidance and simulated ground handover |
+| Operate during communications outages | Explicit local synthetic scenario with persistent follow-up, cached sample records and a separate assessment queue for mission-service mode | Local evaluation while the onboard server is running, with no Earth connection required |
 
 ## Data and references
 
@@ -31,3 +31,5 @@ ACHA helps crew members record health observations, compare measurements with th
 “ACHA helps astronauts record and assess health observations when communication with Earth is delayed. In this training scenario, we record a check-in on the onboard workstation and see why a change in pulse is flagged. When a crew member reports chest pain, the result links to the emergency training guide even with missing measurements. The onboard app keeps the observations and guidance available during the outage.”
 
 Follow the [onboard demo instructions](START_HERE.md) to run the scenario locally. The [live React app](https://acha.tr/) shows the connected workflow.
+
+The updated React build includes a lunar habitat scenario. Open it from **Crew monitoring → Open synthetic scenario**, review the initial fatigue check-in, record the fictional repeat heart rate, and close it from **Follow-up**. The [workflow acceptance steps](../docs/health-monitoring.md#try-the-workflow) cover browser and connected modes.

@@ -2,7 +2,7 @@ import type { ObservationContext, ParameterDefinition, RadiationAssessmentContex
 
 export const codePattern = '[a-z][a-z0-9_\\-]{0,63}'
 const sites = ['bone_mineral_density', 'skeletal_strength', 'intraocular_pressure', 'retinal_thickness']
-const specimens = ['urine_specific_gravity', 'white_blood_cells', 'serum_creatinine', 'urine_creatinine']
+const specimens = ['urine_specific_gravity', 'white_blood_cells', 'serum_creatinine', 'urine_creatinine', 'blood_glucose', 'c_reactive_protein']
 const assessmentBases: Record<string, RadiationAssessmentContext['basis']> = {
   nasa_career_effective_dose: 'nasa_career_effective',
   organ_gray_equivalent_30d: 'organ_gray_equivalent',

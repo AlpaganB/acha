@@ -22,18 +22,21 @@ When a crew is far from Earth, its members may need to assess health changes bef
 
 The web app records measurements and submits assessments through an API. The standalone onboard demo runs the assessment engine on a local workstation so the crew can complete a check-in during a simulated loss of contact with Earth.
 
+**Try the browser scenario.** From Crew monitoring, select **Open synthetic scenario** and then **Open scenario check-in**. Review Alex’s recorded change and the incomplete measurement context. Record a repeat reading, link it in **Follow-up**, and close the check-in. The scenario saves fictional records in this browser. It works offline after the public app has loaded and cached its shell. **Return to mission service** switches back to the shared sample workspace.
+
 ## How a check-in works
 
 1. **Choose a crew member.** A mission profile supplies equipment, constraints, and guidance for the current environment.
 2. **Record a reading.** Save heart rate, respiratory rate, blood oxygen saturation, blood pressure, body temperature, or sleep duration. Each reading has a unit and a timestamp and stays in that crew member's history.
 3. **Submit an assessment.** Select saved readings, report symptoms, or combine both. The engine evaluates the available inputs and reports missing information.
 4. **Review the result.** Read the rationale and suggested next step, then open the training guide when one is linked. Previous assessments preserve the mission profile and inputs used at the time.
+5. **Document follow-up.** Link a later reading from the same crew member and record either continued review or workflow completion. Closing the check-in preserves the original result and repeat-reading history.
 
 ### How the engine evaluates a check-in
 
 The web app applies symptom rules and checks supported vital signs against the NEWS2 reference. It saves the inputs, result, and rules used. When at least five earlier readings of the same kind are available for the same crew member, the app shows how the current reading differs from the median of those readings over the preceding 30 days. Blood pressure comparisons use systolic values. The comparison is descriptive.
 
-The standalone demo covers the full terrestrial NEWS2 reference calculation in its test scenarios. The web form displays incomplete scoring when required observations are missing. The mission profiles and response mappings are training settings. [NEWS2 sources and scope](demo/NEWS2_SOURCES.md)
+The standalone demo covers the full terrestrial NEWS2 reference calculation in its test scenarios. The mission-service form displays incomplete scoring when required observations are missing. The browser-only scenario uses descriptive daily medians and provides no clinical score. The mission profiles and response mappings are training settings. [NEWS2 sources and scope](demo/NEWS2_SOURCES.md)
 
 ## Data and evidence
 
@@ -76,6 +79,8 @@ flowchart LR
     Onboard --> Engine
 ~~~
 
+Run PostgreSQL and apply `python -m alembic upgrade head` from `backend/` before launching or deploying the API. The latest revision is `0009`. The public Vite server proxies `/api` to `127.0.0.1:8000`. The Vercel deployment uses the Railway rewrite in `frontend/vercel.json`.
+
 ## Documentation
 
 | Document | Scope |
@@ -84,4 +89,5 @@ flowchart LR
 | [Assessment engine](demo/README.md) | Inputs, outputs, and rule behavior |
 | [Verification report](demo/VALIDATION.md) | Rule comparisons, dataset replay, and limits |
 | [Health monitoring and environmental data](docs/health-monitoring.md) | Repository assessment, source and parameter registries, pressure analysis, and remaining gaps |
+| [Upgrade audit and workflow acceptance](docs/health-monitoring.md#upgrade-audit-and-acceptance) | Data flow, deployment comparison, monitoring scope and reproducible demo checks |
 | [NASA Space Apps submission](demo/SUBMISSION.md) | Challenge mapping, research sources, and demo narration |

@@ -56,6 +56,30 @@ def test_roles_and_missions_are_enforced(restricted):
     assert restricted.get(f"{MISSION}?scope=crew", headers=MEDICAL).status_code == 422
 
 
+def test_expanded_observations_preserve_roles_and_required_measurement_context(restricted):
+    distress = observation(parameter="perceived_isolation", crew_code="crew-a", value=5)
+    assert restricted.post(MISSION, headers=OPERATIONS, json=distress).status_code == 403
+    response = restricted.post(MISSION, headers=MEDICAL, json=distress)
+    assert response.status_code == 201
+    assert response.json()["provenance"] == "USER_REPORTED"
+    assert restricted.post(MISSION, headers=MEDICAL, json={**distress, "value": 11}).status_code == 422
+
+    spirometry = observation(parameter="fev1", crew_code="crew-a", value=3.2)
+    assert restricted.post(MISSION, headers=MEDICAL, json=spirometry).status_code == 422
+    protocol = {"kind": "protocol", "protocol": "spirometry", "version": "v1", "source_ref": "Test procedure"}
+    response = restricted.post(MISSION, headers=MEDICAL, json={**spirometry, "context": protocol})
+    assert response.status_code == 201
+    assert response.json()["unit"] == "L"
+
+    task = observation(parameter="sustained_attention_lapses", crew_code="crew-a", value=2)
+    session = {"kind": "performance", "protocol": "attention", "version": "v1", "trials": 6,
+               "valid_trials": 5, "shift": "day", "utc_offset_minutes": 0}
+    assert restricted.post(MISSION, headers=MEDICAL, json=task).status_code == 422
+    assert restricted.post(MISSION, headers=MEDICAL, json={**task, "context": session, "value": 2.5}).status_code == 422
+    assert restricted.post(MISSION, headers=MEDICAL, json={**task, "context": session, "value": 6}).status_code == 422
+    assert restricted.post(MISSION, headers=MEDICAL, json={**task, "context": session}).status_code == 201
+
+
 def test_mission_observation_provenance_idempotency_and_auditing(restricted):
     payload = observation(location="airlock", quality="verified", device="sensor-03", calibration="cal-014", uncertainty=0.2)
     with ThreadPoolExecutor(max_workers=2) as executor:

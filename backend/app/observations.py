@@ -14,6 +14,7 @@ from .observation_access import Access, ObservationAccess
 from .observation_context import (
     CONTEXTS, LAB_PARAMETERS, PERFORMANCE_PARAMETERS, PERSONAL_TOTALS, PROTOCOL_PARAMETERS, RADIATION_CHANNELS,
     ORGAN_GRAY_EQ_TISSUES, RADIATION_ASSESSMENTS, RADIATION_ESTIMATES, READING_PARAMETERS, SITE_PARAMETERS,
+    REQUIRED_PERFORMANCE_PARAMETERS, REQUIRED_PROTOCOL_PARAMETERS,
     DoseEstimateContext, ExerciseInterval, GravityInterval, ObservationContext, PerformanceContext, ProtocolContext,
     RadiationAssessment, RadiationContext, ReadingContext, SleepEpisode,
 )
@@ -60,6 +61,9 @@ class ObservationInput(ApiModel):
         if ((parameter.minimum is not None and self.value < parameter.minimum)
                 or (parameter.maximum is not None and self.value > parameter.maximum)):
             raise ValueError(f"Value is outside the supported input domain for {parameter.label}.")
+        if self.parameter == "sustained_attention_lapses" and isinstance(self.context, PerformanceContext):
+            if not self.value.is_integer() or self.value > self.context.valid_trials:
+                raise ValueError("Lapses must be a whole number no greater than valid trials.")
         if self.quality == "verified" and parameter.method not in {"self_report", "manual_count"} and not self.device:
             if not isinstance(self.context, (PerformanceContext, ProtocolContext, DoseEstimateContext, GravityInterval,
                                              RadiationAssessment)) and (
@@ -110,7 +114,7 @@ class ObservationInput(ApiModel):
                 if not isinstance(context, RadiationContext) or not self.device or not self.calibration:
                     raise ValueError("Provide radiation source, geometry, shielding, device and calibration.")
         elif self.parameter in PERFORMANCE_PARAMETERS:
-            if context is not None and not isinstance(context, PerformanceContext):
+            if (context is not None or self.parameter in REQUIRED_PERFORMANCE_PARAMETERS) and not isinstance(context, PerformanceContext):
                 raise ValueError("Provide the versioned performance protocol and session conditions.")
         elif self.parameter in READING_PARAMETERS:
             if context is not None and not isinstance(context, ReadingContext):
@@ -123,7 +127,7 @@ class ObservationInput(ApiModel):
                 raise ValueError("The duration must match the interval timestamps.")
             self.value = context.minutes
         elif self.parameter in PROTOCOL_PARAMETERS:
-            if context is not None or self.parameter in {"vo2_peak", "skeletal_strength", "serum_creatinine", "urine_creatinine"}:
+            if context is not None or self.parameter in REQUIRED_PROTOCOL_PARAMETERS:
                 if not isinstance(context, ProtocolContext):
                     raise ValueError("Provide the versioned measurement protocol.")
                 if self.parameter in SITE_PARAMETERS | {"skeletal_strength"} and context.body_site is None:

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
-import { reviewRadiation, reviewSleepLogs, reviewSleepStages } from '../src/monitoringAnalysis.ts'
+import { reviewRadiation, reviewSleepLogs, reviewSleepStages, sleepShortfall } from '../src/monitoringAnalysis.ts'
 
 const stamp = (day, hour = 8) => new Date(Date.UTC(2026, 10, day, hour)).toISOString()
 const sleep = (day, hours, at = 8) => ({ kind: 'sleep_duration', value: hours, recorded_at: stamp(day, at) })
@@ -20,6 +20,15 @@ test('sleep requires five disjoint reference windows and exposes missing or conf
 test('observed wake and unscored time remain distinct', () => {
   const result = reviewSleepStages([[0, 60, '1'], [60, 30, 'W'], [90, 60, 'W'], [180, 30, 'M'], [210, 60, 'R']])
   assert.deepEqual([result.sleepSeconds, result.wakeSeconds, result.longestWakeSeconds, result.unknownSeconds], [120, 90, 90, 60])
+})
+
+test('sleep shortfall requires a target and seven consecutive disjoint report windows', () => {
+  const now = Date.parse(stamp(15, 12))
+  const records = [sleep(9, 6), sleep(10, 6), sleep(11, 9), sleep(12, 7), sleep(13, 8), sleep(14, 7), sleep(15, 8)]
+  assert.equal(sleepShortfall(reviewSleepLogs(records, 14, now), 8), 6)
+  assert.equal(sleepShortfall(reviewSleepLogs(records, 14, now), 0), null)
+  assert.equal(sleepShortfall(reviewSleepLogs(records.slice(1), 14, now), 8), null)
+  assert.equal(sleepShortfall(reviewSleepLogs([...records.slice(0, -1), sleep(15, 8, 7)], 14, now), 8), null)
 })
 
 test('bundled annotations cover 153 distinct recordings with supported labels and valid timing', async () => {

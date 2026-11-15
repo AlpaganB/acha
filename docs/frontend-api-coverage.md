@@ -1,6 +1,6 @@
 # Frontend API coverage
 
-All 34 HTTP operations registered by `backend/app/main.py` have a frontend client and a UI consumer. This is source-level coverage; it does not claim that every live deployment enables every operation.
+All 36 HTTP operations registered by `backend/app/main.py` have a frontend client and a UI consumer. This is source-level coverage; it does not claim that every live deployment enables every operation.
 
 Public workspace routes are enabled only in the public demo. Personal radiation, health review, device ingestion and radiation-window review require the restricted deployment and their existing server authorization. The UI does not alter these controls. Device keys are never stored in localStorage or sessionStorage.
 
@@ -44,10 +44,12 @@ Device registration, key rotation and policy administration remain backend CLI o
 | `GET /api/v1/research/osdr-assays/{study}` | /research — Measurement research / OSD assay coverage | Public research | `api.assayCoverage` |
 | `GET /api/v1/observations/missions/{mission_code}/devices` | Restricted mission log — Device data quality | Bearer access | `observationsApi.channels` |
 | `POST /api/v1/observations/missions/{mission_code}/devices/{channel_code}/samples` | Restricted workspace — Device integration; /mission/devices checks deployment | Device key; restricted deployment | `observationsApi.ingestSample` |
+| `GET /api/v1/crew-members/{crew_id}/assessments/{assessment_id}/follow-ups` | Assessment result — Follow-up history | Public / local synthetic scenario | `api.followUps` via records adapter |
+| `POST /api/v1/crew-members/{crew_id}/assessments/{assessment_id}/follow-ups` | Assessment result — Save follow-up | Public / local synthetic scenario | `api.recordFollowUp` via records adapter |
 
 ## Validation
 
-- `node --test frontend/test/apiCoverage.test.mjs frontend/test/apiRequests.test.mjs`: compares actual FastAPI route declarations with TypeScript client calls and UI consumers; checks request bodies, scoping, device authorization, and validation/conflict responses with mocked fetch.
+- `node --test frontend/test/apiCoverage.test.mjs frontend/test/apiRequests.test.mjs`: compares actual FastAPI route declarations with TypeScript client calls and UI consumers, including the API/local-scenario records adapter; checks request bodies, scoping, device authorization, and validation/conflict responses with mocked fetch.
 - `npm run build --prefix frontend`
 - `npm run build:restricted --prefix frontend` with a valid `VITE_API_URL`; checked using the loopback API URL in the build process environment. No deployment configuration is changed.
 

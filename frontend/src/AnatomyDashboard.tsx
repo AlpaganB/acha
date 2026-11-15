@@ -68,9 +68,9 @@ function SymptomCard({ assessment, codes, title }: { assessment?: Assessment; co
   </article>
 }
 
-export function AnatomyDashboard({ crewId, measurements, assessments, reachable, showIntro, onIntroStarted }: {
+export function AnatomyDashboard({ crewId, measurements, assessments, reachable, load = api.measurements, showIntro, onIntroStarted }: {
   crewId?: string; measurements: Measurement[]; assessments: Assessment[]; reachable: boolean
-  showIntro: boolean; onIntroStarted: () => void
+  load?: typeof api.measurements; showIntro: boolean; onIntroStarted: () => void
 }) {
   const [stage, setStage] = useState(() => initialStage(showIntro && !matchMedia('(prefers-reduced-motion: reduce)').matches))
   const [reducedMotion, setReducedMotion] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches)
@@ -128,13 +128,13 @@ export function AnatomyDashboard({ crewId, measurements, assessments, reachable,
   useEffect(() => {
     if (!crewId || !reachable) return
     let active = true
-    void Promise.allSettled(kinds.map(kind => api.measurements(crewId, { kind, limit: 12 }))).then(results => {
+    void Promise.allSettled(kinds.map(kind => load(crewId, { kind, limit: 12 }))).then(results => {
       if (!active) return
       const records = results.flatMap(result => result.status === 'fulfilled' ? result.value : [])
       setHistory({ crewId, records, failedKinds: results.flatMap((result, index) => result.status === 'rejected' ? [kinds[index]] : []) })
     })
     return () => { active = false }
-  }, [crewId, reachable, revision, retry])
+  }, [crewId, reachable, revision, retry, load])
 
   const crewHistory = history && history.crewId === crewId ? history : undefined
   const visibleKinds = [['body_temperature'], ['heart_rate', 'spo2', 'blood_pressure'], ['sleep_duration'], []][stage.index]

@@ -6,6 +6,8 @@ from fastapi import APIRouter, HTTPException, Query, Request, Response
 from sqlalchemy import Float, cast, null, select, text
 
 from .database import DbSession
+from .evaluation import ASSESSMENT_METRICS
+from .follow_ups import router as follow_up_router
 from .models import Assessment, CrewMember, Measurement, MissionProfile
 from .monitoring_baseline import Indicator, IndicatorReport, MonitoringWindow, calculate_reference, daily_readings, reference_bounds
 from .records import (
@@ -34,6 +36,7 @@ from .schemas import (
 )
 
 router = APIRouter(prefix="/api/v1")
+router.include_router(follow_up_router)
 health_router = APIRouter(prefix="/api/v1", tags=["Health"])
 Limit = Annotated[int, Query(ge=1, le=200)]
 Offset = Annotated[int, Query(ge=0)]
@@ -73,14 +76,17 @@ def demo_monitoring(crew_id: UUID, window: Annotated[MonitoringWindow, Query()],
         if current is None:
             continue
         start, end = reference_bounds(current.recorded_at, window.reference_start, window.reference_end)
+        metric = ASSESSMENT_METRICS.get(kind)
+        bounds = (metric[2], metric[3]) if metric else (0.0, 24.0)
         history = daily_readings(session, select(point.recorded_at, point.value, cast(null(), Float).label("uncertainty"))
-                                 .where(*conditions, point.kind == kind, point.recorded_at >= start, point.recorded_at < end))
+                                 .where(*conditions, point.kind == kind, point.recorded_at >= start, point.recorded_at < end),
+                                 valid_range=bounds)
         conflict = session.scalar(select(point.id).where(*conditions, point.kind == kind,
                                   point.recorded_at == current.recorded_at, point.value != current.value).limit(1))
+        blocked = "conflict" if conflict else "quality" if not bounds[0] <= current.value <= bounds[1] else None
         indicators.append(Indicator(parameter=kind, label=label, unit=MEASUREMENT_UNITS[kind], value=current.value,
                                     recorded_at=current.recorded_at, quality="reported",
-                                    reference=calculate_reference(current.value, None, history, start, end,
-                                                                  blocked="conflict" if conflict else None)))
+                                    reference=calculate_reference(current.value, None, history, start, end, blocked=blocked)))
     response.headers["Cache-Control"] = "no-store"
     return IndicatorReport(through=through, indicators=indicators)
 

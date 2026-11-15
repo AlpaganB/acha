@@ -5,7 +5,7 @@ export interface MissionProfile {
   equipment: string[]
   constraints: string[]
   guidance_protocol_ids: string[]
-  measurement_schedules: { kind: string; interval_minutes: number }[]
+  measurement_schedules?: { kind: string; interval_minutes: number }[]
 }
 
 export interface CrewMember {
@@ -29,6 +29,25 @@ export interface Measurement {
 }
 
 export type MeasurementInput = Omit<Measurement, 'unit'>
+
+export interface MeasurementQuery {
+  kind?: string
+  since?: string
+  until?: string
+  limit?: number
+  offset?: number
+}
+
+export interface FollowUpInput {
+  id: string
+  measurement_id: string
+  outcome: 'continue_review' | 'workflow_complete'
+}
+
+export interface FollowUpEntry extends FollowUpInput {
+  recorded_at: string
+  measurement: Measurement
+}
 
 export interface ResearchRecord {
   source: string
@@ -164,7 +183,7 @@ export const api = {
   createProfile: (input: MissionProfileInput) =>
     request<MissionProfile>('/mission-profiles', { method: 'POST', body: JSON.stringify(input) }),
   profile: (id: string, signal: AbortSignal) => request<MissionProfile>(`/mission-profiles/${id}`, { signal }),
-  measurement: (crewId: string, id: string, signal: AbortSignal) =>
+  measurement: (crewId: string, id: string, signal?: AbortSignal) =>
     request<Measurement>(`/crew-members/${crewId}/measurements/${id}`, { signal }),
   storeAssessmentResult: (crewId: string, id: string, input: AssessmentResultInput) =>
     request<Assessment>(`/crew-members/${crewId}/assessments/${id}/result`, { method: 'PUT', body: JSON.stringify(input) }),
@@ -172,7 +191,7 @@ export const api = {
   profiles: () => listAll<MissionProfile>('/mission-profiles'),
   monitoring: (crewId: string, query: URLSearchParams, signal: AbortSignal) =>
     request<IndicatorReport>(`/crew-members/${crewId}/monitoring?${query}`, { signal }),
-  measurements: (crewId: string, query: { kind?: string; since?: string; until?: string; limit?: number; offset?: number } = {}) => {
+  measurements: (crewId: string, query: MeasurementQuery = {}) => {
     const params = new URLSearchParams({ limit: '12' })
     for (const [key, value] of Object.entries(query)) {
       if (value !== undefined && value !== '') params.set(key, String(value))
@@ -198,6 +217,12 @@ export const api = {
     request<Assessment>(`/crew-members/${crewId}/assessments?evaluate=true`, {
       method: 'POST',
       body: JSON.stringify(input),
+    }),
+  followUps: (crewId: string, id: string) =>
+    request<FollowUpEntry[]>(`/crew-members/${crewId}/assessments/${id}/follow-ups`),
+  recordFollowUp: (crewId: string, id: string, input: FollowUpInput) =>
+    request<FollowUpEntry>(`/crew-members/${crewId}/assessments/${id}/follow-ups`, {
+      method: 'POST', body: JSON.stringify(input),
     }),
   setProfile: (crewId: string, profileId: string) =>
     request<CrewMember>(`/crew-members/${crewId}/mission-profile`, {

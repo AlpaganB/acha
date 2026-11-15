@@ -37,6 +37,14 @@ def event(label: str, category: str, *, operations: bool = False) -> Parameter:
                      "environment" if operations else "crew", "event")
 
 
+def self_report(label: str, category: str, source: str = EVIDENCE) -> Parameter:
+    return Parameter(label, category, "0–10", "self_report", "event or daily report", "P1", source, 0, 10)
+
+
+def protocol_reading(label: str, category: str, unit: str, source: str = CREW_HEALTH) -> Parameter:
+    return Parameter(label, category, unit, "protocol_transcribed", "protocol session", "P2", source)
+
+
 PARAMETERS = {
     "cabin_pressure": environment("Cabin absolute pressure", "kPa"),
     "suit_pressure": environment("Suit absolute pressure", "kPa", priority="P2"),
@@ -87,6 +95,13 @@ PARAMETERS = {
                                  "beat interval", "P2", "https://physionet.org/content/bidmc/1.0.0/"),
     "end_tidal_co2": Parameter("End-tidal carbon dioxide", "Cardiorespiratory", "kPa", "instrument_transcribed",
                               "protocol session", "P2", CREW_HEALTH),
+    "fev1": protocol_reading("Forced expiratory volume in one second", "Cardiorespiratory", "L"),
+    "forced_vital_capacity": protocol_reading("Forced vital capacity", "Cardiorespiratory", "L"),
+    "orthostatic_response": event("Orthostatic test findings", "Cardiorespiratory"),
+    "ecg_observation": event("ECG or pulse rhythm observation", "Cardiorespiratory"),
+    "exercise_recovery_heart_rate": protocol_reading("Heart rate at protocol-defined recovery time", "Cardiorespiratory", "bpm"),
+    "breathing_difficulty": self_report("Reported breathing difficulty", "Cardiorespiratory"),
+    "palpitations": self_report("Reported palpitations", "Cardiorespiratory"),
     "core_temperature": Parameter("Core temperature", "Thermal", "°C", "instrument_transcribed", "spot", "P1", CREW_HEALTH, -273.15),
     "skin_temperature": Parameter("Skin temperature", "Thermal", "°C", "instrument_transcribed", "spot", "P1", CREW_HEALTH, -273.15),
     "sleep_minutes": Parameter("Reported sleep in the previous 24 hours", "Sleep", "min", "self_report", "daily", "P1", SLEEP, 0, 1440),
@@ -94,15 +109,31 @@ PARAMETERS = {
     "sleep_interruptions": Parameter("Reported sleep interruptions", "Sleep", "count", "self_report", "daily", "P1", SLEEP),
     "sleep_episode_minutes": Parameter("Sleep episode duration", "Sleep", "min", "protocol_transcribed",
                                         "episode", "P1", SLEEP, 0, 1440),
+    "sleep_quality": self_report("Reported sleep quality (low to high)", "Sleep", SLEEP),
+    "daytime_sleepiness": self_report("Reported daytime sleepiness", "Sleep", SLEEP),
     "reaction_time": Parameter("Median reaction time", "Cognition", "ms", "protocol_transcribed", "protocol session", "P1", COGNITION),
     "task_accuracy": Parameter("Task accuracy", "Cognition", "%", "protocol_transcribed", "protocol session", "P1", COGNITION, 0, 100),
+    "sustained_attention_lapses": protocol_reading("Sustained-attention lapses", "Cognition", "count", COGNITION),
+    "working_memory_accuracy": Parameter("Working-memory task accuracy", "Cognition", "%", "protocol_transcribed",
+                                         "protocol session", "P2", COGNITION, 0, 100),
     "perceived_workload": Parameter("Reported workload", "Well-being", "0–10", "self_report", "daily", "P1", SLEEP, 0, 10),
     "perceived_stress": Parameter("Reported stress", "Well-being", "0–10", "self_report", "daily", "P1", EVIDENCE, 0, 10),
     "reported_mood": Parameter("Reported mood (low to high)", "Well-being", "0–10", "self_report", "daily", "P1", EVIDENCE, 0, 10),
+    "fatigue": self_report("Reported fatigue", "Well-being"),
+    "perceived_isolation": self_report("Reported social isolation", "Well-being"),
+    "perceived_team_cohesion": self_report("Reported team cohesion (low to high)", "Well-being"),
+    "perceived_wellbeing": self_report("Reported well-being (low to high)", "Well-being"),
     "headache": Parameter("Reported headache severity", "Symptoms", "0–10", "self_report", "event", "P1", EVIDENCE, 0, 10),
     "ear_fullness": Parameter("Reported ear fullness severity", "Symptoms", "0–10", "self_report", "event", "P1", STANDARD, 0, 10),
     "dizziness": Parameter("Reported dizziness severity", "Symptoms", "0–10", "self_report", "event", "P1", EVIDENCE, 0, 10),
     "nausea": Parameter("Reported nausea severity", "Symptoms", "0–10", "self_report", "event", "P1", EVIDENCE, 0, 10),
+    "motion_sickness": self_report("Reported motion sickness", "Neurological and ocular"),
+    "visual_symptom": event("Visual symptom or vision change", "Neurological and ocular"),
+    "vision_assessment": event("Vision assessment or SANS-related finding", "Neurological and ocular"),
+    "balance_assessment": event("Balance or coordination assessment", "Performance"),
+    "musculoskeletal_pain": self_report("Reported musculoskeletal pain", "Performance"),
+    "injury_observation": event("Injury observation", "Performance"),
+    "resistance_session": event("Resistance training loads and repetitions", "Performance"),
     "exercise_minutes": Parameter("Exercise duration", "Performance", "min", "self_report", "session", "P1", EVIDENCE, 0, 1440),
     "gravity_exposure_minutes": Parameter("Recorded gravity exposure interval", "Mission exposure", "min",
                                            "protocol_transcribed", "interval", "P1", "https://www.nasa.gov/reference/4-0-human-performance/"),
@@ -115,6 +146,12 @@ PARAMETERS = {
     "energy_intake": Parameter("Reported energy intake", "Nutrition and renal", "kcal", "self_report", "event", "P1", CREW_HEALTH),
     "protein_intake": Parameter("Reported protein intake", "Nutrition and renal", "g", "self_report", "event", "P1", CREW_HEALTH),
     "sodium_intake": Parameter("Reported sodium intake", "Nutrition and renal", "mg", "self_report", "event", "P1", CREW_HEALTH),
+    "meal_record": event("Meal and portion record", "Nutrition and renal"),
+    "appetite": self_report("Reported appetite (low to high)", "Nutrition and renal"),
+    "abdominal_discomfort": self_report("Reported abdominal discomfort", "Gastrointestinal and urinary"),
+    "bowel_observation": event("Bowel symptoms or stool observation", "Gastrointestinal and urinary"),
+    "urinary_discomfort": self_report("Reported urinary discomfort", "Gastrointestinal and urinary"),
+    "urinary_observation": event("Urinary symptoms or voiding observation", "Gastrointestinal and urinary"),
     "body_mass": Parameter("Body mass", "Nutrition and renal", "kg", "instrument_transcribed", "periodic", "P1", CREW_HEALTH),
     "urine_volume": Parameter("Urine volume", "Nutrition and renal", "mL", "instrument_transcribed", "specimen or timed collection", "P1", EVIDENCE),
     "urine_specific_gravity": Parameter("Urine specific gravity", "Nutrition and renal", "ratio", "laboratory_transcribed", "specimen", "P2", EVIDENCE),
@@ -124,6 +161,8 @@ PARAMETERS = {
                                   "laboratory_transcribed", "specimen", "P2", EVIDENCE),
     "bone_mineral_density": Parameter("Bone mineral density (site-specific)", "Clinical and laboratory", "g/cm²", "clinical_transcribed", "periodic exam", "P2", EVIDENCE),
     "white_blood_cells": Parameter("White blood cell count", "Clinical and laboratory", "10⁹/L", "laboratory_transcribed", "specimen", "P2", EVIDENCE),
+    "c_reactive_protein": Parameter("C-reactive protein", "Clinical and laboratory", "mg/L", "laboratory_transcribed", "specimen", "P2", EVIDENCE),
+    "blood_glucose": Parameter("Blood glucose", "Clinical and laboratory", "mmol/L", "laboratory_transcribed", "specimen", "P2", CREW_HEALTH),
     "intraocular_pressure": Parameter("Intraocular pressure", "Clinical and laboratory", "mmHg", "clinical_transcribed", "periodic exam", "P2", EVIDENCE),
     "retinal_thickness": Parameter("Retinal thickness (OCT, site-specific)", "Clinical and laboratory", "µm", "clinical_transcribed", "periodic exam", "P2", EVIDENCE),
     "medical_encounter": event("Medical encounter or examination", "Clinical events"),
@@ -131,4 +170,6 @@ PARAMETERS = {
     "allergy_record": event("Allergy record", "Clinical events"),
     "medication_record": event("Medication administration or missed dose", "Clinical events"),
     "adverse_reaction": event("Observed adverse reaction", "Clinical events"),
+    "infection_symptoms": event("Reported infection-related symptoms", "Immune and infection"),
+    "wound_observation": event("Wound site and appearance", "Immune and infection"),
 }

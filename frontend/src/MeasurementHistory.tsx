@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { api, type Measurement } from './api'
+import type { api, Measurement } from './api'
 import { formatDate, measurementLabels } from './content'
 
 const pageSize = 40
@@ -79,8 +79,9 @@ export function MeasurementTrends({ readings, fixedKind }: {
   </>
 }
 
-export function MeasurementHistory({ crewId, cached, reachable, revision, onReconnect, initialKind = '' }: {
+export function MeasurementHistory({ crewId, cached, reachable, revision, load, onReconnect, initialKind = '' }: {
   crewId?: string; cached: Measurement[]; reachable: boolean; revision?: string
+  load: typeof api.measurements
   onReconnect: () => Promise<void>
   initialKind?: string
 }) {
@@ -113,7 +114,7 @@ export function MeasurementHistory({ crewId, cached, reachable, revision, onReco
     setError('')
     const from = since ? dateBoundary(since) : undefined
     const through = until && dateBoundary(until, true) < snapshot ? dateBoundary(until, true) : snapshot
-    const request = from && from >= through ? Promise.resolve<Measurement[]>([]) : api.measurements(crewId, {
+    const request = from && from >= through ? Promise.resolve<Measurement[]>([]) : load(crewId, {
       kind, since: from, until: through,
       limit: pageSize, offset,
     })
@@ -127,7 +128,7 @@ export function MeasurementHistory({ crewId, cached, reachable, revision, onReco
     }).finally(() => { if (id === requestId.current) setLoading(false) })
     return () => { requestId.current++ }
     // loadedKey records which filters the displayed data belongs to; it is not a request trigger.
-  }, [crewId, reachable, invalid, kind, since, until, snapshot, page, queryKey])
+  }, [crewId, reachable, invalid, kind, since, until, snapshot, page, queryKey, load])
 
   const usingCache = !reachable
   const visible = usingCache ? cached.filter(reading => (!kind || reading.kind === kind)

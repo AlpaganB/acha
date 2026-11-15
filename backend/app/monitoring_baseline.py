@@ -14,7 +14,8 @@ MIN_REFERENCE_DAYS = 5
 INDICATORS = (
     "heart_rate", "spo2", "respiratory_rate", "systolic_bp", "diastolic_bp",
     "core_temperature", "sleep_minutes", "sleep_episode_minutes", "body_mass",
-    "grip_strength", "reaction_time",
+    "grip_strength", "reaction_time", "resting_hrv_rmssd", "fev1", "forced_vital_capacity",
+    "exercise_recovery_heart_rate", "sustained_attention_lapses", "working_memory_accuracy",
 )
 ADAPTATION_INDICATORS = ("body_mass", "grip_strength", "vo2_peak", "bone_mineral_density")
 
@@ -76,7 +77,7 @@ class DailyReading:
     uncertainty: float | None
 
 
-def daily_readings(session: Session, statement) -> list[DailyReading]:
+def daily_readings(session: Session, statement, *, valid_range: tuple[float, float] | None = None) -> list[DailyReading]:
     candidates = statement.subquery()
     # Same-time conflicting values do not vote for the baseline. Repeated identical results count once.
     resolved = (
@@ -88,6 +89,8 @@ def daily_readings(session: Session, statement) -> list[DailyReading]:
     )
     day = func.date_trunc("day", func.timezone("UTC", resolved.c.recorded_at))
     query = select(func.percentile_cont(0.5).within_group(resolved.c.value), func.max(resolved.c.uncertainty)).group_by(day)
+    if valid_range is not None:
+        query = query.where(resolved.c.value.between(*valid_range))
     return [DailyReading(value, uncertainty) for value, uncertainty in session.execute(query)]
 
 

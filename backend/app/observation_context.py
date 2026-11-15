@@ -158,9 +158,14 @@ RADIATION_ASSESSMENTS = {
 }
 ORGAN_GRAY_EQ_TISSUES = {"lens", "skin", "blood_forming_organs", "circulatory_system"}
 SITE_PARAMETERS = {"bone_mineral_density", "intraocular_pressure", "retinal_thickness"}
-LAB_PARAMETERS = {"urine_specific_gravity", "white_blood_cells", "serum_creatinine", "urine_creatinine"}
-PROTOCOL_PARAMETERS = SITE_PARAMETERS | LAB_PARAMETERS | {"grip_strength", "skeletal_strength", "resting_hrv_rmssd", "vo2_peak", "urine_volume"}
-PERFORMANCE_PARAMETERS = {"reaction_time", "task_accuracy"}
+REQUIRED_PROTOCOL_PARAMETERS = {"vo2_peak", "skeletal_strength", "serum_creatinine", "urine_creatinine",
+                                "blood_glucose", "c_reactive_protein", "fev1", "forced_vital_capacity",
+                                "exercise_recovery_heart_rate"}
+LAB_PARAMETERS = {"urine_specific_gravity", "white_blood_cells", "serum_creatinine", "urine_creatinine",
+                  "blood_glucose", "c_reactive_protein"}
+PROTOCOL_PARAMETERS = REQUIRED_PROTOCOL_PARAMETERS | SITE_PARAMETERS | LAB_PARAMETERS | {"grip_strength", "resting_hrv_rmssd", "urine_volume"}
+REQUIRED_PERFORMANCE_PARAMETERS = {"sustained_attention_lapses", "working_memory_accuracy"}
+PERFORMANCE_PARAMETERS = REQUIRED_PERFORMANCE_PARAMETERS | {"reaction_time", "task_accuracy"}
 READING_PARAMETERS = {"heart_rate", "spo2", "respiratory_rate", "systolic_bp", "diastolic_bp", "core_temperature", "body_mass"}
 
 CONTEXTS = {

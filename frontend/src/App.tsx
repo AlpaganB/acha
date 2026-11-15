@@ -20,6 +20,7 @@ import { environmentLabels, formatDate, measurementLabels } from './content'
 import { navigate } from './navigation'
 import { useMission } from './useMission'
 import { readLocal, saveLocal } from './storage'
+import { openScenario, readScenario, scenarioAssessmentId } from './localScenario'
 import type { Measurement, MissionProfile } from './api'
 
 type Mission = ReturnType<typeof useMission>
@@ -80,7 +81,7 @@ function useOfflineShell() {
   }, [])
 }
 
-function CrewMonitoring({ mission }: { mission: Mission }) {
+function CrewMonitoring({ mission, onOpenScenario }: { mission: Mission; onOpenScenario: () => void }) {
   return <>
     <header className="overview-heading">
       <div><h1>Crew monitoring</h1><p>{mission.profile?.name ?? 'Demo workspace'}</p></div>
@@ -91,6 +92,15 @@ function CrewMonitoring({ mission }: { mission: Mission }) {
         <a className="button primary" href="/measurements"><Plus size={17} /> Record measurement</a>
       </div>
     </header>
+    {mission.local ? <section className="surface form-panel scenario-intro">
+      <h2>Lunar habitat · Early-shift check-in</h2>
+      <p>Alex reports fatigue after shorter sleep. Review the recorded change, check the limits of the evidence, and log a simulated repeat reading.</p>
+      <a className="button primary" href={`/assessments/${scenarioAssessmentId}`}>Open scenario check-in <ArrowRight size={16} aria-hidden="true" /></a>
+    </section> : <section className="surface form-panel scenario-intro">
+      <h2>Practice a crew check-in</h2>
+      <p>Open a fictional lunar habitat scenario with a crew member, reading history, and an assessment to follow up. Changes stay in this browser.</p>
+      <button className="button primary" onClick={onOpenScenario}>Open synthetic scenario <ArrowRight size={16} aria-hidden="true" /></button>
+    </section>}
     {mission.crew.length > 0 && <nav className="crew-roster" aria-label="Crew members">
       {mission.crew.map(crew => <button type="button" key={crew.id} className="button secondary"
         aria-pressed={crew.id === mission.selected?.id} onClick={() => mission.selectCrew(crew.id)}>
@@ -98,9 +108,14 @@ function CrewMonitoring({ mission }: { mission: Mission }) {
       </button>)}
     </nav>}
     {mission.selected ? <DemoMonitoring key={mission.selected.id} crewId={mission.selected.id} reachable={mission.reachable}
-      refreshKey={mission.measurements[0]?.id} /> : <p className="notice" role="status">
+      refreshKey={mission.measurements[0]?.id} load={mission.records.monitoring} /> : <p className="notice" role="status">
       {mission.connection === 'checking' ? 'Loading crew…' : 'No crew member is available.'}
     </p>}
+    <section className="surface form-panel scenario-intro" aria-labelledby="recent-check-ins">
+      <div className="section-heading"><h2 id="recent-check-ins">Recent check-ins</h2><a className="text-link" href="/assessments">All assessments</a></div>
+      <Records records={mission.history} queued={mission.queued} syncIssues={mission.syncIssues}
+        available={mission.historyAvailable} pending={mission.historyPending} limit={3} />
+    </section>
   </>
 }
 
@@ -158,12 +173,13 @@ function Home({ mission, showIntro, onIntroStarted }: { mission: Mission; showIn
           <h1>Health overview</h1>
         </div>
         <div className="overview-actions">
+          <a className="button secondary" href="/monitoring">Crew monitoring</a>
           <a className="button secondary" href="/assessment"><ClipboardList size={16} /> Start assessment</a>
           <a className="button primary" href="/measurements"><Plus size={17} /> Record measurement</a>
         </div>
       </header>
       <AnatomyDashboard crewId={mission.selected?.id} measurements={mission.measurements} assessments={mission.history}
-        reachable={mission.reachable} showIntro={showIntro} onIntroStarted={onIntroStarted} />
+        reachable={mission.reachable} load={mission.records.measurements} showIntro={showIntro} onIntroStarted={onIntroStarted} />
       <LatestMeasurements measurements={mission.measurements} pending={mission.measurementsPending}
           available={mission.measurementsAvailable} />
       <div className="dashboard-support">
@@ -255,13 +271,29 @@ function MissionProfiles({ mission }: { mission: Mission }) {
           })}
         </div>
       )}
-      <ProfileTools selectedId={mission.profile?.id} reachable={mission.reachable} onCreated={mission.refreshWorkspace} />
+      {!mission.local && <ProfileTools selectedId={mission.profile?.id} reachable={mission.reachable} onCreated={mission.refreshWorkspace} />}
     </>
   )
 }
 
 export function App() {
-  const mission = useMission()
+  const [local, setLocal] = useState(() => readLocal<boolean>('use-synthetic-scenario') === true && Boolean(readScenario()))
+  const [modeError, setModeError] = useState('')
+  async function changeMode(next: boolean) {
+    setModeError('')
+    if (next && !await openScenario().catch(() => false)) {
+      setModeError('This browser could not save the synthetic scenario. Enable site storage to use it.')
+      return
+    }
+    saveLocal('use-synthetic-scenario', next)
+    setLocal(next)
+    navigate(next ? '/monitoring' : '/')
+  }
+  return <MissionApp key={String(local)} local={local} changeMode={changeMode} modeError={modeError} />
+}
+
+function MissionApp({ local, changeMode, modeError }: { local: boolean; changeMode: (local: boolean) => void; modeError: string }) {
+  const mission = useMission(local)
   const route = useRoute()
   useOfflineShell()
   const main = useRef<HTMLElement>(null)
@@ -313,11 +345,29 @@ export function App() {
   const id = rawId && /^[a-zA-Z0-9_-]{1,64}$/.test(rawId) ? rawId : undefined
   const params = new URLSearchParams(query)
   const initialMeasurementId = params.get('measurement') ?? undefined
+  const rawFollowUp = params.get('follow-up') ?? ''
+  const followUpId = /^[a-zA-Z0-9_-]{1,64}$/.test(rawFollowUp) ? rawFollowUp : undefined
   const requestedKind = params.get('kind') ?? ''
   const restrictedLog = params.get('source') === 'restricted'
   const researchView = params.get('view') ?? ''
   const initialKind = Object.hasOwn(measurementLabels, requestedKind) ? requestedKind : ''
   const home = !['assessment', 'assessments', 'measurements', 'guides', 'mission', 'research', 'crew', 'monitoring'].includes(page)
+  const [attached, setAttached] = useState<{ crewId: string; record?: Measurement; error?: string }>()
+  const listedMeasurement = mission.measurements.some(item => item.id === initialMeasurementId)
+  const activeCrewId = mission.selected?.id
+  const loadMeasurement = mission.records.measurement
+  useEffect(() => {
+    if (page !== 'assessment' || !initialMeasurementId || !activeCrewId || listedMeasurement || !mission.reachable) return
+    let active = true
+    void loadMeasurement(activeCrewId, initialMeasurementId).then(record => {
+      if (active) setAttached({ crewId: activeCrewId, record })
+    }, () => {
+      if (active) setAttached({ crewId: activeCrewId, error: initialMeasurementId })
+    })
+    return () => { active = false }
+  }, [page, initialMeasurementId, activeCrewId, listedMeasurement, loadMeasurement, mission.reachable])
+  const attachment = attached?.crewId === activeCrewId ? attached : undefined
+  const extraMeasurement = !listedMeasurement && attachment?.record?.id === initialMeasurementId ? attachment?.record : undefined
 
   useLayoutEffect(() => {
     if (previousRoute.current === route) return
@@ -372,23 +422,28 @@ export function App() {
           </a>
       </aside>
       <main ref={main} id="main-content" className={`main-content ${home ? 'home' : 'inner-page'}`} tabIndex={-1} inert={isMobile && mobileMenuOpen}>
-        {!mission.reachable && (mission.connection !== 'checking' || !mission.online) && <p className="connection-notice" role="status"><WifiOff size={15} />{mission.online ? 'Couldn’t refresh your records.' : 'You’re offline. Any records saved on this device are still available.'}{mission.online && <button className="text-link" onClick={() => void mission.refreshWorkspace()}>Retry</button>}</p>}
+        {local && <div className="connection-notice scenario-banner"><strong>Synthetic scenario</strong><span>Fictional crew records · Stored on this device</span>
+          <button className="text-link" onClick={() => changeMode(false)}>Return to mission service</button></div>}
+        {!mission.reachable && (mission.connection !== 'checking' || !mission.online) && <div className="connection-notice" role="status"><WifiOff size={15} />{mission.online ? 'Couldn’t refresh mission-service records.' : 'You’re offline. Recently cached mission records are available.'}{mission.online && <button className="text-link" onClick={() => void mission.refreshWorkspace()}>Retry</button>}{!home && <button className="text-link" onClick={() => changeMode(true)}>Open synthetic scenario</button>}</div>}
+        {modeError && <p className="notice error" role="alert">{modeError}</p>}
         <div className="route-content">
           {home && <Home mission={mission} showIntro={!anatomyIntroSeen.current} onIntroStarted={() => { anatomyIntroSeen.current = true }} />}
-          {page === 'monitoring' && <CrewMonitoring mission={mission} />}
+          {page === 'monitoring' && <CrewMonitoring mission={mission} onOpenScenario={() => changeMode(true)} />}
           {page === 'assessment' && (
             <>
               <header className="page-title">
                 <h1>Self-assessment</h1>
                 <p className="crew-context">{mission.selected?.display_name}</p>
-                <p>Use sample data in this public demo. <a className="text-link" href="/mission/observations">Open mission observations</a></p>
+                <p>Use sample data in this public workspace. <a className="text-link" href="/mission/observations">Open mission observations</a></p>
               </header>
               {!mission.selected && (mission.connection !== 'checking' || !mission.online) && <p className="notice" role="status">
                 <Radio size={18} aria-hidden="true" /> A crew member must be loaded before saving.
                 <a className="text-link" href="/mission">Open mission profile</a>
               </p>}
+              {initialMeasurementId && !listedMeasurement && attachment?.error === initialMeasurementId && <p className="notice error" role="alert">The linked measurement could not be loaded for this crew member.</p>}
               <AssessmentForm key={`${mission.selected?.id}:${initialMeasurementId}`} initialMeasurementId={initialMeasurementId}
-                crew={mission.selected} measurements={mission.measurements} measurementsPending={mission.measurementsPending}
+                crew={mission.selected} measurements={extraMeasurement ? [extraMeasurement, ...mission.measurements] : mission.measurements}
+                measurementsPending={mission.measurementsPending}
                 reachable={mission.reachable} onSubmit={async input => {
                   await mission.submit(input)
                   navigate(`/assessments/${input.id}`)
@@ -396,7 +451,8 @@ export function App() {
             </>
           )}
           {page === 'assessments' && (id ? <AssessmentResult key={`${mission.selected?.id}:${id}`} id={id}
-            crewId={mission.selected?.id} reachable={mission.reachable} pending={mission.historyPending}
+            crewId={mission.selected?.id} crewName={mission.selected?.display_name} reachable={mission.reachable} pending={mission.historyPending} local={local}
+            measurements={mission.measurements} preferredMeasurement={initialMeasurementId} data={mission.records}
             record={mission.history.find(record => record.id === id)}
             queued={mission.queued.find(entry => entry.input.id === id)}
             syncIssue={mission.syncIssues[id]} onRecord={mission.remember} onDiscard={mission.discard} />
@@ -404,13 +460,13 @@ export function App() {
           {page === 'guides' && <Guidance profile={mission.profile} guideId={id} />}
           {page === 'mission' && id === 'devices' && <><header className="page-title"><h1>Device integration</h1></header><DeviceIngest /></>}
           {page === 'mission' && id === 'pressure' && <Pressure />}
-          {page === 'mission' && id === 'monitoring' && <HealthMonitoring crew={mission.selected} reachable={mission.reachable} />}
+          {page === 'mission' && id === 'monitoring' && <HealthMonitoring crew={mission.selected} reachable={mission.reachable} load={mission.records.measurements} />}
           {page === 'mission' && id === 'observations' && <Observations key={String(restrictedLog)} restricted={restrictedLog} />}
           {page === 'mission' && !['pressure', 'observations', 'monitoring', 'devices'].includes(id ?? '') && <MissionProfiles mission={mission} />}
-          {page === 'crew' && <Crew members={mission.crew} profiles={mission.profiles} selectedId={mission.selected?.id} pending={mission.connection === 'checking'} reachable={mission.reachable} onCreated={mission.refreshWorkspace} onSelect={mission.selectCrew} />}
-          {page === 'measurements' && id && <MeasurementDetails key={`${mission.selected?.id}:${id}`} crewId={mission.selected?.id} id={id} reachable={mission.reachable} />}
-          {page === 'measurements' && !id && <Measurements key={`${mission.selected?.id}:${initialKind}`} initialKind={initialKind} crew={mission.selected} measurements={mission.measurements}
-            pending={mission.measurementsPending} reachable={mission.reachable} onSave={mission.recordMeasurement} onReconnect={mission.refreshWorkspace} />}
+          {page === 'crew' && <Crew members={mission.crew} profiles={mission.profiles} selectedId={mission.selected?.id} local={local} pending={mission.connection === 'checking'} reachable={mission.reachable} onCreated={mission.refreshWorkspace} onSelect={mission.selectCrew} />}
+          {page === 'measurements' && id && <MeasurementDetails key={`${mission.selected?.id}:${id}`} crewId={mission.selected?.id} id={id} reachable={mission.reachable} load={mission.records.measurement} />}
+          {page === 'measurements' && !id && <Measurements key={`${mission.selected?.id}:${initialKind}:${followUpId}`} initialKind={initialKind} crew={mission.selected} measurements={mission.measurements}
+            local={local} followUpId={followUpId} load={mission.records.measurements} pending={mission.measurementsPending} reachable={mission.reachable} onSave={mission.recordMeasurement} onReconnect={mission.refreshWorkspace} />}
           {page === 'research' && <Research view={researchView} />}
         </div>
       </main>

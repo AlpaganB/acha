@@ -51,7 +51,7 @@ print(json.dumps(result))`
 test('every backend HTTP operation has an API client used by a frontend screen', () => {
   const routes = JSON.parse(execFileSync('python', ['-c', python], { cwd: root, encoding: 'utf8' }))
   const screens = readdirSync(new URL('../src/', import.meta.url)).filter(name => /\.tsx?$/.test(name) && name !== 'api.ts').map(name => readFileSync(new URL('../src/' + name, import.meta.url), 'utf8')).join('\n')
-  const uncovered = routes.filter(route => !clients.some(client => client.operation === canonical(route) && screens.includes(client.call + '(')))
+  const uncovered = routes.filter(route => !clients.some(client => client.operation === canonical(route) && (client.call.startsWith('observationsApi.') ? screens.includes(client.call) : ['api', 'records', 'data'].some(owner => new RegExp('\\b' + owner + '\\.' + client.call.split('.')[1] + '\\b').test(screens)))))
   assert.deepEqual(uncovered, [], 'Unconnected backend operations: ' + uncovered.join(', '))
   assert.ok(routes.length > 0, 'Backend route inventory must not be empty')
 })

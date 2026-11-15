@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, ChevronRight, Plus, RefreshCw, TriangleAlert, Clock3, Info, CircleCheck } from 'lucide-react'
 import { ExternalAssessmentResult } from './WorkspaceTools'
-import { api, type Assessment, type EngineFinding } from './api'
+import { api, type Assessment, type EngineFinding, type Measurement } from './api'
+import { AssessmentFollowUp } from './AssessmentFollowUp'
 import { formatDate, humanize, symptomLabel } from './content'
 import { navigate } from './navigation'
 import type { QueuedAssessment } from './storage'
@@ -91,17 +92,22 @@ export function Records({ records, queued, syncIssues, available, pending, limit
 interface ResultProps {
   id: string
   crewId?: string
+  crewName?: string
   record?: Assessment
   queued?: QueuedAssessment
   syncIssue?: string
   reachable: boolean
   pending: boolean
+  local: boolean
+  measurements: Measurement[]
+  preferredMeasurement?: string
+  data: Pick<typeof api, 'assessment' | 'followUps' | 'recordFollowUp' | 'measurement' | 'measurements'>
   onRecord: (record: Assessment) => void
   onDiscard: (id: string) => void
 }
 
 export function AssessmentResult({
-  id, crewId, record, queued, syncIssue, reachable, pending, onRecord, onDiscard,
+  id, crewId, crewName, record, queued, syncIssue, reachable, pending, local, measurements, preferredMeasurement, data, onRecord, onDiscard,
 }: ResultProps) {
   const [evaluating, setEvaluating] = useState(false)
   const [error, setError] = useState('')
@@ -111,11 +117,11 @@ export function AssessmentResult({
   const waiting = record?.status === 'pending'
 
   useEffect(() => {
-    if (!crewId || !reachable || queuedLocally) return
+    if (!crewId || !reachable || queuedLocally || (local && record)) return
     let active = true
     const load = async () => {
       try {
-        const result = await api.assessment(crewId, id)
+        const result = await data.assessment(crewId, id)
         if (!active) return
         onRecord(result)
         setLoadError('')
@@ -129,7 +135,7 @@ export function AssessmentResult({
       active = false
       window.clearInterval(interval)
     }
-  }, [crewId, id, onRecord, queuedLocally, reachable, waiting])
+  }, [crewId, data, id, local, onRecord, queuedLocally, reachable, waiting, local && Boolean(record)])
 
   async function evaluate() {
     if (!crewId || evaluating) return
@@ -156,7 +162,7 @@ export function AssessmentResult({
       <a className="back-link" href="/assessments"><ArrowLeft size={16} aria-hidden="true" /> All assessments</a>
       <header className="page-title">
         <h1>Assessment result</h1>
-        {input && <p>{formatDate(input.assessed_at)}</p>}
+        {input && <p>{[crewName, formatDate(input.assessed_at)].filter(Boolean).join(' · ')}</p>}
       </header>
       {input ? (
         <section className="surface result-panel">
@@ -175,15 +181,16 @@ export function AssessmentResult({
             {queuedLocally && !record && <p>{syncIssue
               ? 'The mission service rejected this assessment. A copy is still saved on this device.'
               : 'Saved on this device. This assessment will be submitted when the mission service is reachable again.'}</p>}
-            {waiting && reachable && crewId && !queuedLocally && <ExternalAssessmentResult crewId={crewId} id={id} onRecord={onRecord} />}
+            {waiting && !local && reachable && crewId && !queuedLocally && <ExternalAssessmentResult crewId={crewId} id={id} onRecord={onRecord} />}
             {waiting && <p>This assessment is awaiting a result. Select Run assessment to evaluate it.</p>}
-            {record?.status === 'demo_reviewed' && <p className="notice">This example uses synthetic data for demonstration.</p>}
-            {record?.engine_result && <p className="notice">This result uses training rules. Follow mission-approved procedures for medical decisions.</p>}
+            {record?.status === 'demo_reviewed' && !local && <p className="notice">This example uses synthetic data for demonstration.</p>}
+            {record?.engine_result && <p className="notice">{local ? 'Descriptive training review. No clinical score was calculated.'
+              : 'This result uses training rules. Follow mission-approved procedures for medical decisions.'}</p>}
             {record?.rationale && <div className="result-block"><h3>Rationale</h3><p>{record.rationale}</p></div>}
             {record?.engine_result && (
               <details className="engine-details">
                 <summary>Assessment evidence</summary>
-                <p>Engine {record.engine_result.engine_version} · Profile {record.engine_result.profile_version}</p>
+                <p>{local ? 'Method' : 'Engine'} {record.engine_result.engine_version} · Profile {record.engine_result.profile_version}</p>
                 {record.engine_result.news2 && <p>{record.engine_result.news2.complete
                   ? `NEWS2 reference score: ${record.engine_result.news2.total_score}`
                   : 'The available observations do not support a NEWS2 reference score.'}</p>}
@@ -196,13 +203,13 @@ export function AssessmentResult({
             {engine?.comparisons && Object.keys(engine.comparisons).length > 0 && (
               <div className="result-block">
                 <h3>Compared with previous readings</h3>
-                <p>The reference is the median of this crew member’s earlier readings within the previous {engine.comparison_window_days} days.</p>
+                <p>The reference is the median of {local ? 'daily medians from ' : ''}this crew member’s earlier readings within the previous {engine.comparison_window_days} days. Collection context affects comparability.</p>
                 <dl className="detail-list">{Object.entries(engine.comparisons).map(([metric, comparison]) => (
                   <div key={metric}>
                     <dt>{humanize(metric)}</dt>
                     <dd>{!comparison.usable ? 'Check the entered reading.' : comparison.difference === null
-                      ? `${comparison.observed} ${comparison.unit}. Reference unavailable (${comparison.samples} earlier readings found, ${engine.comparison_min_samples} required).`
-                      : `${comparison.observed} ${comparison.unit} · Prior median ${comparison.reference} ${comparison.unit} (${comparison.samples} readings) · Change ${comparison.difference > 0 ? '+' : ''}${comparison.difference} ${comparison.unit}`}
+                      ? `${comparison.observed} ${comparison.unit}. Reference unavailable (${comparison.samples} ${local ? 'days' : 'readings'} found, ${engine.comparison_min_samples} required).`
+                      : `${comparison.observed} ${comparison.unit} · Prior median ${comparison.reference} ${comparison.unit} (${comparison.samples} ${local ? 'days' : 'readings'}) · Change ${comparison.difference > 0 ? '+' : ''}${comparison.difference} ${comparison.unit}`}
                       {comparison.usable && comparison.median_absolute_deviation != null && (
                         <small className="muted">Median absolute deviation: {comparison.median_absolute_deviation} {comparison.unit}</small>
                       )}</dd>
@@ -242,6 +249,8 @@ export function AssessmentResult({
         <p className="notice" role="status">{loadError || (reachable || pending
           ? 'Loading assessment…' : 'This assessment is unavailable on this device.')}</p>
       )}
+      {record && !waiting && <AssessmentFollowUp key={`${record.id}:${preferredMeasurement ?? ''}`} record={record}
+        measurements={measurements} preferredMeasurement={preferredMeasurement} reachable={reachable} data={data} />}
     </>
   )
 }

@@ -108,18 +108,18 @@ export function ProfileTools({ selectedId, reachable, onCreated }: { selectedId?
     </details>
   </>
 }
-export function MeasurementDetails({ crewId, id, reachable }: { crewId?: string; id: string; reachable: boolean }) {
+export function MeasurementDetails({ crewId, id, reachable, load = api.measurement }: { crewId?: string; id: string; reachable: boolean; load?: typeof api.measurement }) {
   const [state, setState] = useState<{ reading?: Measurement; error?: string }>()
   const [retry, setRetry] = useState(0)
   useEffect(() => {
     setState(undefined)
     if (!crewId || !reachable) return
     const controller = new AbortController()
-    void api.measurement(crewId, id, controller.signal).then(reading => { if (!controller.signal.aborted) setState({ reading }) }, reason => {
+    void load(crewId, id, controller.signal).then(reading => { if (!controller.signal.aborted) setState({ reading }) }, reason => {
       if (!controller.signal.aborted) setState({ error: reason instanceof Error ? reason.message : 'Could not load the reading.' })
     })
     return () => controller.abort()
-  }, [crewId, id, reachable, retry])
+  }, [crewId, id, reachable, retry, load])
   return <>
     <a className="back-link" href="/measurements">All measurements</a><header className="page-title"><h1>Measurement details</h1></header>
     <section className="surface workspace-tools">{state?.reading ? <>
