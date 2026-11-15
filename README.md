@@ -6,12 +6,11 @@
 
 <p align="center">
   <strong>Autonomous Crew Health Assistant</strong><br>
-  Crew health check-ins for long-duration space missions.
+  Crew health check-ins for long duration space missions.
 </p>
 
 <p align="center">
-  <a href="https://acha.tr/">Open the live demo</a> ·
-  <a href="demo/START_HERE.md#run-the-demo">Run the onboard demo locally</a> ·
+  <a href="https://acha.tr/">Open the Website</a> ·
   <a href="https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/">NASA Space Apps 2026</a>
 </p>
 
