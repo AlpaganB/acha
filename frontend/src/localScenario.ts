@@ -5,7 +5,7 @@ import { readLocal, saveLocal, type Workspace } from './storage'
 const day = 86_400_000
 export const scenarioKey = 'synthetic-scenario-v1'
 export const scenarioWorkspace: Workspace = {
-  crew: [{ id: 'scenario-crew', display_name: 'Alex Rivera', mission_profile_id: 'scenario-lunar' }],
+  crew: [{ id: 'scenario-crew', display_name: 'Emirhan Caman', mission_profile_id: 'scenario-lunar' }],
   profiles: [{ id: 'scenario-lunar', name: 'Lunar Habitat', environment: 'lunar_habitat',
     equipment: ['Training heart rate monitor', 'Sleep log'], constraints: ['Simulated delayed ground support'], guidance_protocol_ids: [] }],
 }

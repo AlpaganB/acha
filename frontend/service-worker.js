@@ -25,7 +25,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url)
   const isShell = request.mode === 'navigate' && url.origin === self.location.origin && (
     /^\/(?:index\.html)?$/.test(url.pathname) ||
-    /^\/(assessment|assessments|measurements|guides|mission|research|crew)(\/|$)/.test(url.pathname)
+    /^\/(assessment|assessments|measurements|guides|mission|research|crew|monitoring|scenarios)(\/|$)/.test(url.pathname)
   )
   if (!isShell && !urls.has(url.href)) return
 

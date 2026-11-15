@@ -22,7 +22,9 @@ When a crew is far from Earth, its members may need to assess health changes bef
 
 The web app records measurements and submits assessments through an API. The standalone onboard demo runs the assessment engine on a local workstation so the crew can complete a check-in during a simulated loss of contact with Earth.
 
-**Try the browser scenario.** From Crew monitoring, select **Open synthetic scenario** and then **Open scenario check-in**. Review Alex’s recorded change and the incomplete measurement context. Record a repeat reading, link it in **Follow-up**, and close the check-in. The scenario saves fictional records in this browser. It works offline after the public app has loaded and cached its shell. **Return to mission service** switches back to the shared sample workspace.
+**Replay a space mission.** Open **Scenarios** in the sidebar and choose a seven-day lunar fatigue check-in, a six-hour orbital cabin pressure excursion, or a 72-hour solar event and relay outage. Use **Play**, **Next**, or the timeline slider to follow the readings, data gaps, crew decisions, and final debrief. The replays use fictional data, work offline after the app shell is cached, and create no mission records.
+
+**Practice the check-in.** Choose **Practice the check-in** in the lunar debrief, or select **Open synthetic scenario** from Crew monitoring and then **Open scenario check-in**. Review Emirhan’s recorded change, record a repeat reading, link it in **Follow-up**, and close the check-in. This exercise saves fictional records in this browser. **Return to mission service** switches back to the shared sample workspace.
 
 ## How a check-in works
 
@@ -30,7 +32,7 @@ The web app records measurements and submits assessments through an API. The sta
 2. **Record a reading.** Save heart rate, respiratory rate, blood oxygen saturation, blood pressure, body temperature, or sleep duration. Each reading has a unit and a timestamp and stays in that crew member's history.
 3. **Submit an assessment.** Select saved readings, report symptoms, or combine both. The engine evaluates the available inputs and reports missing information.
 4. **Review the result.** Read the rationale and suggested next step, then open the training guide when one is linked. Previous assessments preserve the mission profile and inputs used at the time.
-5. **Document follow-up.** Link a later reading from the same crew member and record either continued review or workflow completion. Closing the check-in preserves the original result and repeat-reading history.
+5. **Document follow up.** Link a later reading from the same crew member and record either continued review or workflow completion. Closing the check-in preserves the original result and repeat-reading history.
 
 ### How the engine evaluates a check-in
 
