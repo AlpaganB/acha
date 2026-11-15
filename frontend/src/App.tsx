@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   ArrowRight, Check, ChevronDown, Radio, WifiOff, LayoutDashboard, Activity,
-  Orbit, FlaskConical, HeartPulse, Plus, Menu, UserRound, BookOpen, ClipboardList, Droplets, Gauge, Thermometer,
+  Orbit, FlaskConical, HeartPulse, Plus, Menu, UserRound, BookOpen, ClipboardList, Droplets, Gauge, Thermometer, Clapperboard,
 } from 'lucide-react'
 import { AssessmentForm } from './AssessmentForm'
 import { AssessmentHistory, AssessmentResult, Records } from './AssessmentResults'
@@ -9,6 +9,7 @@ import { Guidance } from './Guidance'
 import { HealthMonitoring } from './HealthMonitoring'
 import { AnatomyDashboard } from './AnatomyDashboard'
 import { Measurements } from './Measurements'
+import { MissionScenarios } from './MissionScenarios'
 import { DemoMonitoring } from './PersonalIndicators'
 import { Observations } from './Observations'
 import { Pressure } from './Pressure'
@@ -27,7 +28,7 @@ type Mission = ReturnType<typeof useMission>
 
 
 const vitalIcons = { heart_rate: HeartPulse, spo2: Droplets, blood_pressure: Gauge, body_temperature: Thermometer }
-const menuIcons = { overview: LayoutDashboard, monitoring: HeartPulse, measurements: Activity, assessments: ClipboardList, guides: BookOpen, mission: Orbit, research: FlaskConical }
+const menuIcons = { overview: LayoutDashboard, monitoring: HeartPulse, measurements: Activity, assessments: ClipboardList, guides: BookOpen, mission: Orbit, scenarios: Clapperboard, research: FlaskConical }
 function MenuIcon({ name, pulse }: { name: keyof typeof menuIcons; pulse: number }) {
   const Icon = menuIcons[name]
   return <Icon key={pulse} size={19} aria-hidden="true" className={`nav-icon nav-icon-${name}${pulse ? ' nav-icon-play' : ''}`} >
@@ -97,9 +98,12 @@ function CrewMonitoring({ mission, onOpenScenario }: { mission: Mission; onOpenS
       <p>Alex reports fatigue after shorter sleep. Review the recorded change, check the limits of the evidence, and log a simulated repeat reading.</p>
       <a className="button primary" href={`/assessments/${scenarioAssessmentId}`}>Open scenario check-in <ArrowRight size={16} aria-hidden="true" /></a>
     </section> : <section className="surface form-panel scenario-intro">
-      <h2>Practice a crew check-in</h2>
-      <p>Open a fictional lunar habitat scenario with a crew member, reading history, and an assessment to follow up. Changes stay in this browser.</p>
-      <button className="button primary" onClick={onOpenScenario}>Open synthetic scenario <ArrowRight size={16} aria-hidden="true" /></button>
+      <h2>Explore space mission scenarios</h2>
+      <p>Replay three fictional missions, or open a hands-on lunar check-in to record and link a repeat measurement.</p>
+      <div className="overview-actions">
+        <a className="button primary" href="/scenarios">Explore scenarios <ArrowRight size={16} aria-hidden="true" /></a>
+        <button className="button secondary" onClick={onOpenScenario}>Open synthetic scenario</button>
+      </div>
     </section>}
     {mission.crew.length > 0 && <nav className="crew-roster" aria-label="Crew members">
       {mission.crew.map(crew => <button type="button" key={crew.id} className="button secondary"
@@ -279,7 +283,7 @@ function MissionProfiles({ mission }: { mission: Mission }) {
 export function App() {
   const [local, setLocal] = useState(() => readLocal<boolean>('use-synthetic-scenario') === true && Boolean(readScenario()))
   const [modeError, setModeError] = useState('')
-  async function changeMode(next: boolean) {
+  async function changeMode(next: boolean, path?: string) {
     setModeError('')
     if (next && !await openScenario().catch(() => false)) {
       setModeError('This browser could not save the synthetic scenario. Enable site storage to use it.')
@@ -287,12 +291,12 @@ export function App() {
     }
     saveLocal('use-synthetic-scenario', next)
     setLocal(next)
-    navigate(next ? '/monitoring' : '/')
+    navigate(path ?? (next ? '/monitoring' : '/'))
   }
   return <MissionApp key={String(local)} local={local} changeMode={changeMode} modeError={modeError} />
 }
 
-function MissionApp({ local, changeMode, modeError }: { local: boolean; changeMode: (local: boolean) => void; modeError: string }) {
+function MissionApp({ local, changeMode, modeError }: { local: boolean; changeMode: (local: boolean, path?: string) => void; modeError: string }) {
   const mission = useMission(local)
   const route = useRoute()
   useOfflineShell()
@@ -351,7 +355,8 @@ function MissionApp({ local, changeMode, modeError }: { local: boolean; changeMo
   const restrictedLog = params.get('source') === 'restricted'
   const researchView = params.get('view') ?? ''
   const initialKind = Object.hasOwn(measurementLabels, requestedKind) ? requestedKind : ''
-  const home = !['assessment', 'assessments', 'measurements', 'guides', 'mission', 'research', 'crew', 'monitoring'].includes(page)
+  const scenarios = page === 'scenarios'
+  const home = !scenarios && !['assessment', 'assessments', 'measurements', 'guides', 'mission', 'research', 'crew', 'monitoring'].includes(page)
   const [attached, setAttached] = useState<{ crewId: string; record?: Measurement; error?: string }>()
   const listedMeasurement = mission.measurements.some(item => item.id === initialMeasurementId)
   const activeCrewId = mission.selected?.id
@@ -414,6 +419,7 @@ function MissionApp({ local, changeMode, modeError }: { local: boolean; changeMo
             <a href="/assessments" aria-label="Assessments" title="Assessments" aria-current={page === 'assessment' || page === 'assessments' ? 'page' : undefined}><MenuIcon name="assessments" pulse={navPulse.href === '/assessments' ? navPulse.sequence : 0} /><span>Assessments</span></a>
             <a href="/guides" aria-label="Emergency guides" title="Guides" aria-current={page === 'guides' ? 'page' : undefined}><MenuIcon name="guides" pulse={navPulse.href === '/guides' ? navPulse.sequence : 0} /><span>Guides</span></a>
             <a href="/mission" aria-label="Mission" title="Mission" aria-current={page === 'mission' ? 'page' : undefined}><MenuIcon name="mission" pulse={navPulse.href === '/mission' ? navPulse.sequence : 0} /><span>Mission</span></a>
+            <a href="/scenarios" aria-label="Scenarios" title="Scenarios" aria-current={scenarios ? 'page' : undefined}><MenuIcon name="scenarios" pulse={navPulse.href === '/scenarios' ? navPulse.sequence : 0} /><span>Scenarios</span></a>
             <a href="/research" aria-label="Research" title="Research" aria-current={page === 'research' ? 'page' : undefined}><MenuIcon name="research" pulse={navPulse.href === '/research' ? navPulse.sequence : 0} /><span>Research</span></a>
           </nav>
           <a className="sidebar-user" href="/crew" aria-label={`Crew${mission.selected ? `: ${mission.selected.display_name}` : ''}`} title="Crew" aria-current={page === 'crew' ? 'page' : undefined}>
@@ -422,13 +428,14 @@ function MissionApp({ local, changeMode, modeError }: { local: boolean; changeMo
           </a>
       </aside>
       <main ref={main} id="main-content" className={`main-content ${home ? 'home' : 'inner-page'}`} tabIndex={-1} inert={isMobile && mobileMenuOpen}>
-        {local && <div className="connection-notice scenario-banner"><strong>Synthetic scenario</strong><span>Fictional crew records · Stored on this device</span>
+        {local && !scenarios && <div className="connection-notice scenario-banner"><strong>Synthetic scenario</strong><span>Fictional crew records · Stored on this device</span>
           <button className="text-link" onClick={() => changeMode(false)}>Return to mission service</button></div>}
-        {!mission.reachable && (mission.connection !== 'checking' || !mission.online) && <div className="connection-notice" role="status"><WifiOff size={15} />{mission.online ? 'Couldn’t refresh mission-service records.' : 'You’re offline. Recently cached mission records are available.'}{mission.online && <button className="text-link" onClick={() => void mission.refreshWorkspace()}>Retry</button>}{!home && <button className="text-link" onClick={() => changeMode(true)}>Open synthetic scenario</button>}</div>}
+        {!scenarios && !mission.reachable && (mission.connection !== 'checking' || !mission.online) && <div className="connection-notice" role="status"><WifiOff size={15} />{mission.online ? 'Couldn’t refresh mission-service records.' : 'You’re offline. Recently cached mission records are available.'}{mission.online && <button className="text-link" onClick={() => void mission.refreshWorkspace()}>Retry</button>}{!home && <button className="text-link" onClick={() => changeMode(true)}>Open synthetic scenario</button>}</div>}
         {modeError && <p className="notice error" role="alert">{modeError}</p>}
         <div className="route-content">
           {home && <Home mission={mission} showIntro={!anatomyIntroSeen.current} onIntroStarted={() => { anatomyIntroSeen.current = true }} />}
           {page === 'monitoring' && <CrewMonitoring mission={mission} onOpenScenario={() => changeMode(true)} />}
+          {scenarios && <MissionScenarios id={rawId} onOpenPractice={() => changeMode(true, `/assessments/${scenarioAssessmentId}`)} />}
           {page === 'assessment' && (
             <>
               <header className="page-title">
