@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Activity, ArrowUpRight, Brain, Check, ChevronLeft, ChevronRight, CircleAlert, Gauge, Info, Pause, Play, Radio, RotateCcw } from 'lucide-react'
 import { anatomyViews } from './AnatomyDashboard'
 import { missionElapsed, missionScenarios, type ScenarioMetric } from './missionScenarioData'
@@ -55,6 +55,42 @@ function EventBadge({ event }: { event: ScenarioEvent }) {
   return <span className={`event-badge ${event.category}`}><Icon size={13} aria-hidden="true" /> {event.severity} · {categoryLabels[event.category]}</span>
 }
 
+function eventMeasurement(event: ScenarioEvent) {
+  if (!event.metric || !event.unit) return ''
+  const reading = event.currentValue === null ? 'Sample unavailable' : formatValue(event.currentValue, event.unit)
+  const reference = event.reference === null ? '' : ` · Reference ${formatValue(event.reference, event.unit)}`
+  const change = event.delta === null ? '' : ` · ${formatDelta(event.delta, event.unit)}`
+  return `${event.metric}: ${reading}${reference}${change}`
+}
+
+function ScenarioEventNotice({ event, newest, onReview }: {
+  event?: ScenarioEvent; newest?: ScenarioEvent; onReview: (event: ScenarioEvent) => void
+}) {
+  const announced = useRef(new Set<string>())
+  const [announcement, setAnnouncement] = useState('')
+  const id = newest?.id
+  const message = newest ? `Synthetic training. ${categoryLabels[newest.category]}. ${newest.title}. ${eventMeasurement(newest)}` : ''
+  useEffect(() => {
+    if (!id || announced.current.has(id)) { setAnnouncement(''); return }
+    announced.current.add(id)
+    setAnnouncement(message)
+  }, [id, message])
+
+  return <>
+    <span className="sr-only" role="status" aria-atomic="true">{announcement}</span>
+    {event && <section className="replay-notification" aria-label="Scenario event notice">
+      <div className="replay-notification-copy">
+        <EventBadge event={event} /><strong>{event.title}</strong>
+        {event.metric && <span>{eventMeasurement(event)}</span>}
+        <p>{event.comparisonContext}</p>
+      </div>
+      <button type="button" className="button secondary" onClick={() => onReview(event)}>
+        Review evidence <ArrowUpRight size={14} aria-hidden="true" />
+      </button>
+    </section>}
+  </>
+}
+
 function PracticeCheckIn({ index, practice, onUpdate }: {
   index: number; practice: ReturnType<typeof readLunarPractice>; onUpdate: () => void
 }) {
@@ -86,6 +122,7 @@ function PracticeCheckIn({ index, practice, onUpdate }: {
 export function ScenarioConsole({ player, embedded = false }: { player: ScenarioPlayer; embedded?: boolean }) {
   const headingId = useId()
   const detailsId = useId()
+  const evidence = useRef<HTMLElement>(null)
   const [practice, setPractice] = useState(readLunarPractice)
   useEffect(() => {
     const refresh = (event: StorageEvent) => {
@@ -104,7 +141,8 @@ export function ScenarioConsole({ player, embedded = false }: { player: Scenario
   const SystemIcon = system.icon
   const selected = events.find(event => event.id === state.selectedEvent)
   const current = events.filter(event => event.status === 'current')
-  const featured = selected ?? current.find(event => event.observedAt === checkpoint.minute) ?? current[0]
+  const newest = current.find(event => event.observedAt === checkpoint.minute)
+  const featured = selected ?? newest ?? current[0]
   const metric = scenario.metrics[column]
   const last = frame.latest.values[column]
   const elapsed = missionElapsed(checkpoint.minute)
@@ -121,6 +159,11 @@ export function ScenarioConsole({ player, embedded = false }: { player: Scenario
       <span><Check size={16} aria-hidden="true" /><strong>{lunar && index >= 2 && !practice.closed ? '1' : '0'}</strong> open follow-ups</span>
       {current.every(event => event.severity !== 'Review') && <span className="replay-no-findings">No active review items</span>}
     </section>
+
+    <ScenarioEventNotice event={featured} newest={newest} onReview={event => {
+      dispatch({ type: 'inspect', event })
+      evidence.current?.focus()
+    }} />
 
     <div className="replay-metrics" aria-label="Synthetic observations at this checkpoint">
       {scenario.metrics.map((item, position) => {
@@ -178,11 +221,6 @@ export function ScenarioConsole({ player, embedded = false }: { player: Scenario
           <p className="eyebrow">Checkpoint {index + 1} of {endIndex + 1} · {checkpoint.status}</p>
           <h3 aria-live="polite">{checkpoint.title}</h3>
           <p>{checkpoint.event}</p>
-          {featured && <div className="replay-callout"><EventBadge event={featured} /><strong>{featured.title}</strong>
-            <p>{featured.comparisonContext}</p><button type="button" className="text-link" onClick={() => {
-              dispatch({ type: 'inspect', event: featured })
-              document.getElementById(detailsId)?.focus()
-            }}>Read why <ArrowUpRight size={14} aria-hidden="true" /></button></div>}
           {relay && <p className="relay-status">Relay {relay.link.toLowerCase()} · {relay.handover}</p>}
           {lunar && index >= 2 && <a className="text-link" href="#fictional-check-in">{practice.closed ? 'Review closed follow-up' : 'Practice the check-in'} <ChevronRight size={14} aria-hidden="true" /></a>}
         </div>
@@ -211,14 +249,13 @@ export function ScenarioConsole({ player, embedded = false }: { player: Scenario
               {reading.values.map((value, position) => <td key={scenario.metrics[position].label}>{value === null ? 'Unavailable' : formatter.format(value)}</td>)}</tr>)}</tbody></table>
         </div></details>
       </section>
-      <section className="surface replay-detail" aria-label="Observation explanation">
+      <section ref={evidence} tabIndex={-1} className="surface replay-detail" aria-label="Observation explanation">
         <div className="replay-explain-heading"><h3>{selected ? 'Why this event appears' : 'Checkpoint evidence'}</h3>
           {selected && <button className="text-link" type="button" onClick={() => dispatch({ type: 'dismiss' })}>Back to checkpoint</button>}</div>
         {selected ? <>
           <EventBadge event={selected} /> <strong>{selected.title}</strong>
           <p>{selected.timeLabel} · {selected.validationScope} · {selected.source}</p>
-          {selected.metric && <p>{selected.metric}: {selected.currentValue === null ? 'Sample unavailable' : formatValue(selected.currentValue, selected.unit!)}
-            {selected.delta != null && ` · ${formatDelta(selected.delta, selected.unit!)} vs reference ${formatValue(selected.reference!, selected.unit!)}`}</p>}
+          {selected.metric && <p>{eventMeasurement(selected)}</p>}
           <p>{selected.dataQuality}. {selected.rationale}</p><p>{selected.comparisonContext}</p><p><strong>Next step</strong> {selected.recommendedWorkflow}</p>
           <a href={selected.link} className="text-link">Open checkpoint as a full replay <ArrowUpRight size={14} aria-hidden="true" /></a>
         </> : <><p>{checkpoint.system}</p><p><strong>Crew action</strong> {checkpoint.crew}</p></>}

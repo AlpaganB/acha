@@ -56,8 +56,11 @@
 .replay-time { display: flex; flex-wrap: wrap; align-items: baseline; gap: .24rem .65rem; }
 .replay-time strong { font-size: 1.25rem; font-variant-numeric: tabular-nums; color: #eef8fc; }
 .replay-time span { font-size: .75rem; color: var(--replay-muted); }
-.replay-callout { display: grid; gap: .27rem; padding: .5rem .6rem; border: 1px solid var(--replay-line); border-left: 3px solid var(--replay-accent); border-radius: 6px; background: #0b1924; font-size: .8rem; }
-.replay-callout p { font-size: .76rem; }
+.replay-notification { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .55rem .9rem; padding: .6rem .8rem; border: 1px solid var(--replay-line); border-left: 3px solid var(--replay-accent); border-radius: 6px; background: #0b1924; }
+.replay-notification-copy { display: flex; flex: 1 1 32rem; flex-wrap: wrap; align-items: baseline; gap: .2rem .65rem; font-size: .8rem; }
+.replay-notification-copy p { flex-basis: 100%; color: var(--replay-muted); font-size: .76rem; line-height: 1.4; }
+.replay-notification .button { flex: none; }
+.replay-detail:focus-visible { outline: 2px solid var(--replay-accent); outline-offset: 2px; }
 .replay-console .text-link { justify-self: start; }
 .event-badge { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .27rem; color: #9bdff0; font-size: .69rem; font-weight: 600; }
 .event-badge.health { color: #f2d18c; }

@@ -1,4 +1,5 @@
 import csv
+import logging
 from datetime import datetime
 from io import StringIO
 from math import isfinite
@@ -14,6 +15,7 @@ from pydantic import Field, FiniteFloat, TypeAdapter
 from .schemas import ApiModel, Timestamp
 
 router = APIRouter(tags=["Research data"])
+logger = logging.getLogger(__name__)
 RECORD = Path(__file__).resolve().parents[2] / "demo" / "bidmc_01_Numerics.csv"
 SOURCE = "https://physionet.org/content/bidmc/1.0.0/"
 DOWNLOAD = "https://physionet.org/files/bidmc/1.0.0/bidmc_csv/bidmc_01_Numerics.csv"
@@ -103,6 +105,7 @@ def dostel_record(window: Literal["sample", "day"] = "sample") -> dict:
                 "download": download, "samples": samples, "identical_duplicates": duplicates,
                 "conflicting_timestamps": len(conflicting)}
     except (OSError, ValueError, TypeError, csv.Error) as exc:
+        logger.warning("RadLab DosTel1 archive failed for window %s (%s)", window, type(exc).__name__)
         raise HTTPException(502, "RadLab DosTel1 observations are currently unavailable.") from exc
 
 
@@ -123,6 +126,7 @@ def iss_rr6_record(window: Literal["day", "week"] = "day") -> IssResearchRecord:
             raise ValueError("NASA response had an unexpected observation timeline.")
         return record
     except (OSError, ValueError) as exc:
+        logger.warning("NASA RR-6 archive failed for window %s (%s)", window, type(exc).__name__)
         raise HTTPException(502, "NASA RR-6 telemetry is currently unavailable.") from exc
 
 

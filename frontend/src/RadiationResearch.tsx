@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { api, type DoseResearchRecord } from './api'
 import { nasaCrewStandard, nasaRadiationSource } from './HealthMonitoring'
 import { radiationTime, reviewRadiation } from './monitoringAnalysis'
+import { archiveError, dosTelSource, dosTelSourceExport } from './nasaArchive'
 
-const instrumentSource = 'https://visualization.osdr.nasa.gov/radlab/gui/knowledgebase/dostel1'
 const artemisSource = 'https://doi.org/10.1038/s41586-024-07927-7'
 const cnsSource = 'https://ntrs.nasa.gov/citations/20150016007'
 const doseFormat = new Intl.NumberFormat('en', { maximumFractionDigits: 3 })
@@ -16,13 +16,13 @@ export function RadiationResearch() {
   const [boundary, setBoundary] = useState('')
   const [selection, setSelection] = useState<{ window: 'sample' | 'day'; attempt: number; record?: DoseResearchRecord; error?: string }>()
   useEffect(() => {
-    let active = true
-    void api.doseResearchRecord(window).then(record => {
-      if (active) setSelection({ window, attempt, record })
-    }, () => {
-      if (active) setSelection({ window, attempt, error: 'The radiation archive could not be loaded through the mission API.' })
+    const controller = new AbortController()
+    void api.doseResearchRecord(window, controller.signal).then(record => {
+      if (!controller.signal.aborted) setSelection({ window, attempt, record })
+    }, reason => {
+      if (!controller.signal.aborted) setSelection({ window, attempt, error: archiveError(reason, 'DosTel1') })
     })
-    return () => { active = false }
+    return () => controller.abort()
   }, [window, attempt])
   const current = selection?.window === window && selection.attempt === attempt ? selection : undefined
   const record = current?.record
@@ -38,12 +38,12 @@ export function RadiationResearch() {
         }}>
           <option value="day">1 April 2022 · full day</option><option value="sample">1–2 April 2022 · short sample</option>
         </select></label></div>
-      <p>NASA OSDR RadLab data from DosTel1, a fixed instrument in the ISS Columbus module.</p>
-      <div className="form-actions"><a className="text-link" href={record?.source ?? instrumentSource}>Instrument metadata</a>
-        {record && <a className="text-link" href={record.download}>Source CSV</a>}
+      <p>Historical NASA OSDR RadLab data from DosTel1, a fixed instrument in the ISS Columbus module. Source timestamps lack a time zone offset.</p>
+      <div className="form-actions"><a className="text-link" href={record?.source ?? dosTelSource}>Instrument metadata · DosTel1</a>
+        <a className="text-link" href={record?.download ?? dosTelSourceExport(window)}>Original RadLab CSV</a>
         <button className="button secondary" onClick={() => { setAttempt(value => value + 1); setPage(0) }} disabled={!current}>Reload archive</button></div>
       {!current && <p className="notice" role="status">Loading RadLab instrument data…</p>}
-      {current?.error && <p className="notice" role="status">{current.error} The instrument source remains available above.</p>}
+      {current?.error && <p className="notice" role="status">{current.error} Open the original RadLab CSV for this window. No archive readings are displayed.</p>}
       {record && review && <>
         <dl className="monitoring-metrics">
           <div><dt>Usable absorbed dose rate samples</dt><dd>{review.points.length} of {record.samples.length}</dd><small>{review.missing} missing or unusable</small></div>
@@ -52,6 +52,7 @@ export function RadiationResearch() {
           <div><dt>Samples with a dose equivalent rate</dt><dd>{record.samples.filter(item => item.dose_equivalent_rate !== null).length}</dd></div>
         </dl>
         {(record.conflicting_timestamps ?? 0) > 0 && <p className="notice" role="status">{record.conflicting_timestamps} conflicting archive timestamps were excluded from rate calculations.</p>}
+        <p className="muted">The export does not report measurement uncertainty. It describes the instrument’s location and provides no personal dose data.</p>
         {review.max !== null && <RadiationPlot points={review.points} maximum={review.max} />}
         <details className="research-observations"><summary>Review rate excursions</summary>
           <p>Run a historical check against a review boundary you enter. The check flags two or more consecutive readings above the boundary.</p>

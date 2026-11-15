@@ -51,19 +51,25 @@ def main():
             anatomy.get_by_role('combobox', name='Playback', exact=True).select_option('2')
             play_button.click()
             expect(slider).to_have_value('1', timeout=5000)
+            notice = page.get_by_role('region', name='Scenario event notice')
+            expect(notice.get_by_text('Shorter sleep and slower task performance')).to_be_visible()
+            expect(slider).to_have_value('2', timeout=5000)
             anatomy.get_by_role('button', name='Pause').click()
-            anatomy.get_by_role('button', name='Next').click()
             expect(slider).to_have_value('2')
             expect(page.get_by_role('button', name=re.compile(r'Heart rate 83 bpm.*\+17 bpm'))).to_be_visible()
-            expect(anatomy.get_by_text('Comparison provisional; activity/posture unavailable.', exact=False)).to_be_visible()
+            expect(notice.get_by_text('Heart rate: 83 bpm · Reference 66 bpm · +17 bpm')).to_be_visible()
+            expect(notice.get_by_text('Comparison provisional; activity/posture unavailable.', exact=False)).to_be_visible()
+            expect(page.locator('.replay-console .sr-only[role="status"]')).to_contain_text('Health observation. Heart rate above')
+            expect(page.get_by_role('region', name='Action required summary')).to_contain_text('1 to review')
             assert page.evaluate('document.documentElement.scrollWidth === innerWidth'), 'The page overflows horizontally'
             if width == 1440:
                 assert slider.bounding_box()['y'] < height, 'Playback controls are below the desktop viewport'
                 screenshot(page, 'command-center-desktop')
             else:
                 screenshot(page, 'command-center-mobile', full_page=True)
-            anatomy.get_by_role('button', name='Read why').click()
-            expect(page.get_by_role('heading', name='Heart rate trend')).to_be_focused()
+            notice.get_by_role('button', name='Review evidence').press('Enter')
+            expect(page.get_by_role('region', name='Observation explanation')).to_be_focused()
+            expect(page.get_by_role('heading', name='Heart rate trend')).to_be_visible()
             expect(page.get_by_text('Why this event appears')).to_be_visible()
             page.keyboard.press('Escape')
             expect(page.get_by_text('Why this event appears')).to_have_count(0)
@@ -75,14 +81,28 @@ def main():
             page.get_by_role('button', name='Link repeat to check-in').click()
             page.get_by_role('button', name='Close follow-up').click()
             expect(page.get_by_text('Follow-up closed. Workflow completion documented.')).to_be_visible()
+            slider.press('End')
+            expect(anatomy.get_by_role('button', name=re.compile('Heart rate above this crew member’s reference'))).to_have_count(1)
+            anatomy.get_by_role('button', name='Replay', exact=True).click()
+            expect(slider).to_have_value('0')
+            anatomy.get_by_role('button', name='Reset').click()
+            slider.press('ArrowRight')
+            slider.press('ArrowRight')
+            expect(notice.get_by_text('Heart rate: 83 bpm · Reference 66 bpm · +17 bpm')).to_be_visible()
+            expect(page.locator('.replay-console .sr-only[role="status"]')).to_be_empty()
             slider.press('Home')
             expect(anatomy.get_by_text('Heart rate above this crew member’s reference')).to_have_count(0)
 
             picker.select_option('orbital-pressure')
             expect(slider).to_have_value('0')
-            for _ in range(3):
+            for _ in range(2):
                 slider.press('ArrowRight')
+            expect(notice.get_by_text('Cabin pressure: 96.3 kPa · Reference 101.3 kPa · -5 kPa')).to_be_visible()
+            expect(notice.get_by_text('Total pressure alone cannot establish inspired oxygen.', exact=False)).to_be_visible()
+            slider.press('ArrowRight')
             expect(anatomy.get_by_text('Cabin pressure samples unavailable', exact=True)).to_be_visible()
+            expect(anatomy.get_by_text('Crew reported ear fullness', exact=True)).to_be_visible()
+            expect(page.get_by_role('button', name=re.compile(r'Cabin pressure Unavailable'))).to_be_visible()
             expect(page.get_by_text('160/170 min covered', exact=False)).to_be_visible()
             slider.press('End')
             expect(page.get_by_text('2 transitions · 340/360 min covered', exact=False)).to_be_visible()
@@ -142,6 +162,8 @@ def main():
                     pass
             print('Stalled mission requests reached the connection timeout and left training available')
 
+        check_archive_errors(browser, base)
+
         if args.research:
             page = browser.new_page(viewport={'width': 1440, 'height': 960})
             page.goto(f'{base}/research')
@@ -149,6 +171,10 @@ def main():
             page.get_by_role('button', name='Fetch from NASA').click()
             expect(page.get_by_text('288 timestamps · NASA environmental research')).to_be_visible(timeout=20_000)
             screenshot(page, 'nasa-rr6-archive', full_page=True)
+            page.route('**/api/v1/research/nasa-rr6-iss?**', lambda route: route.fulfill(status=502, json={'detail': 'Unavailable'}))
+            page.get_by_role('button', name='Refresh from NASA').click()
+            expect(page.get_by_text('Showing the last successful historical result.', exact=False)).to_be_visible()
+            expect(page.get_by_role('img', name=re.compile('Archived RR-6 cabin carbon dioxide'))).to_be_visible()
             page.goto(f'{base}/research?view=radiation')
             page.get_by_role('combobox', name='Archive window', exact=True).select_option('sample')
             expect(page.get_by_text('Browse 84 instrument observations')).to_be_visible(timeout=20_000)
@@ -157,6 +183,32 @@ def main():
         if args.test_api:
             check_connected(browser, base, args.test_api.rstrip('/'))
         browser.close()
+
+
+def check_archive_errors(browser, base):
+    with browser.new_context(service_workers='block') as context:
+        page = context.new_page()
+        page.route('**/api/v1/research/nasa-rr6-iss?**', lambda route: route.fulfill(status=404, json={'detail': 'Not Found'}))
+        page.route('**/api/v1/research/nasa-dostel1?**', lambda route: route.fulfill(status=502, json={'detail': 'Unavailable'}))
+        page.goto(f'{base}/research')
+        archive = page.get_by_role('region', name='ISS cabin environment')
+        link = archive.get_by_role('link', name='Original NASA JSON')
+        expect(link).to_have_attribute('href', re.compile(r'^https://visualization\.osdr\.nasa\.gov/eda/.*end=2017-12-22'))
+        archive.get_by_role('combobox', name='Archive window').select_option('day')
+        expect(link).to_have_attribute('href', re.compile('end=2017-12-16'))
+        archive.get_by_role('button', name='Fetch from NASA').click()
+        expect(archive.get_by_role('status')).to_contain_text('RR-6 archive (HTTP 404)')
+        expect(archive.get_by_role('status')).to_contain_text('No archive readings are displayed.')
+        expect(archive.get_by_role('img')).to_have_count(0)
+
+        page.goto(f'{base}/research?view=radiation')
+        archive = page.get_by_role('region', name='ISS radiation archive')
+        archive.get_by_role('combobox', name='Archive window').select_option('sample')
+        expect(archive.get_by_role('status')).to_contain_text('DosTel1 archive (HTTP 502)')
+        expect(archive.get_by_role('link', name='Original RadLab CSV')).to_have_attribute('href',
+            re.compile(r'^https://visualization\.osdr\.nasa\.gov/radlab/.*instrument_id=DosTel1.*T23%3A00'))
+        expect(archive.get_by_role('img')).to_have_count(0)
+        print('Research 404 and 502 preserve official exports and show no invented archive readings')
 
 
 def check_connected(browser, base, api):

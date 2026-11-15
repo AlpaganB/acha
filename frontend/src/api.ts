@@ -206,7 +206,8 @@ export const api = {
   assayCoverage: (study: AssayCoverage['study'], signal: AbortSignal) =>
     request<AssayCoverage>(`/research/osdr-assays/${study}`, { signal }, 20_000),
   issResearchRecord: (window: 'day' | 'week' = 'day') => request<IssResearchRecord>(`/research/nasa-rr6-iss?window=${window}`),
-  doseResearchRecord: (window: 'sample' | 'day' = 'sample') => request<DoseResearchRecord>(`/research/nasa-dostel1?window=${window}`),
+  doseResearchRecord: (window: 'sample' | 'day' = 'sample', signal?: AbortSignal) =>
+    request<DoseResearchRecord>(`/research/nasa-dostel1?window=${window}`, { signal }),
   assessments: (crewId: string) =>
     request<Assessment[]>(`/crew-members/${crewId}/assessments?limit=20`),
   assessment: (crewId: string, id: string) =>

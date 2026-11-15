@@ -32,11 +32,20 @@ ACHA is a crew health research and training prototype for missions with delayed 
 | Time | Show and say |
 | --- | --- |
 | 0–15 s | Open Overview in a fresh browser. Click **Try a 90-second training scenario** and pause at the first checkpoint. “This fictional crew starts with a resting pulse of 66 bpm. That matches the median of five prior training sessions.” |
-| 15–35 s | Step to **Fatigue check-in**. “The crew reports five hours of sleep and slower task performance. Pulse is 83 bpm, 17 above the reference. Activity and posture were unavailable, so this is a provisional review item.” Click **Read why** to open the evidence and pulse trace. |
+| 15–35 s | Step to **Fatigue check-in**. “The crew reports five hours of sleep and slower task performance. Pulse is 83 bpm, 17 above the reference. Activity and posture were unavailable, so this is a provisional review item.” Open the evidence and pulse trace. The current site labels this **Read why**, and the audit candidate labels it **Review evidence**. |
 | 35–65 s | Open the fictional check-in, move to the next checkpoint, record the **72 bpm** repeat at rest, link it and close. “The original reading and the repeat remain linked. Closing records workflow completion. All practice changes stay in this browser.” |
 | 65–82 s | Select **Solar relay outage** and step to the peak, then to receipt. “At the peak, the vehicle monitor shows 250 µGy/h and the separate personal instrument shows 430 µGy accumulated. The simulated handover progresses from queued to sent to acknowledged.” |
-| 82–90 s | Show Research or an explicitly labeled capture. “ACHA also displays genuine NASA cabin environment and fixed-instrument archives. Each archive has its own source and units.” |
+| 82–90 s | Show the original archive links. “RR-6 is historical ISS cabin environment from a rodent research mission. DosTel1 is a fixed ISS instrument. The three exercises use fictional data.” If the published API has passed its smoke test, show the Research results. |
 
-For a three-minute demonstration, give the pressure replay an extra 30 seconds. Show the 101.3 to 96.3 kPa drop, exercise overlap, missing telemetry and separate recovery; then reload the Lunar check-in offline to show persistence. Spend the final 30 seconds opening both NASA archives and pointing out the sample windows. If the archive is unavailable, use the labeled captures in the [competition handoff](../docs/competition-release.md#verification-and-reproduction). The 90-second and three-minute timings are rehearsal formats. Check the actual portal for the required media format and duration.
+## Three-minute judge script
 
-Use the [onboard demo instructions](START_HERE.md) to show local Python assessment during an Earth link outage. The [production site](https://acha.tr/) is on an earlier build. Verify the candidate URL and files before submission.
+| Time | Show and say |
+| --- | --- |
+| 0–90 s | Run the short demonstration. |
+| 90–125 s | Open **Orbital Pressure**. Show the drop from 101.3 to 96.3 kPa in 15 minutes, the exercise overlap, the ear-fullness report and the missing samples. Show the separate recovery and 340 of 360 minutes of measured coverage. “Total cabin pressure alone cannot establish inspired oxygen.” |
+| 125–160 s | Open both historical archives after the release smoke checks pass. Point to RR-6 UTC observations and DosTel1 source times with no offset. If the hosted API still fails, open the originals from the network and describe the production limitation. |
+| 160–180 s | Reload the locally cached Lunar repeat checkpoint offline. Show the closed training follow-up and distinguish browser storage from the separate onboard Python assessment. “ACHA is a research and training prototype. The comparisons are descriptive and do not establish diagnosis, causation, or personal radiation exposure.” |
+
+The 90-second and three-minute timings are rehearsal formats. Confirm the required media format and duration in the Team Project tab. [Release verification and source rights](../docs/competition-release.md)
+
+The [live Lunar Fatigue checkpoint](https://acha.tr/?scenario=lunar-fatigue&step=3) was tested at desktop and mobile widths. The production NASA archive API repair is pending. Use the [onboard demo instructions](START_HERE.md) to show the separate Python assessment during an Earth link outage.

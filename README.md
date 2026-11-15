@@ -22,11 +22,11 @@ When a crew is far from Earth, its members may need to assess health changes bef
 
 The web app records measurements and submits assessments through an API. The standalone onboard demo runs the assessment engine on a local workstation so the crew can complete a check-in during a simulated loss of contact with Earth.
 
-**Replay a space mission.** From the local candidate’s Overview, select **Try a 90-second training scenario**. Lunar Fatigue plays inside Body systems. In the same panel, switch to Orbital Pressure or Solar Relay Outage. Use **Pause**, **Next**, **Previous**, or the timeline slider to inspect readings, missing samples, and mission events at a specific checkpoint. The sidebar’s **Scenarios** page also offers full replay links. The fictional replays work offline after the app shell has been cached.
+**Replay a space mission.** From Overview, select **Try a 90-second training scenario**. Lunar Fatigue plays inside Body systems. In the same panel, switch to Orbital Pressure or Solar Relay Outage. Use **Pause**, **Next**, **Previous**, or the timeline slider to inspect readings, missing samples, and mission events. The sidebar’s **Scenarios** page also offers full replay links. The fictional replays work offline after the app shell has been cached. [Open the live Lunar Fatigue review checkpoint](https://acha.tr/?scenario=lunar-fatigue&step=3)
 
 **Practice the check-in.** At the Lunar Fatigue review, open the fictional assessment, step to the resting repeat, save and link it, then close the follow-up. These explicit steps save fictional records in this browser. **Exit scenario** restores the Overview’s recorded workspace. The Crew Monitoring page also offers a separate browser-local practice workspace.
 
-The [competition handoff](docs/competition-release.md) describes what was verified locally and which version is currently deployed.
+The latest public audit verified the training replays on `acha.tr`. Both NASA archive endpoints returned HTTP 404 from the current Railway deployment. The same routes and historical NASA archives work through the local API. See the [competition handoff](docs/competition-release.md) for verification and release steps.
 
 ## How a check-in works
 

@@ -4,6 +4,7 @@ import { RadiationResearch } from './RadiationResearch'
 import { WellbeingResearch } from './WellbeingResearch'
 import { AssayResearch, WaveformResearch } from './MeasurementResearch'
 import { Evidence } from './Evidence'
+import { archiveError, rr6Source, rr6SourceExport } from './nasaArchive'
 
 const SleepResearch = lazy(() => import('./SleepResearch').then(module => ({ default: module.SleepResearch })))
 
@@ -56,7 +57,7 @@ function IssResearch() {
       setRecord(await api.issResearchRecord(window))
       setPage(0)
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'The NASA record could not be loaded.')
+      setError(archiveError(reason, 'RR-6'))
     } finally {
       setLoading(false)
     }
@@ -73,10 +74,10 @@ function IssResearch() {
         <button className="button secondary" disabled={loading} onClick={() => void fetchRecord()}>
           {record ? 'Refresh from NASA' : 'Fetch from NASA'}
         </button>
-        <a className="text-link" href={record?.source ?? 'https://osdr.nasa.gov/bio/repo/data/payloads/RR-6'}>NASA dataset</a>
-        {record && <a className="text-link" href={record.download}>Source JSON</a>}
+        <a className="text-link" href={record?.source ?? rr6Source}>NASA dataset · RR-6</a>
+        <a className="text-link" href={record?.download ?? rr6SourceExport(window)}>Original NASA JSON</a>
       </div>
-      <p className="form-feedback" role="status">{error || (loading ? 'Fetching NASA telemetry…'
+      <p className="form-feedback" role="status">{error ? `${error} Open the original NASA JSON for this window. ${record ? 'Showing the last successful historical result.' : 'No archive readings are displayed.'}` : (loading ? 'Fetching NASA telemetry…'
         : record ? `${record.samples.length} timestamps · NASA environmental research` : '')}</p>
       {record && <>
         {record.samples.length > 0 && <p className="muted">First sample {utc.format(new Date(record.samples[0].recorded_at))} UTC · Last sample {utc.format(new Date(record.samples[record.samples.length - 1].recorded_at))} UTC.</p>}
@@ -91,7 +92,7 @@ function IssResearch() {
             ? `${Math.min(...values)}–${Math.max(...values)} ${metric.unit} · ${values.length} of ${record.samples.length} values · ${intervals} five-minute intervals with both readings`
             : 'No observations'}</dd></div>
         })}</dl>
-        <p className="muted">Coverage counts measured pairs only. This archive provides habitat context for monitoring design.</p>
+        <p className="muted">Coverage counts measured pairs only. The export does not report calibration or measurement uncertainty. These observations describe the habitat.</p>
         <IssCarbonDioxidePlot samples={record.samples} />
         <details className="research-observations">
           <summary>Browse {record.samples.length} observations</summary>
