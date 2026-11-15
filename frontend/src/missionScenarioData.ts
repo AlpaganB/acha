@@ -50,8 +50,8 @@ const lunarBaseline = {
 }
 
 const lunar: MissionScenario = {
-  id: 'lunar-fatigue', environment: 'Lunar surface', title: 'Fatigue after a shift change', duration: '7 days', subject: 'Alex Rivera · Habitat crew',
-  intro: 'An early maintenance rotation interrupts Alex’s sleep. Follow the week from a personal reference through a check-in, a repeat reading, and recovery monitoring.',
+  id: 'lunar-fatigue', environment: 'Lunar surface', title: 'Fatigue after a shift change', duration: '7 days', subject: 'Emirhan Caman · Habitat crew',
+  intro: 'An early maintenance rotation interrupts Emirhan’s sleep. Follow the week from a personal reference through a check-in, a repeat reading, and recovery monitoring.',
   topics: ['Personal baseline', 'Sleep and performance', 'Assessment follow-up'],
   metrics: [
     { label: 'Sleep in previous 24 h', unit: 'h', range: [4, 9], reference: median(lunarBaseline.sleep) },
@@ -68,25 +68,25 @@ const lunar: MissionScenario = {
     { minute: 7 * day, values: [7.7, 65, 251] },
   ],
   checkpoints: [
-    { minute: 0, title: 'Set the reference', status: 'Baseline', event: 'Alex starts the week on the usual work schedule.',
+    { minute: 0, title: 'Set the reference', status: 'Baseline', event: 'Emirhan starts the week on the usual work schedule.',
       system: 'ACHA compares readings with the median of five earlier training sessions for this crew member.',
       crew: 'Logs sleep for the previous 24 hours, a resting pulse, and the result of the same reaction task.' },
     { minute: day, title: 'Early maintenance shift', status: 'Trend to review', event: 'The first early shift follows a shorter sleep period.',
-      system: 'The sleep report falls below Alex’s reference and reaction time is longer. A single observation does not establish a trend.',
+      system: 'The sleep report falls below Emirhan’s reference and reaction time is longer. A single observation does not establish a trend.',
       crew: 'Adds the new shift and recent workload to the log so the readings can be interpreted in context.' },
-    { minute: 2 * day, title: 'Fatigue check-in', status: 'Assessment opened', event: 'Alex reports fatigue after a second early shift.',
+    { minute: 2 * day, title: 'Fatigue check-in', status: 'Assessment opened', event: 'Emirhan reports fatigue after a second early shift.',
       system: 'The check-in brings together the symptom, sleep and pulse. The pulse has no posture or activity context, so its comparison is provisional.',
       crew: 'Links the recorded readings to the check-in and leaves it open for a repeat.' },
     { minute: 2 * day + 30, title: 'Repeat under known conditions', status: 'Follow-up linked', event: 'A repeat pulse is recorded at rest 30 minutes later.',
-      system: 'The new reading is closer to Alex’s reference. The original remains attached to the assessment. There is no new sleep report or reaction test at this checkpoint.',
+      system: 'The new reading is closer to Emirhan’s reference. The original remains attached to the assessment. There is no new sleep report or reaction test at this checkpoint.',
       crew: 'Links the repeat and records the measurement context. The follow-up stays open to review the next shifts.' },
-    { minute: 3 * day, title: 'Review the next shift', status: 'Monitoring', event: 'After a schedule adjustment in the exercise, Alex logs a longer sleep period.',
+    { minute: 3 * day, title: 'Review the next shift', status: 'Monitoring', event: 'After a schedule adjustment in the exercise, Emirhan logs a longer sleep period.',
       system: 'Sleep and reaction time move toward their reference values. The replay preserves both measurements and their timing.',
       crew: 'Records the schedule change and repeats the same reaction task for a comparable result.' },
     { minute: 5 * day, title: 'Confirm improvement', status: 'Monitoring', event: 'Two shifts later the measurements are closer to baseline.',
       system: 'ACHA shows the repeat observations beside the original departure rather than overwriting the early-shift values.',
       crew: 'Notes that fatigue has eased and waits for the final scheduled review.' },
-    { minute: 7 * day, title: 'Close the training check-in', status: 'Follow-up closed', event: 'The final reports are close to Alex’s reference.',
+    { minute: 7 * day, title: 'Close the training check-in', status: 'Follow-up closed', event: 'The final reports are close to Emirhan’s reference.',
       system: 'The replay closes the workflow with the initial assessment, linked repeat, and recovery observations in the timeline.',
       crew: 'Records the outcome and resumes routine monitoring in the exercise.' },
   ],
@@ -96,7 +96,7 @@ const lunar: MissionScenario = {
 }
 
 const pressure: MissionScenario = {
-  id: 'orbital-pressure', environment: 'Low Earth orbit', title: 'Cabin pressure excursion', duration: '6 hours', subject: 'Habitat A · Training crew',
+  id: 'orbital-pressure', environment: 'Low Earth orbit', title: 'Cabin pressure excursion', duration: '6 hours', subject: `${pressureScenario.subject} · ${pressureScenario.location}`,
   intro: 'Cabin pressure drops during an orbital shift. Follow a telemetry gap, exercise context, and a recovery check in the same dataset used by ACHA’s cabin pressure review.',
   topics: ['Cabin telemetry', 'Data quality', 'Crew response'],
   metrics: [
@@ -136,7 +136,7 @@ const pressure: MissionScenario = {
 }
 
 const solar: MissionScenario = {
-  id: 'solar-event', environment: 'Deep-space transit', title: 'Solar event during a relay outage', duration: '72 hours', subject: 'Maya Chen · Transit crew',
+  id: 'solar-event', environment: 'Deep-space transit', title: 'Solar event during a relay outage', duration: '72 hours', subject: 'Yekta Erkuş · Transit crew',
   intro: 'A solar particle event raises the vehicle monitor reading while the scheduled Earth relay is unavailable. Follow local observations, the radiation trend, and the delayed ground handover.',
   topics: ['Radiation monitoring', 'Offline recording', 'Ground handover'],
   metrics: [

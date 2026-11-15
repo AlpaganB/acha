@@ -37,7 +37,7 @@ export const pressureScenario = {
   provenance: 'SYNTHETIC',
   collection: 'Simulated telemetry and self-report',
   location: 'Habitat A',
-  subject: 'Training crew member',
+  subject: 'Adem Çoban',
   samples: Array.from({ length: 73 }, (_, index): PressureSample => {
     const minute = index * sampleMinutes
     const exercise = minute >= 150 && minute <= 185

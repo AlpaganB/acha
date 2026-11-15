@@ -95,7 +95,7 @@ function CrewMonitoring({ mission, onOpenScenario }: { mission: Mission; onOpenS
     </header>
     {mission.local ? <section className="surface form-panel scenario-intro">
       <h2>Lunar habitat · Early-shift check-in</h2>
-      <p>Alex reports fatigue after shorter sleep. Review the recorded change, check the limits of the evidence, and log a simulated repeat reading.</p>
+      <p>Emirhan reports fatigue after shorter sleep. Review the recorded change, check the limits of the evidence, and log a simulated repeat reading.</p>
       <a className="button primary" href={`/assessments/${scenarioAssessmentId}`}>Open scenario check-in <ArrowRight size={16} aria-hidden="true" /></a>
     </section> : <section className="surface form-panel scenario-intro">
       <h2>Explore space mission scenarios</h2>

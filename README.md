@@ -24,7 +24,7 @@ The web app records measurements and submits assessments through an API. The sta
 
 **Replay a space mission.** Open **Scenarios** in the sidebar and choose a seven-day lunar fatigue check-in, a six-hour orbital cabin pressure excursion, or a 72-hour solar event and relay outage. Use **Play**, **Next**, or the timeline slider to follow the readings, data gaps, crew decisions, and final debrief. The replays use fictional data, work offline after the app shell is cached, and create no mission records.
 
-**Practice the check-in.** Choose **Practice the check-in** in the lunar debrief, or select **Open synthetic scenario** from Crew monitoring and then **Open scenario check-in**. Review Alex’s recorded change, record a repeat reading, link it in **Follow-up**, and close the check-in. This exercise saves fictional records in this browser. **Return to mission service** switches back to the shared sample workspace.
+**Practice the check-in.** Choose **Practice the check-in** in the lunar debrief, or select **Open synthetic scenario** from Crew monitoring and then **Open scenario check-in**. Review Emirhan’s recorded change, record a repeat reading, link it in **Follow-up**, and close the check-in. This exercise saves fictional records in this browser. **Return to mission service** switches back to the shared sample workspace.
 
 ## How a check-in works
 
