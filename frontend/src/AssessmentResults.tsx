@@ -35,16 +35,16 @@ function StatusBadge({ status }: { status: string }) {
 
 function findingText(finding: EngineFinding) {
   const metricLabels: Record<string, string> = {
-    spo2: 'Blood oxygen', systolic_bp: 'Systolic blood pressure', temperature: 'Body temperature',
+    spo2: 'Blood oxygen saturation', systolic_bp: 'Systolic blood pressure', temperature: 'Body temperature',
   }
   const metric = finding.metric ? metricLabels[finding.metric] ?? humanize(finding.metric) : null
   switch (finding.code) {
     case 'reported_symptom': return finding.symptom
       ? `Reported symptom · ${symptomLabel(finding.symptom)}` : 'Reported symptom'
     case 'unknown_symptom': return `This profile has no rule for ${symptomLabel(finding.symptom ?? 'this symptom')}.`
-    case 'news2_missing_context': return 'The crew context required for NEWS2 is unavailable.'
+    case 'news2_missing_context': return 'The information about the crew member required for NEWS2 is missing.'
     case 'news2_missing_measurement':
-    case 'missing_measurement': return `${metric ?? 'Measurement'} is missing.`
+    case 'missing_measurement': return `Missing measurement · ${metric ?? 'Unspecified'}`
     default: return [humanize(finding.code.replace(/^news2_/, '')), metric,
       finding.observed !== null && `${finding.observed}${finding.unit ? ` ${finding.unit}` : ''}`]
       .filter(item => item !== false && item !== null).join(' · ')
@@ -145,6 +145,8 @@ export function AssessmentResult({
 
   const input = record ?? queued?.input
   const status = record?.status ?? (syncIssue ? 'needs_attention' : 'saved_locally')
+  const guideUrl = record?.protocol_id ? `/guides/${encodeURIComponent(record.protocol_id)}` : null
+  const urgent = status === 'urgent'
   const findings = [...new Set(record?.engine_result?.rationale.map(findingText))]
   const engine = record?.engine_result
 
@@ -157,17 +159,24 @@ export function AssessmentResult({
       </header>
       {input ? (
         <section className="surface result-panel">
-          <div className="section-heading">
+          <div className="section-heading result-heading">
             <h2>{recordTitle(input)}</h2>
-            <StatusBadge status={status} />
+            <div className="result-heading-actions">
+              <StatusBadge status={status} />
+              {urgent && (
+                <a className="button danger" href={guideUrl ?? '/guides'}>
+                  {guideUrl ? 'Open emergency guide' : 'Open emergency guides'} <ArrowRight size={17} aria-hidden="true" />
+                </a>
+              )}
+            </div>
           </div>
           <div aria-live="polite">
             {queuedLocally && !record && <p>{syncIssue
-              ? 'This assessment is still saved on this device. The mission service did not accept it.'
-              : 'This assessment is saved on this device and will be sent when the mission service is reachable.'}</p>}
-            {waiting && <p>This assessment was recorded without a result. Run the demonstration engine to review it.</p>}
+              ? 'The mission service rejected this assessment. A copy is still saved on this device.'
+              : 'Saved on this device. This assessment will be submitted when the mission service is reachable again.'}</p>}
+            {waiting && <p>This assessment is awaiting a result. Select Run assessment to evaluate it.</p>}
             {record?.status === 'demo_reviewed' && <p className="notice">This example uses synthetic data for demonstration.</p>}
-            {record?.engine_result && <p className="notice">Demonstration rules. Follow mission-approved procedures for medical decisions.</p>}
+            {record?.engine_result && <p className="notice">This result uses training rules. Follow mission-approved procedures for medical decisions.</p>}
             {record?.rationale && <div className="result-block"><h3>Rationale</h3><p>{record.rationale}</p></div>}
             {record?.engine_result && (
               <details className="engine-details">
@@ -175,7 +184,7 @@ export function AssessmentResult({
                 <p>Engine {record.engine_result.engine_version} · Profile {record.engine_result.profile_version}</p>
                 {record.engine_result.news2 && <p>{record.engine_result.news2.complete
                   ? `NEWS2 reference score: ${record.engine_result.news2.total_score}`
-                  : 'NEWS2 reference score unavailable because the required observations are incomplete.'}</p>}
+                  : 'The available observations do not support a NEWS2 reference score.'}</p>}
                 {findings.length > 0 && (
                   <ul>{findings.map(finding => <li key={finding}>{finding}</li>)}</ul>
                 )}
@@ -185,15 +194,15 @@ export function AssessmentResult({
             {engine?.comparisons && Object.keys(engine.comparisons).length > 0 && (
               <div className="result-block">
                 <h3>Compared with previous readings</h3>
-                <p>Reference uses up to {engine.comparison_window_days} days of earlier readings for this crew member.</p>
+                <p>The reference is the median of this crew member’s earlier readings within the previous {engine.comparison_window_days} days.</p>
                 <dl className="detail-list">{Object.entries(engine.comparisons).map(([metric, comparison]) => (
                   <div key={metric}>
                     <dt>{humanize(metric)}</dt>
                     <dd>{!comparison.usable ? 'Check the entered reading.' : comparison.difference === null
-                      ? `${comparison.observed} ${comparison.unit}. ${comparison.samples} of ${engine.comparison_min_samples} prior readings needed for a reference.`
+                      ? `${comparison.observed} ${comparison.unit}. Reference unavailable (${comparison.samples} earlier readings found, ${engine.comparison_min_samples} required).`
                       : `${comparison.observed} ${comparison.unit} · Prior median ${comparison.reference} ${comparison.unit} (${comparison.samples} readings) · Change ${comparison.difference > 0 ? '+' : ''}${comparison.difference} ${comparison.unit}`}
                       {comparison.usable && comparison.median_absolute_deviation != null && (
-                        <small className="muted">Median distance from prior median: {comparison.median_absolute_deviation} {comparison.unit}</small>
+                        <small className="muted">Median absolute deviation: {comparison.median_absolute_deviation} {comparison.unit}</small>
                       )}</dd>
                   </div>
                 ))}</dl>
@@ -209,9 +218,9 @@ export function AssessmentResult({
             <div><dt>Measurements attached</dt><dd>{input.measurement_ids.length}</dd></div>
             {input.notes && <div><dt>Notes</dt><dd>{input.notes}</dd></div>}
           </dl>
-          <div className="form-actions">
-            {record?.protocol_id && (
-              <a className="button primary" href={`/guides/${encodeURIComponent(record.protocol_id)}`}>
+          {(waiting || syncIssue || (!urgent && guideUrl)) && <div className="form-actions">
+            {!urgent && guideUrl && (
+              <a className="button primary" href={guideUrl}>
                 Open referenced guide <ArrowRight size={17} aria-hidden="true" />
               </a>
             )}
@@ -225,7 +234,7 @@ export function AssessmentResult({
               </button>
               <button className="button secondary" onClick={() => setConfirmDiscard(false)}>Keep saved copy</button>
             </> : <button className="button secondary" onClick={() => setConfirmDiscard(true)}>Discard local copy</button>)}
-          </div>
+          </div>}
         </section>
       ) : (
         <p className="notice" role="status">{loadError || (reachable || pending

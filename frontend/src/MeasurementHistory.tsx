@@ -26,7 +26,7 @@ function Trend({ readings, kind }: { readings: Measurement[]; kind: string }) {
   const active = points.find(point => point.id === focused) ?? points.at(-1)!
   return <>
     <div className="trend-legend">{series.map((label, index) => <span key={label} className={index ? 'secondary-series' : ''}>{label}</span>)}<span>{points[0].unit}</span></div>
-    <svg className="measurement-chart" viewBox="0 0 720 218" role="img" aria-label={`${measurementLabels[kind]} over time. ${points.length} readings. Exact values are listed in the history below.`}>
+    <svg className="measurement-chart" viewBox="0 0 720 218" role="img" aria-label={`${measurementLabels[kind]} over time. ${points.length} ${points.length === 1 ? 'reading' : 'readings'}. Exact values appear in the table below.`}>
       {[low, low + (high - low) / 4, (low + high) / 2, high - (high - low) / 4, high].map(value => <g key={value}>
         <line x1="58" x2="662" y1={y(value)} y2={y(value)} className="chart-grid" />
         <text x="48" y={y(value) + 4} textAnchor="end">{value.toFixed(1)}</text>
@@ -69,11 +69,11 @@ export function MeasurementTrends({ readings, fixedKind }: {
         {measurementLabels[item.kind]} <span>{item.count}</span>
       </button>)}
     </div>}
-    <div className="trend-heading"><h3>{measurementLabels[kind]} trend</h3><span className="muted">{points.length} readings</span></div>
+    <div className="trend-heading"><h3>{measurementLabels[kind]} trend</h3><span className="muted">{points.length} {points.length === 1 ? 'reading' : 'readings'}</span></div>
     {latest && <dl className="trend-stats">
       <div><dt>Latest reading</dt><dd>{latest.value}{latest.diastolic !== null && `/${latest.diastolic}`} <small>{latest.unit}</small></dd></div>
       <div><dt>{kind === 'blood_pressure' ? 'Systolic range' : 'Recorded range'}</dt><dd>{Math.min(...points.map(point => point.value))}–{Math.max(...points.map(point => point.value))} <small>{latest.unit}</small></dd></div>
-      <div><dt>{kind === 'blood_pressure' ? 'Systolic change' : 'First to latest'}</dt><dd>{difference === null ? '—' : `${difference > 0 ? '+' : ''}${Number(difference.toFixed(2))}`} <small>{difference === null ? 'One reading' : kind === 'spo2' ? 'percentage points' : latest.unit}</small></dd></div>
+      <div><dt>{kind === 'blood_pressure' ? 'Systolic change' : 'Change since first reading'}</dt><dd>{difference === null ? '—' : `${difference > 0 ? '+' : ''}${Number(difference.toFixed(2))}`} <small>{difference === null ? 'One reading' : kind === 'spo2' ? 'percentage points' : latest.unit}</small></dd></div>
     </dl>}
     <Trend readings={readings} kind={kind} />
   </>

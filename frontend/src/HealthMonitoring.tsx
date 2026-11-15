@@ -18,7 +18,7 @@ export function MonitoringLinks() {
     <div className="section-heading"><h2 id="monitoring-shortcuts">Health monitoring</h2></div>
     <div className="monitoring-grid">
       <a className="surface monitoring-shortcut" href="/mission/monitoring"><Moon size={20} aria-hidden="true" />
-        <span><strong>Sleep and crew records</strong><small>History, personal baseline and data gaps</small></span><ArrowRight size={16} aria-hidden="true" /></a>
+        <span><strong>Sleep and crew records</strong><small>Sleep history, personal baseline, and data gaps</small></span><ArrowRight size={16} aria-hidden="true" /></a>
       <a className="surface monitoring-shortcut" href="/mission/pressure"><Gauge size={20} aria-hidden="true" />
         <span><strong>Cabin pressure</strong><small>Training timeline and crew response</small></span><ArrowRight size={16} aria-hidden="true" /></a>
       <a className="surface monitoring-shortcut" href={radiationResearch}><Radio size={20} aria-hidden="true" />
@@ -90,7 +90,7 @@ export function HealthMonitoring({ crew, reachable }: { crew?: CrewMember; reach
         <label>Time range <select value={days} onChange={event => setDays(Number(event.target.value))}>
           {[7, 14, 30].map(value => <option key={value} value={value}>{value} days</option>)}
         </select></label></div>
-      <p className="muted">Public training workspace. Use the restricted mission log for crew observations.</p>
+      <p className="muted">Use sample data here. Record sensitive crew observations in the restricted mission log.</p>
       <div className="form-actions">
         <a className="text-link" href="/measurements?kind=sleep_duration">Record sleep duration</a>
         <a className="text-link" href={restrictedLog}>Open restricted log</a>
@@ -101,13 +101,14 @@ export function HealthMonitoring({ crew, reachable }: { crew?: CrewMember; reach
           ? 'Showing records loaded before the service became unavailable.' : 'Showing the latest 200 reports in this period.'}</p>}
         <SleepHistory records={current.records} days={days} />
       </>}
-      {!current?.records && <p className="notice" role="status">{current?.error || (crewId && reachable
-        ? 'Loading recorded sleep history…' : 'Crew sleep history is unavailable while the mission service is offline.')}</p>}
+      {!current?.records && <p className="notice" role="status">{current?.error || (!crewId
+        ? 'Choose a crew member to view sleep history.' : reachable
+          ? 'Loading sleep history…' : 'Connect to the mission service to load sleep history.')}</p>}
       <a className="text-link" href={nasaSleepSource}>NASA astronaut sleep study</a>
     </section>
     <section className="surface form-panel observation-stack" aria-labelledby="crew-exposure">
       <h2 id="crew-exposure"><Radio size={18} /> Radiation exposure</h2>
-      <p>Review archived instrument rates or load an individual dosimeter record from the restricted log.</p>
+      <p>Review archived radiation dose rates from the ISS or open the restricted log to view personal dosimeter records.</p>
       <div className="form-actions"><a className="button secondary" href={radiationResearch}>Review radiation archive</a>
         <a className="text-link" href={restrictedLog}>Open restricted log</a></div>
     </section>
@@ -131,7 +132,7 @@ export function RestrictedHealthReview({ records }: { records: MissionObservatio
     </details>}
     {(latest || rejected > 0) && <details className="research-observations" open><summary>Individual dosimeter review</summary>
       {latest && <p>{latest.value} {latest.unit} · {formatDate(latest.recorded_at)} · {latest.device} · {comparable.length} comparable verified readings</p>}
-      {rejected > 0 && <p className="notice" role="status">{rejected} reading(s) require review or were excluded from the numeric series.</p>}
+      {rejected > 0 && <p className="notice" role="status">{rejected === 1 ? 'One reading was' : `${rejected} readings were`} excluded from the analysis.</p>}
       <p className="muted">Device-reported rate. Personal accumulated dose, organ dose and risk assessment require mission-approved dosimetry.</p>
       <a className="text-link" href={nasaCrewStandard}>NASA crew health standard</a>
     </details>}

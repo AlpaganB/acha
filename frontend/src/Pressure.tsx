@@ -71,7 +71,7 @@ function TransitionReview({ transition }: { transition: PressureTransition }) {
     <article className="pressure-transition">
       <h3>{transition.direction} · {time(transition.start)}–{time(transition.end)} UTC</h3>
       <p>{transition.initial} to {transition.final} kPa over {transition.minutes} min. Total change {signed(transition.change)} kPa.
-        Steepest sampled interval {signed(transition.fastestStep)} kPa/min.</p>
+        Steepest recorded rate of change: {signed(transition.fastestStep)} kPa/min.</p>
       <div className="research-table" tabIndex={0} role="region" aria-label={`${transition.direction} response readings`}><table>
         <caption>Median readings through {responseWindowMinutes} min after the transition</caption>
         <thead><tr><th scope="col">Measurement</th><th scope="col">Resting baseline (n)</th>
@@ -109,7 +109,7 @@ export function Pressure() {
         <dl className="pressure-summary">
           <div><dt>Detected transitions</dt><dd>{transitions.length}</dd></div>
           <div><dt>Sampled time below {exposureBoundaryKpa} kPa</dt><dd>{exposureMinutes} min</dd></div>
-          <div><dt>Missing pressure coverage</dt><dd>{windowMinutes - coveredMinutes} min</dd></div>
+          <div><dt>Time without usable pressure readings</dt><dd>{windowMinutes - coveredMinutes} min</dd></div>
         </dl>
         <PressureChart samples={samples} transitions={transitions} />
         <details className="pressure-method"><summary>View observations</summary>
@@ -128,13 +128,13 @@ export function Pressure() {
       </section>
       <section className="surface form-panel pressure-review" aria-labelledby="pressure-review">
         <h2 id="pressure-review">Transition review</h2>
-        <p className="muted">Training rule groups consecutive pressure steps of at least {transitionStepKpa} kPa in the same direction.
-          Review the sampled values, telemetry gaps, and activity before interpreting changes.</p>
+        <p className="muted">The training rule groups consecutive pressure changes of at least {transitionStepKpa} kPa in the same direction.
+          Review the readings, data gaps, and crew activity when interpreting these changes.</p>
         {transitions.map(transition => <TransitionReview key={transition.start} transition={transition} />)}
         <details className="pressure-method"><summary>Analysis method and NASA reference</summary>
-          <p>Baseline uses at least {minimumBaselineSamples} valid readings from the scenario’s initial rest period.
-            Exposure sums {sampleMinutes}-minute intervals whose two endpoints are below {exposureBoundaryKpa} kPa.
-            Gaps and threshold crossings leave time unclassified. Timing shows co-occurrence. Both pressure cutoffs are demonstration settings.</p>
+          <p>The baseline uses at least {minimumBaselineSamples} valid readings from the scenario’s initial rest period.
+            The time below {exposureBoundaryKpa} kPa includes only {sampleMinutes}-minute intervals with both readings below that level.
+            Intervals with missing data or a threshold crossing remain unclassified. Both pressure thresholds are training settings.</p>
           <p className="muted">{pressureScenario.collection} · Scenario {pressureScenario.id}.</p>
           <a className="text-link" href={atmosphericStandard}>NASA-STD-3001 Volume 2 Revision F · atmospheric monitoring requirements</a>
         </details>

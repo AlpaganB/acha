@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://acha.tr/">Open the live demo</a> ·
-  <a href="#run-locally">Run locally</a> ·
+  <a href="demo/START_HERE.md#run-the-demo">Run the onboard demo locally</a> ·
   <a href="https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/">NASA Space Apps 2026</a>
 </p>
 
@@ -19,9 +19,9 @@
   <img src="docs/assets/screenshots/crew-workspace.png" width="100%" alt="ACHA crew health workspace with the lunar horizon, latest measurements, and assessment history">
 </p>
 
-When a crew is far from Earth, they may need to assess a change in health before a flight surgeon can respond. ACHA gives them one place to log a reading, compare it with their own recent history, and see what prompted an assessment and which training guide to open.
+When a crew is far from Earth, its members may need to assess health changes before a flight surgeon can respond. ACHA lets crew members record measurements, compare them with their own recent readings, and review findings and related training guides.
 
-The web app records and evaluates measurements through a live API. A standalone onboard demo runs the assessment engine on a local workstation so the crew can complete a check-in during a simulated loss of the Earth link.
+The web app records measurements and submits assessments through an API. The standalone onboard demo runs the assessment engine on a local workstation so the crew can complete a check-in during a simulated loss of contact with Earth.
 
 ## How a check-in works
 
@@ -32,7 +32,7 @@ The web app records and evaluates measurements through a live API. A standalone 
 
 ### How the engine evaluates a check-in
 
-The web app applies symptom rules and checks available vital signs against the NEWS2 reference. It saves the inputs, result, and rules used. For each evaluated reading with enough history, it shows the difference from the median of at least five earlier readings of the same kind for the same crew member from the previous 30 days. Blood pressure comparisons use systolic values. The comparison is descriptive.
+The web app applies symptom rules and checks supported vital signs against the NEWS2 reference. It saves the inputs, result, and rules used. When at least five earlier readings of the same kind are available for the same crew member, the app shows how the current reading differs from the median of those readings over the preceding 30 days. Blood pressure comparisons use systolic values. The comparison is descriptive.
 
 The standalone demo covers the full terrestrial NEWS2 reference calculation in its test scenarios. The web form displays incomplete scoring when required observations are missing. The mission profiles and response mappings are training settings. [NEWS2 sources and scope](demo/NEWS2_SOURCES.md)
 

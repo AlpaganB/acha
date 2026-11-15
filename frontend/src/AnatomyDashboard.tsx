@@ -185,7 +185,7 @@ export function AnatomyDashboard({ crewId, measurements, assessments, reachable,
         <div className="anatomy-column anatomy-column-right">
           {index === 0 && <SymptomCard title="Reported concerns" assessment={assessment} />}
           {index === 1 && <>
-            <article className="anatomy-card"><h3><Waves size={15} /> Blood oxygen</h3>{cardReading('spo2')}<HistoryPlot records={records} kind="spo2" />
+            <article className="anatomy-card"><h3><Waves size={15} /> {measurementLabels.spo2}</h3>{cardReading('spo2')}<HistoryPlot records={records} kind="spo2" />
               {records.some(record => record.kind === 'spo2') && <div className="oxygen-readings"><span>Recent oxygen readings</span>{records.filter(record => record.kind === 'spo2').slice(0, 3).map(record => <div key={record.id}><time dateTime={record.recorded_at}>{formatDate(record.recorded_at)}</time><strong>{record.value}%</strong></div>)}</div>}
             </article>
           </>}

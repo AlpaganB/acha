@@ -11,8 +11,8 @@ const units: Record<string, string> = {
 const measurementGuides: Record<string, { equipment: string; steps: string[] }> = {
   heart_rate: { equipment: 'Heart rate monitor', steps: ['Select the heart rate reading on your monitor.', 'Record the displayed value in beats per minute (bpm). Do not enter an oxygen percentage here.'] },
   respiratory_rate: { equipment: 'Respiratory monitor or timed observation', steps: ['Follow your approved measurement procedure.', 'Enter the recorded breathing rate in breaths per minute.'] },
-  spo2: { equipment: 'Pulse oximeter', steps: ['Follow the device instructions and check that the reading is stable.', 'Enter the SpO₂ percentage, rather than the pulse rate shown on the same device.'] },
-  blood_pressure: { equipment: 'Blood pressure monitor', steps: ['Use the monitor according to its instructions and your mission procedure.', 'Enter SYS as systolic and DIA as diastolic, both in mmHg. Enter the pulse reading separately as heart rate.'] },
+  spo2: { equipment: 'Pulse oximeter', steps: ['Check that the reading is stable.', 'Record the percentage labeled SpO₂.'] },
+  blood_pressure: { equipment: 'Blood pressure monitor', steps: ['Record the SYS value as systolic pressure and the DIA value as diastolic pressure. Both values are in mmHg.'] },
   body_temperature: { equipment: 'Thermometer', steps: ['Follow the thermometer instructions and check its selected unit.', 'Enter the reading in Celsius (°C). Convert a Fahrenheit reading before entering it.'] },
   sleep_duration: { equipment: 'Self-reported sleep log', steps: ['Add up the hours you slept during the previous 24 hours, including naps.', 'Enter hours as a decimal: 7 hours 30 minutes is 7.5. This is a self-reported observation, not a neurological assessment.'] },
 }
@@ -44,9 +44,9 @@ export function Measurements({ crew, measurements, pending, reachable, onSave, o
       setError('Enter a valid numeric reading.')
       return
     }
-    if (kind === 'heart_rate' && value <= 0) { setError('Heart rate must be greater than zero.'); return }
+    if (kind === 'heart_rate' && value <= 0) { setError('Enter a heart rate greater than zero.'); return }
     if (kind === 'blood_pressure' && (diastolic === null || diastolic <= 0 || diastolic > value)) {
-      setError('Enter a positive diastolic reading that does not exceed systolic.')
+      setError('Enter a diastolic pressure greater than zero and no higher than the systolic pressure.')
       return
     }
     const signature = JSON.stringify([crew.id, kind, value, diastolic])
@@ -76,7 +76,7 @@ export function Measurements({ crew, measurements, pending, reachable, onSave, o
       <div className="measurement-workspace">
       <section className="surface form-panel" aria-labelledby="record-heading">
         <h2 id="record-heading">Record a measurement</h2>
-        <p className="muted">Public demo — use sample data.</p>
+      <p className="muted">Use sample data in this public demo.</p>
         <form onSubmit={event => { event.preventDefault(); void save(event.currentTarget) }}>
           <div className="measurement-fields">
             <label>Indicator<select value={kind} disabled={busy} onChange={event => { setKind(event.target.value); setError(''); setSaved(undefined) }}>
@@ -104,7 +104,7 @@ export function Measurements({ crew, measurements, pending, reachable, onSave, o
             </button>}
           </div>
           <p className={`form-feedback ${error ? 'feedback-error' : ''}`} role={error ? 'alert' : 'status'}>{error || (busy ? 'Saving measurement…'
-            : saved ? 'Measurement saved.' : !reachable && !pending ? 'Connection required to save.' : '')}</p>
+            : saved ? 'Measurement saved.' : !reachable && !pending ? 'Connect to the mission service to save a measurement.' : '')}</p>
         </form>
       </section>
       <MeasurementHistory crewId={crew?.id} cached={measurements} reachable={reachable} revision={historyRevision} onReconnect={onReconnect} initialKind={initialKind} />

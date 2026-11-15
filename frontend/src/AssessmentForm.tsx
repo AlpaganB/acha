@@ -50,11 +50,11 @@ export function AssessmentForm({ crew, measurements, measurementsPending, reacha
   async function submit() {
     if (lock.current || !crew) return
     if (!chosen.length && !usableIds.length) {
-      setError('Select at least one symptom or measurement.')
+      setError('Report at least one symptom or select a measurement.')
       return
     }
     if (Object.hasOwn(selected, 'other') && !notes.trim()) {
-      setError('Describe your other symptom in the notes.')
+      setError('Describe the other symptom in the Notes field.')
       return
     }
 
@@ -90,7 +90,7 @@ export function AssessmentForm({ crew, measurements, measurementsPending, reacha
         <h2 ref={heading} tabIndex={-1}>{step === 0 ? 'What are you experiencing?' : 'Measurements and notes'}</h2>
         {step === 0 ? (
           <>
-            <p className="muted">Select any symptoms you want to report.</p>
+            <p className="muted">Select any symptoms you want to report. Continue to attach measurements.</p>
             <div className="symptom-grid">
               {symptoms.map(({ code, label }) => {
                 const pressed = Object.hasOwn(selected, code)
@@ -108,7 +108,7 @@ export function AssessmentForm({ crew, measurements, measurementsPending, reacha
                 <legend>Symptom severity <span className="muted">(optional)</span></legend>
                 {chosen.map(({ code, label }) => (
                   <label className="severity-row" key={code}>
-                    <span>{label} severity</span>
+                    <span>Severity of {label.toLowerCase()}</span>
                     <select value={selected[code] ?? ''} onChange={event => {
                       const value = event.target.value
                       setSelected(current => ({ ...current, [code]: value === '' ? null : Number(value) }))
@@ -130,7 +130,7 @@ export function AssessmentForm({ crew, measurements, measurementsPending, reacha
           </>
         ) : (
           <form onSubmit={event => { event.preventDefault(); void submit() }}>
-            <p className="muted">Attach relevant measurements from this crew member’s recent history.</p>
+            <p className="muted">Select any recent measurements you want to include.</p>
             {measurements.length ? (
               <fieldset className="field-group readings">
                 <legend>Recent measurements</legend>
@@ -148,17 +148,16 @@ export function AssessmentForm({ crew, measurements, measurementsPending, reacha
               ? 'Loading recent measurements…' : 'No recent measurements are available for this crew member.'}</p>}
             <label className="notes-label">
               Notes <span className="muted">{Object.hasOwn(selected, 'other') ? '(required)' : '(optional)'}</span>
-              <textarea maxLength={2000} rows={4} value={notes} placeholder="Describe anything else the crew should know."
+              <textarea maxLength={2000} rows={4} value={notes} placeholder="Add any details about the symptoms or measurements."
                 onChange={event => setNotes(event.target.value)} />
             </label>
-            <p className="form-feedback">Use sample observations in this public workspace.</p>
             {error && <p className="notice error" role="alert">{error}</p>}
             <div className="form-actions">
               <button type="button" className="button secondary" disabled={busy} onClick={() => goToStep(0)}>
                 <ArrowLeft size={17} aria-hidden="true" /> Back
               </button>
               <button type="submit" className="button primary" disabled={!crew || busy}>
-                {reachable ? 'Submit assessment' : 'Save assessment'}
+                {busy ? 'Saving assessment…' : reachable ? 'Submit assessment' : 'Save assessment'}
                 <ArrowRight size={17} aria-hidden="true" />
               </button>
             </div>

@@ -38,7 +38,7 @@ export function RadiationResearch() {
         }}>
           <option value="day">1 April 2022 · full day</option><option value="sample">1–2 April 2022 · short sample</option>
         </select></label></div>
-      <p>NASA OSDR RadLab · DosTel1 fixed instrument, ISS Columbus module.</p>
+      <p>NASA OSDR RadLab data from DosTel1, a fixed instrument in the ISS Columbus module.</p>
       <div className="form-actions"><a className="text-link" href={record?.source ?? instrumentSource}>Instrument metadata</a>
         {record && <a className="text-link" href={record.download}>Source CSV</a>}
         <button className="button secondary" onClick={() => { setAttempt(value => value + 1); setPage(0) }} disabled={!current}>Reload archive</button></div>
@@ -46,10 +46,10 @@ export function RadiationResearch() {
       {current?.error && <p className="notice" role="status">{current.error} The instrument source remains available above.</p>}
       {record && review && <>
         <dl className="monitoring-metrics">
-          <div><dt>Usable absorbed-rate samples</dt><dd>{review.points.length} of {record.samples.length}</dd><small>{review.missing} missing or unusable</small></div>
-          <div><dt>Peak sampled rate</dt><dd>{review.max === null ? '—' : `${doseFormat.format(review.max)} µGy/h`}</dd></div>
-          <div><dt>Observed interval coverage</dt><dd>{Math.round(review.coveredSeconds / 60)} min</dd><small>{review.gapCount} breaks between usable intervals</small></div>
-          <div><dt>Dose equivalent rate (µSv/h)</dt><dd>{record.samples.filter(item => item.dose_equivalent_rate !== null).length} samples</dd></div>
+          <div><dt>Usable absorbed dose rate samples</dt><dd>{review.points.length} of {record.samples.length}</dd><small>{review.missing} missing or unusable</small></div>
+          <div><dt>Highest recorded absorbed dose rate</dt><dd>{review.max === null ? '—' : `${doseFormat.format(review.max)} µGy/h`}</dd></div>
+          <div><dt>Time covered by usable readings</dt><dd>{Math.round(review.coveredSeconds / 60)} min</dd><small>Gaps between usable intervals: {review.gapCount}</small></div>
+          <div><dt>Samples with a dose equivalent rate</dt><dd>{record.samples.filter(item => item.dose_equivalent_rate !== null).length}</dd></div>
         </dl>
         {(record.conflicting_timestamps ?? 0) > 0 && <p className="notice" role="status">{record.conflicting_timestamps} conflicting archive timestamps were excluded from rate calculations.</p>}
         {review.max !== null && <RadiationPlot points={review.points} maximum={review.max} />}
@@ -67,7 +67,7 @@ export function RadiationResearch() {
         </details>
         <details className="research-observations"><summary>Browse {record.samples.length} instrument observations</summary>
           <div className="research-table" tabIndex={0} role="region" aria-label="Instrument readings"><table>
-            <thead><tr><th scope="col">Source time</th><th scope="col">Absorbed rate (µGy/h)</th><th scope="col">Equivalent rate (µSv/h)</th></tr></thead>
+            <thead><tr><th scope="col">Source time</th><th scope="col">Absorbed dose rate (µGy/h)</th><th scope="col">Dose equivalent rate (µSv/h)</th></tr></thead>
             <tbody>{record.samples.slice(page * perPage, (page + 1) * perPage).map(item => <tr key={item.timestamp}>
               <th scope="row">{stampLabel(item.timestamp)}</th>
               <td>{item.absorbed_dose_rate === null ? '—' : doseFormat.format(item.absorbed_dose_rate)}</td>
@@ -85,8 +85,8 @@ export function RadiationResearch() {
     </section>
     <section className="surface form-panel observation-stack">
       <h2>Human health context</h2>
-      <p>NASA tracks long-term cancer, degenerative tissue and nervous system risks, as well as acute exposure risks. A fixed instrument measures its own location and cannot establish an individual’s exposure or diagnosis.</p>
-      <p>Absorbed rate (µGy/h) and dose equivalent rate (µSv/h) are separate quantities. Estimating personal, organ or effective dose requires calibrated individual dosimetry and mission-approved methods.</p>
+      <p>NASA studies acute radiation exposure and long-term risks to crew health. A fixed instrument measures dose rates at its location. Personal exposure requires separate measurements.</p>
+      <p>Absorbed dose rate (µGy/h) and dose equivalent rate (µSv/h) describe different quantities. Estimating a crew member’s dose requires calibrated dosimetry and mission-approved methods.</p>
       <div className="form-actions"><a className="text-link" href={nasaRadiationSource}>NASA radiation health research</a>
         <a className="text-link" href={cnsSource}>NASA CNS evidence and uncertainties</a>
         <a className="text-link" href={nasaCrewStandard}>NASA crew health standard</a>
@@ -110,6 +110,6 @@ function RadiationPlot({ points, maximum }: {
         cy={105 - point.absorbed_dose_rate / (maximum || 1) * 95}><title>{stampLabel(point.timestamp)} · {doseFormat.format(point.absorbed_dose_rate)} µGy/h</title></circle>)}
     </svg>
     <figcaption><div className="pressure-time-axis"><span>{stampLabel(first)}</span><span>{stampLabel(last)}</span></div>
-      <p>Published time labels have no timezone offset. Points are measured rates.</p></figcaption>
+      <p>The source timestamps have no time zone offset. Each point shows a recorded dose rate.</p></figcaption>
   </figure>
 }

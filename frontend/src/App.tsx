@@ -158,7 +158,7 @@ function Home({ mission, showIntro, onIntroStarted }: { mission: Mission; showIn
           <dl className="detail-list"><div><dt>Available equipment</dt><dd>{mission.profile?.equipment.join(', ') || 'No equipment listed'}</dd></div></dl>
           <a className="text-link" href="/mission">View mission profile <ArrowRight size={14} /></a>
         </section>
-        <a className="surface guide-shortcut" href="/guides"><BookOpen size={20} /><span><strong>Medical guides</strong><small>Procedures and emergency contacts</small></span><ArrowRight size={17} /></a>
+        <a className="surface guide-shortcut" href="/guides"><BookOpen size={20} /><span><strong>Emergency guides</strong><small>Training guides and onboard protocol references</small></span><ArrowRight size={17} /></a>
       </div>
       </div>
     </>
@@ -343,7 +343,7 @@ export function App() {
           </a>
       </aside>
       <main ref={main} id="main-content" className={`main-content ${home ? 'home' : 'inner-page'}`} tabIndex={-1} inert={isMobile && mobileMenuOpen}>
-        {!mission.reachable && (mission.connection !== 'checking' || !mission.online) && <p className="connection-notice" role="status"><WifiOff size={15} />{mission.online ? 'Couldn’t refresh your records.' : 'You’re offline. Showing saved records.'}{mission.online && <button className="text-link" onClick={() => void mission.refreshWorkspace()}>Retry</button>}</p>}
+        {!mission.reachable && (mission.connection !== 'checking' || !mission.online) && <p className="connection-notice" role="status"><WifiOff size={15} />{mission.online ? 'Couldn’t refresh your records.' : 'You’re offline. Any records saved on this device are still available.'}{mission.online && <button className="text-link" onClick={() => void mission.refreshWorkspace()}>Retry</button>}</p>}
         <div className="route-content">
           {home && <Home mission={mission} showIntro={!anatomyIntroSeen.current} onIntroStarted={() => { anatomyIntroSeen.current = true }} />}
           {page === 'assessment' && (
@@ -351,7 +351,7 @@ export function App() {
               <header className="page-title">
                 <h1>Self-assessment</h1>
                 <p className="crew-context">{mission.selected?.display_name}</p>
-                <p>Use sample records in this public workspace. <a className="text-link" href="/mission/observations">Open mission observations</a></p>
+                <p>Use sample data in this public demo. <a className="text-link" href="/mission/observations">Open mission observations</a></p>
               </header>
               {!mission.selected && (mission.connection !== 'checking' || !mission.online) && <p className="notice" role="status">
                 <Radio size={18} aria-hidden="true" /> A crew member must be loaded before saving.

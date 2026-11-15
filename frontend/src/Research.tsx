@@ -107,10 +107,10 @@ function OtherRecords() {
         {!record ? <p role="status">{error || 'Loading research record…'}</p> : <>
           <h2>{record.record}</h2>
           <p>Published hospital observations from PhysioNet.</p>
-          <p>{record.samples.length} observations · Median heart rate {record.medians.heart_rate} bpm · Median blood oxygen {record.medians.spo2}%</p>
+          <p>{record.samples.length} observations · Median heart rate {record.medians.heart_rate} bpm · Median blood oxygen saturation {record.medians.spo2}%</p>
           <div className="research-table"><table>
             <caption>First 12 observations</caption>
-            <thead><tr><th scope="col">Second</th><th scope="col">Heart rate</th><th scope="col">Pulse</th><th scope="col">Breathing</th><th scope="col">SpO₂</th></tr></thead>
+            <thead><tr><th scope="col">Elapsed time (s)</th><th scope="col">Heart rate</th><th scope="col">Pulse rate</th><th scope="col">Respiratory rate</th><th scope="col">SpO₂</th></tr></thead>
             <tbody>{record.samples.slice(0, 12).map(sample => <tr key={sample.seconds}>
               <td>{sample.seconds}</td><td>{sample.heart_rate ?? '—'}</td><td>{sample.pulse_rate ?? '—'}</td>
               <td>{sample.respiratory_rate ?? '—'}</td><td>{sample.spo2 ?? '—'}</td>

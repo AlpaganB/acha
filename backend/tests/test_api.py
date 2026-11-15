@@ -271,6 +271,9 @@ def test_database_health_and_demo_data(client, test_database_url):
         base = f"crew-members/{member['id']}"
         assert client.get(f"{base}/measurements").json() == []
         assert client.get(f"{base}/assessments").json() == []
+    profiles = {row["name"]: row for row in client.get("mission-profiles").json()}
+    assert profiles["Orbital Station"]["guidance_protocol_ids"] == ["demo-chest", "demo-breathing", "demo-review"]
+    assert profiles["Lunar Habitat"]["guidance_protocol_ids"] == ["demo-unresponsive", "demo-urgent", "demo-review"]
 
 
 def test_assessment_uses_earlier_readings_for_the_same_crew(client, crew):

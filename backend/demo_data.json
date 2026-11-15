@@ -9,6 +9,7 @@
         "Thermometer",
         "Blood pressure cuff"
       ],
+      "guidance_protocol_ids": ["demo-chest", "demo-breathing", "demo-review"],
       "measurement_schedules": [
         {
           "kind": "heart_rate",
@@ -30,6 +31,7 @@
       "constraints": [
         "Simulated intermittent connectivity"
       ],
+      "guidance_protocol_ids": ["demo-unresponsive", "demo-urgent", "demo-review"],
       "measurement_schedules": [
         {
           "kind": "body_temperature",

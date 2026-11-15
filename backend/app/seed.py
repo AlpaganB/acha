@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from uuid import UUID
 
+from sqlalchemy import case
 from sqlalchemy.dialects.postgresql import insert
 
 from .database import make_engine
@@ -32,10 +33,18 @@ def seed_demo_data(value: str | None = None) -> None:
                     {key: val for key, val in item.items() if key != "id"}
                 )
                 statement = insert(MissionProfile).values(id=UUID(item["id"]), **row.model_dump(mode="json"))
+                legacy_name = MissionProfile.name.in_(("Orbital Station Demo", "Lunar Habitat Demo"))
+                missing_guides = MissionProfile.guidance_protocol_ids == []
                 connection.execute(statement.on_conflict_do_update(
                     index_elements=[MissionProfile.id],
-                    set_={"name": statement.excluded.name},
-                    where=MissionProfile.name.in_(("Orbital Station Demo", "Lunar Habitat Demo")),
+                    set_={
+                        "name": case((legacy_name, statement.excluded.name), else_=MissionProfile.name),
+                        "guidance_protocol_ids": case(
+                            (missing_guides, statement.excluded.guidance_protocol_ids),
+                            else_=MissionProfile.guidance_protocol_ids,
+                        ),
+                    },
+                    where=legacy_name | missing_guides,
                 ))
 
             for item in data["crew_members"]:

@@ -7,7 +7,7 @@ export function EmergencyNotice() {
     <aside className="emergency-notice" aria-label="Emergency contact">
       <ShieldAlert size={22} aria-hidden="true" />
       <div>
-        <strong>For an immediate emergency</strong>
+        <strong>In an emergency</strong>
         <p>Use your mission’s emergency communication channel and follow the approved onboard procedure.</p>
       </div>
     </aside>
@@ -24,24 +24,24 @@ export function Guidance({ profile, guideId }: { profile?: MissionProfile; guide
         <a className="back-link" href="/guides"><ArrowLeft size={16} aria-hidden="true" /> All emergency guides</a>
         <header className="page-title">
           <h1>{guide?.title ?? humanize(guideId)}</h1>
-          <p>{guide?.description ?? 'Referenced by the mission or assessment service.'}</p>
+          <p>{guide?.description ?? 'This protocol is linked to a mission profile or an assessment.'}</p>
         </header>
         {guide?.id !== 'demo-review' && <EmergencyNotice />}
         <section className="surface guide-detail">
           <div>
             {guide && guide.handoff.length > 0 && <>
               <h2>What to report</h2>
-              <p>Relay the details you already have when you contact the crew.</p>
+              <p>When you contact the crew, share the details you already have.</p>
               <ul className="handoff-list">{guide.handoff.map(item => <li key={item}>{item}</li>)}</ul>
             </>}
             {guide ? <>
-              <h2>Demonstration guidance</h2>
-              <p>Training content. For an actual incident, follow the approved onboard procedure.</p>
+              <h2>Training guide</h2>
+              <p>For an actual incident, follow the mission’s approved onboard procedure.</p>
               <ol className="handoff-list">{guide.steps.map(step => <li key={step}>{step}</li>)}</ol>
-              <a className="text-link" href={guide.source} target="_blank" rel="noreferrer">Read source online</a>
+              <a className="text-link" href={guide.source} target="_blank" rel="noreferrer">Read the source online</a>
             </> : <>
               <h2>Onboard procedure</h2>
-              <p>Use the mission’s approved onboard medical reference. Procedure text for this topic is unavailable in ACHA.</p>
+              <p>ACHA has the protocol reference only. Use the mission’s approved onboard medical reference for the full procedure.</p>
             </>}
             <dl className="detail-list">
               <div><dt>Protocol reference</dt><dd>{guide?.demoReference ?? guideId}</dd></div>
