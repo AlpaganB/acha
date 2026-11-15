@@ -22,9 +22,11 @@ METRICS = {"heart_rate": "HR", "pulse_rate": "PULSE", "respiratory_rate": "RESP"
 RR6_SOURCE = "https://osdr.nasa.gov/bio/repo/data/payloads/RR-6"
 RR6_START = "2017-12-15T00:00:00Z"
 RR6_END = "2017-12-16T00:00:00Z"
+RR6_WEEK_END = "2017-12-22T00:00:00Z"
 RR6_DOWNLOAD = "https://visualization.osdr.nasa.gov/eda/api/missions/RR-6/telemetry_data/?" + urlencode(
     {"start": RR6_START, "end": RR6_END, "format": "json"}
 )
+RR6_WEEK_DOWNLOAD = RR6_DOWNLOAD.replace("2017-12-16", "2017-12-22")
 
 
 class IssSample(ApiModel):
@@ -55,24 +57,29 @@ RADLAB_DOWNLOAD = (
     "&timestamp%3E=2022-04-01T23%3A00&timestamp%3C2022-04-02T01%3A05"
     "&absorbed_dose_rate&dose_equivalent_rate&format=csv"
 )
+RADLAB_DAILY_DOWNLOAD = RADLAB_DOWNLOAD.replace("T23%3A00", "T00%3A00").replace("T01%3A05", "T00%3A00")
 
 
 @router.get("/research/nasa-dostel1")
-def dostel_record() -> dict:
+def dostel_record(window: Literal["sample", "day"] = "sample") -> dict:
+    daily = window == "day"
+    download = RADLAB_DAILY_DOWNLOAD if daily else RADLAB_DOWNLOAD
+    since = datetime(2022, 4, 1, 0 if daily else 23)
+    until = datetime(2022, 4, 2, 0) if daily else datetime(2022, 4, 2, 1, 5)
     try:
-        with urlopen(RADLAB_DOWNLOAD, timeout=6) as response:
-            data = response.read(32_001)
-        if len(data) > 32_000:
+        with urlopen(download, timeout=6) as response:
+            data = response.read(160_001)
+        if len(data) > 160_000:
             raise ValueError("Unexpected RadLab file size.")
         rows = csv.DictReader(StringIO(data.decode("utf-8"), newline=""))
         if rows.fieldnames != ["timestamp", "instrument_id", "absorbed_dose_rate", "dose_equivalent_rate"]:
             raise ValueError("Unexpected RadLab header.")
-        samples = []
-        seen = set()
+        by_time = {}
+        conflicting = set()
+        duplicates = 0
         for row in rows:
             stamp = datetime.strptime(row["timestamp"], "%Y-%m-%dT%H:%M:%S")
-            if (row["instrument_id"] != "DosTel1" or stamp in seen
-                    or not datetime(2022, 4, 1, 23) <= stamp < datetime(2022, 4, 2, 1, 5)):
+            if row["instrument_id"] != "DosTel1" or not since <= stamp < until:
                 raise ValueError("Unexpected RadLab instrument or timestamp.")
             sample = {"timestamp": row["timestamp"]}
             for key in ("absorbed_dose_rate", "dose_equivalent_rate"):
@@ -80,27 +87,37 @@ def dostel_record() -> dict:
                 if value is not None and (not isfinite(value) or value < 0):
                     raise ValueError("Invalid RadLab rate.")
                 sample[key] = value
-            samples.append(sample)
-            seen.add(stamp)
-        if not samples:
+            previous = by_time.get(stamp)
+            if previous is None:
+                by_time[stamp] = sample
+            elif previous != sample:
+                conflicting.add(stamp)
+            else:
+                duplicates += 1
+        samples = [item if stamp not in conflicting else {
+            **item, "absorbed_dose_rate": None, "dose_equivalent_rate": None,
+        } for stamp, item in sorted(by_time.items())]
+        if not samples or len(conflicting) == len(samples):
             raise ValueError("Empty RadLab response.")
         return {"dataset_id": "DosTel1", "provenance": "SPACE_AGENCY_REAL", "source": RADLAB_SOURCE,
-                "download": RADLAB_DOWNLOAD, "samples": sorted(samples, key=lambda sample: sample["timestamp"])}
+                "download": download, "samples": samples, "identical_duplicates": duplicates,
+                "conflicting_timestamps": len(conflicting)}
     except (OSError, ValueError, TypeError, csv.Error) as exc:
         raise HTTPException(502, "RadLab DosTel1 observations are currently unavailable.") from exc
 
 
 @router.get("/research/nasa-rr6-iss")
-def iss_rr6_record() -> IssResearchRecord:
+def iss_rr6_record(window: Literal["day", "week"] = "day") -> IssResearchRecord:
     # Use a fixed window and host. Keep ground observations and milestones out of the ISS series.
+    download, end = (RR6_WEEK_DOWNLOAD, RR6_WEEK_END) if window == "week" else (RR6_DOWNLOAD, RR6_END)
     try:
-        with urlopen(RR6_DOWNLOAD, timeout=4) as response:
-            data = response.read(200_001)
-        if len(data) > 200_000:
+        with urlopen(download, timeout=6 if window == "week" else 4) as response:
+            data = response.read(600_001)
+        if len(data) > 600_000:
             raise ValueError("NASA response exceeded the expected size.")
         samples = ISS_SAMPLES.validate_json(data, strict=True, extra="ignore")
         samples.sort(key=lambda sample: sample.recorded_at)
-        record = IssResearchRecord(since=RR6_START, until=RR6_END, samples=samples)
+        record = IssResearchRecord(download=download, since=RR6_START, until=end, samples=samples)
         times = [sample.recorded_at for sample in samples]
         if not times or len(times) != len(set(times)) or times[0] < record.since or times[-1] > record.until:
             raise ValueError("NASA response had an unexpected observation timeline.")

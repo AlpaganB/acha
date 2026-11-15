@@ -1,5 +1,9 @@
-import { useEffect, useState } from 'react'
-import { api, type DoseResearchRecord, type IssResearchRecord, type ResearchRecord } from './api'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { api, type IssResearchRecord, type ResearchRecord } from './api'
+import { RadiationResearch } from './RadiationResearch'
+import { WellbeingResearch } from './WellbeingResearch'
+
+const SleepResearch = lazy(() => import('./SleepResearch').then(module => ({ default: module.SleepResearch })))
 
 const utc = new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'UTC' })
 const issMetrics = [
@@ -10,14 +14,18 @@ const issMetrics = [
 
 function IssResearch() {
   const [record, setRecord] = useState<IssResearchRecord>()
+  const [window, setWindow] = useState<'day' | 'week'>('week')
+  const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const perPage = 25
 
   async function fetchRecord() {
     setLoading(true)
     setError('')
     try {
-      setRecord(await api.issResearchRecord())
+      setRecord(await api.issResearchRecord(window))
+      setPage(0)
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'The NASA record could not be loaded.')
     } finally {
@@ -27,8 +35,11 @@ function IssResearch() {
 
   return (
     <section className="surface form-panel research-section" aria-labelledby="iss-research" aria-busy={loading}>
-      <h2 id="iss-research">ISS cabin environment</h2>
-      <p>NASA OSDR · Rodent Research 6 · historical cabin telemetry from 15–16 December 2017 (UTC).</p>
+      <div className="section-heading monitoring-heading"><h2 id="iss-research">ISS cabin environment</h2>
+        <label>Archive window <select value={window} disabled={loading} onChange={event => {
+          setWindow(event.target.value as 'day' | 'week'); setRecord(undefined); setError(''); setPage(0)
+        }}><option value="week">15–22 December 2017 (UTC)</option><option value="day">15–16 December 2017 (UTC)</option></select></label></div>
+      <p>NASA OSDR · Rodent Research 6 · historical cabin telemetry.</p>
       <div className="form-actions">
         <button className="button secondary" disabled={loading} onClick={() => void fetchRecord()}>
           {record ? 'Refresh from NASA' : 'Fetch from NASA'}
@@ -46,68 +57,28 @@ function IssResearch() {
             : 'No observations'}</dd></div>
         })}</dl>
         <details className="research-observations">
-          <summary>First 12 observations</summary>
+          <summary>Browse {record.samples.length} observations</summary>
           <div className="research-table" tabIndex={0} role="region" aria-label="ISS cabin observations"><table>
             <thead><tr><th scope="col">Recorded (UTC)</th>{issMetrics.map(metric =>
               <th key={metric.key} scope="col">{metric.label} ({metric.unit})</th>)}</tr></thead>
-            <tbody>{record.samples.slice(0, 12).map(sample => <tr key={sample.recorded_at}>
+            <tbody>{record.samples.slice(page * perPage, (page + 1) * perPage).map(sample => <tr key={sample.recorded_at}>
               <th scope="row"><time dateTime={sample.recorded_at}>{utc.format(new Date(sample.recorded_at))}</time></th>
               {issMetrics.map(metric => <td key={metric.key}>{sample[metric.key] ?? '—'}</td>)}
             </tr>)}</tbody>
           </table></div>
+          <div className="form-actions">
+            <button className="button secondary" disabled={!page} onClick={() => setPage(value => value - 1)}>Previous page</button>
+            <span role="status">Page {page + 1} of {Math.ceil(record.samples.length / perPage)}</span>
+            <button className="button secondary" disabled={(page + 1) * perPage >= record.samples.length}
+              onClick={() => setPage(value => value + 1)}>Next page</button>
+          </div>
         </details>
       </>}
     </section>
   )
 }
 
-function RadiationResearch() {
-  const [record, setRecord] = useState<DoseResearchRecord>()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-
-  async function fetchRecord() {
-    setLoading(true)
-    setError('')
-    try {
-      setRecord(await api.doseResearchRecord())
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'RadLab could not be reached.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return <section className="surface form-panel research-section" aria-labelledby="radiation-research" aria-busy={loading}>
-    <h2 id="radiation-research">ISS radiation measurements</h2>
-    <p>NASA OSDR RadLab · DORELI DosTel1 instrument in the Columbus module · 1–2 April 2022.</p>
-    <div className="form-actions">
-      <button className="button secondary" disabled={loading} onClick={() => void fetchRecord()}>
-        {record ? 'Refresh from RadLab' : 'Fetch from RadLab'}
-      </button>
-      <a className="text-link" href={record?.source ?? 'https://visualization.osdr.nasa.gov/radlab/gui/knowledgebase/dostel1'}>Instrument metadata</a>
-      {record && <a className="text-link" href={record.download}>Source CSV</a>}
-    </div>
-    <p className="form-feedback" role="status">{error || (loading ? 'Fetching RadLab observations…' : record
-      ? `${record.samples.length} instrument timestamps · Dose equivalent rate available at ${record.samples.filter(sample =>
-        sample.dose_equivalent_rate !== null).length} timestamps.` : '')}</p>
-    {record && <details className="research-observations">
-      <summary>First 12 observations</summary>
-      <div className="research-table" tabIndex={0} role="region" aria-label="Radiation observations"><table>
-        <caption>Source timestamps as published. The CSV supplies no timezone offset.</caption>
-        <thead><tr><th scope="col">Source timestamp</th><th scope="col">Absorbed dose rate (µGy/h)</th>
-          <th scope="col">Dose equivalent rate (µSv/h)</th></tr></thead>
-        <tbody>{record.samples.slice(0, 12).map(sample => <tr key={sample.timestamp}>
-          <th scope="row"><time dateTime={sample.timestamp}>{sample.timestamp.replace('T', ' ')}</time></th>
-          <td>{sample.absorbed_dose_rate?.toFixed(3) ?? '—'}</td><td>{sample.dose_equivalent_rate?.toFixed(3) ?? '—'}</td>
-        </tr>)}</tbody>
-      </table></div>
-      <p className="muted">These readings describe a fixed instrument. A personal dose requires individual dosimetry.</p>
-    </details>}
-  </section>
-}
-
-export function Research() {
+function OtherRecords() {
   const [record, setRecord] = useState<ResearchRecord>()
   const [error, setError] = useState('')
   const [refreshing, setRefreshing] = useState(false)
@@ -132,7 +103,6 @@ export function Research() {
 
   return (
     <>
-      <header className="page-title"><h1>Research data</h1></header>
       <section className="surface form-panel" aria-label="PhysioNet BIDMC" aria-busy={!record && !error}>
         {!record ? <p role="status">{error || 'Loading research record…'}</p> : <>
           <h2>{record.record}</h2>
@@ -155,7 +125,21 @@ export function Research() {
         </>}
       </section>
       <IssResearch />
-      <RadiationResearch />
     </>
   )
+}
+
+export function Research({ view }: { view: string }) {
+  return <>
+    <header className="page-title"><h1>Research data</h1></header>
+    <nav className="monitoring-tabs" aria-label="Research datasets">
+      <a className="button secondary" aria-current={!['sleep', 'radiation', 'wellbeing'].includes(view) ? 'page' : undefined}
+        href="/research">Vitals and cabin</a>
+      <a className="button secondary" aria-current={view === 'sleep' ? 'page' : undefined} href="/research?view=sleep">Sleep</a>
+      <a className="button secondary" aria-current={view === 'radiation' ? 'page' : undefined} href="/research?view=radiation">Radiation</a>
+      <a className="button secondary" aria-current={view === 'wellbeing' ? 'page' : undefined} href="/research?view=wellbeing">Well-being</a>
+    </nav>
+    {view === 'sleep' ? <Suspense fallback={<p className="notice" role="status">Loading scored sleep research…</p>}>
+      <SleepResearch /></Suspense> : view === 'radiation' ? <RadiationResearch /> : view === 'wellbeing' ? <WellbeingResearch /> : <OtherRecords />}
+  </>
 }

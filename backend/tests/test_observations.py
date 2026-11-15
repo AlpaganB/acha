@@ -110,6 +110,17 @@ def test_medication_event_is_restricted_and_keeps_event_metadata(restricted):
     assert all(record["id"] != item["id"] for record in operational.json())
 
 
+def test_individual_dosimeter_has_crew_scope_and_preserves_quantity(restricted):
+    item = observation(parameter="personal_dose_equivalent_rate", value=2.25, crew_code="crew-a",
+                       quality="verified", device="test-dosimeter")
+    assert restricted.post(MISSION, headers=OPERATIONS, json=item).status_code == 403
+    assert restricted.post(MISSION, headers=MEDICAL, json={**item, "crew_code": None}).status_code == 422
+    assert restricted.post(MISSION, headers=MEDICAL, json={**item, "device": None}).status_code == 422
+    result = restricted.post(MISSION, headers=MEDICAL, json=item)
+    assert result.status_code == 201
+    assert result.json()["scope"] == "crew" and result.json()["unit"] == "µSv/h"
+
+
 def test_invalid_and_duplicate_credential_configuration_fails_startup(monkeypatch, test_database_url):
     entry = {"sha256": "a" * 64, "role": "operations", "missions": ["training"]}
     monkeypatch.setenv("ACHA_OBSERVATION_ACCESS", json.dumps({"a": entry, "b": entry}))

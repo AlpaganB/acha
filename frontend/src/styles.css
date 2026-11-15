@@ -411,6 +411,36 @@ select, textarea {
 .observation-comparison { margin-bottom: 12px; }
 .observation-comparison p + p { margin-top: 4px; }
 .research-table .observation-event { min-width: min(230px, 55vw); white-space: pre-wrap; overflow-wrap: anywhere; }
+.monitoring-section { margin-bottom: var(--section-gap); }
+.monitoring-grid, .monitoring-metrics {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 215px), 1fr)); gap: 12px;
+}
+.monitoring-shortcut { display: flex; align-items: center; gap: 12px; padding: 15px; }
+.monitoring-shortcut:hover { background: var(--raised); }
+.monitoring-shortcut > svg:first-child { color: var(--teal); }
+.monitoring-shortcut > svg:last-child { margin-left: auto; color: var(--accent); }
+.monitoring-shortcut strong, .monitoring-shortcut small { display: block; }
+.monitoring-shortcut small, .monitoring-metrics small, .monitoring-figure figcaption { color: var(--muted); font-size: 12px; }
+.monitoring-shortcut small { margin-top: 4px; }
+.monitoring-heading label { display: grid; gap: 4px; font-size: 13px; }
+.monitoring-section h2, .monitoring-heading h2 { min-width: 0; }
+.monitoring-metrics { margin: 18px 0; }
+.monitoring-metrics > div { border: 1px solid var(--line); background: var(--chrome); border-radius: var(--radius-control); padding: 12px; }
+.monitoring-metrics dt { color: var(--muted); font-size: 12px; }
+.monitoring-metrics dd { margin: 5px 0; font-weight: 620; font-size: 21px; font-variant-numeric: tabular-nums; }
+.monitoring-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.monitoring-tabs [aria-current] { background: var(--accent-light); border-color: var(--accent); }
+.monitoring-figure { margin: 18px 0; }
+.monitoring-figure svg { width: 100%; min-height: 100px; }
+.monitoring-figure .pressure-time-axis { flex-wrap: wrap; gap: 4px 12px; }
+.monitoring-plot-base { fill: var(--chrome); }
+.sleep-phase { fill: var(--sleep-color, var(--accent)); }
+.sleep-phase-W { --sleep-color: var(--warning); }
+.sleep-phase-2, .sleep-phase-3, .sleep-phase-4 { --sleep-color: var(--teal); }
+.sleep-phase-R { --sleep-color: var(--success); }
+.sleep-phase-M, .sleep-phase-unknown { --sleep-color: var(--muted); }
+.sleep-key { display: inline-block; margin-right: 7px; border-radius: 2px; width: 9px; height: 9px; background: var(--sleep-color, var(--accent)); }
+.monitoring-figure figcaption p { margin-top: 4px; }
 
 @media (max-width: 860px) {
   .header-inner {
@@ -429,6 +459,7 @@ select, textarea {
 
 @media (max-width: 520px) {
   .pressure-heading { align-items: stretch; flex-direction: column; }
+  .monitoring-heading { align-items: stretch; flex-direction: column; }
   .pressure-transition .research-table :is(th, td) { padding-inline: 4px; white-space: normal; }
   .main-nav { flex-wrap: wrap; justify-content: flex-start; column-gap: 14px; row-gap: 0; }
   .main-nav a { font-size: 13px; }

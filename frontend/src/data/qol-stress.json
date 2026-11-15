@@ -1,0 +1,30 @@
+{
+  "pss": {
+    "count": 66,
+    "low": 4,
+    "median": 24.0,
+    "high": 45
+  },
+  "relaxation": {
+    "count": 66,
+    "low": 23,
+    "median": 33.0,
+    "high": 56
+  },
+  "task": {
+    "count": 66,
+    "low": 24,
+    "median": 36.5,
+    "high": 58
+  },
+  "pairedChange": {
+    "count": 66,
+    "low": -17,
+    "median": 3.0,
+    "high": 18
+  },
+  "sources": {
+    "data/pss_14.csv": "1b66de218a7d948959daa6356e3417ce1124adfb2c736cce950c5ed0bf40034e",
+    "data/stai.csv": "384e0acfcaa850203888bd27125ceb021834adea9bcd61cf796f5319f16a17c1"
+  }
+}

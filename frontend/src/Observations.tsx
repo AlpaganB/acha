@@ -4,6 +4,7 @@ import {
   type ObservationInput, type ParameterDefinition,
 } from './api'
 import { ObservationTrends, phases, printable, utcTime } from './ObservationTrends'
+import { RestrictedHealthReview } from './HealthMonitoring'
 import { trainingParameters, trainingRecords } from './trainingObservations'
 
 const ranges = [
@@ -178,6 +179,7 @@ function LoadedContext({ access, token, definitions, context }: {
       ? 'Showing up to 200 observations per record type. Select a narrower period for a more focused view.'
       : !records.length ? 'No observations in this location and time window.' : '')}</p>
     {!loading && !error && <>
+      <RestrictedHealthReview records={records} />
       <ObservationTrends records={records} definitions={definitions} />
       <ObservationHistory records={records} definitions={definitions} />
     </>}
@@ -250,8 +252,8 @@ function SecureLog() {
   </section>
 }
 
-export function Observations() {
-  const [mode, setMode] = useState('training')
+export function Observations({ restricted = false }: { restricted?: boolean }) {
+  const [mode, setMode] = useState(restricted ? 'secure' : 'training')
   return <>
     <header className="page-title"><h1>Mission observations</h1>
       <p>{mode === 'training' ? 'Synthetic crew and habitat observations for offline training.' : 'Access-controlled mission records.'}</p>

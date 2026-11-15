@@ -91,3 +91,36 @@ def test_dostel_preserves_different_radiation_quantities(client, monkeypatch, in
         assert result["provenance"] == "SPACE_AGENCY_REAL"
         assert result["samples"] == [{"timestamp": "2022-04-01T23:00:00", "absorbed_dose_rate": 9.815504,
                                       "dose_equivalent_rate": None}]
+
+
+def test_dostel_day_keeps_duplicates_and_conflicts_visible(client, monkeypatch):
+    body = (b"timestamp,instrument_id,absorbed_dose_rate,dose_equivalent_rate\n"
+            b"2022-04-01T00:00:00,DosTel1,4,\n2022-04-01T00:00:00,DosTel1,4,\n"
+            b"2022-04-01T00:04:00,DosTel1,6,2\n2022-04-01T00:04:00,DosTel1,8,3\n")
+
+    def download(url, timeout):
+        assert url == research.RADLAB_DAILY_DOWNLOAD
+        return BytesIO(body)
+
+    monkeypatch.setattr(research, "urlopen", download)
+    response = client.get("research/nasa-dostel1?window=day")
+    assert response.status_code == 200
+    result = response.json()
+    assert result["identical_duplicates"] == 1 and result["conflicting_timestamps"] == 1
+    assert len(result["samples"]) == 2
+    assert result["samples"][1]["absorbed_dose_rate"] is None
+    assert result["samples"][1]["dose_equivalent_rate"] is None
+
+
+def test_rr6_week_validates_later_samples_against_week_window(client, monkeypatch):
+    data = [{"time": "2017-12-21T00:00:00Z", "temperature_iss": 23, "humidity_iss": 45, "co2_iss": 2000}]
+
+    def download(url, timeout):
+        assert url == research.RR6_WEEK_DOWNLOAD
+        return BytesIO(json.dumps(data).encode())
+
+    monkeypatch.setattr(research, "urlopen", download)
+    response = client.get("research/nasa-rr6-iss?window=week")
+    assert response.status_code == 200
+    assert response.json()["until"] == "2017-12-22T00:00:00Z"
+    assert response.json()["samples"][0]["recorded_at"] == data[0]["time"]

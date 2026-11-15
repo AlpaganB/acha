@@ -7,6 +7,7 @@ SLEEP = "https://humanresearchroadmap.nasa.gov/Risks/risk.aspx?i=100"
 COGNITION = "https://ntrs.nasa.gov/citations/20240012108"
 EVIDENCE = "https://humanresearchroadmap.nasa.gov/evidence/"
 RADIATION = "https://visualization.osdr.nasa.gov/radlab/gui/data-api/"
+PERSONAL_DOSIMETRY = "https://standards.nasa.gov/standard/NASA/NASA-STD-3001_VOL_1"
 
 
 @dataclass(frozen=True)
@@ -52,6 +53,8 @@ PARAMETERS = {
     "life_support_event": event("Life support observation", "Atmosphere and operations", operations=True),
     "absorbed_dose_rate": environment("Instrument absorbed dose rate", "µGy/h", source=RADIATION, priority="P1"),
     "dose_equivalent_rate": environment("Instrument dose equivalent rate", "µSv/h", source=RADIATION, priority="P1"),
+    "personal_dose_equivalent_rate": Parameter("Individual dosimeter reported equivalent rate", "Radiation", "µSv/h",
+                                               "instrument_transcribed", "device sample", "P1", PERSONAL_DOSIMETRY),
     "heart_rate": Parameter("Heart rate", "Cardiorespiratory", "bpm", "instrument_transcribed", "spot", "P0", CREW_HEALTH),
     "spo2": Parameter("Blood oxygen saturation", "Cardiorespiratory", "%", "instrument_transcribed", "spot", "P0",
                       CREW_HEALTH, 0, 100),
@@ -63,7 +66,7 @@ PARAMETERS = {
                               "protocol session", "P2", CREW_HEALTH),
     "core_temperature": Parameter("Core temperature", "Thermal", "°C", "instrument_transcribed", "spot", "P1", CREW_HEALTH, -273.15),
     "skin_temperature": Parameter("Skin temperature", "Thermal", "°C", "instrument_transcribed", "spot", "P1", CREW_HEALTH, -273.15),
-    "sleep_minutes": Parameter("Reported sleep duration", "Sleep", "min", "self_report", "daily", "P1", SLEEP, 0, 1440),
+    "sleep_minutes": Parameter("Reported sleep in the previous 24 hours", "Sleep", "min", "self_report", "daily", "P1", SLEEP, 0, 1440),
     "sleep_latency_minutes": Parameter("Reported sleep onset latency", "Sleep", "min", "self_report", "daily", "P1", SLEEP, 0, 1440),
     "sleep_interruptions": Parameter("Reported sleep interruptions", "Sleep", "count", "self_report", "daily", "P1", SLEEP),
     "reaction_time": Parameter("Median reaction time", "Cognition", "ms", "protocol_transcribed", "protocol session", "P1", COGNITION),

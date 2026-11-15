@@ -6,6 +6,7 @@ import {
 import { AssessmentForm } from './AssessmentForm'
 import { AssessmentHistory, AssessmentResult, Records } from './AssessmentResults'
 import { Guidance } from './Guidance'
+import { HealthMonitoring, MonitoringLinks } from './HealthMonitoring'
 import { Measurements } from './Measurements'
 import { AnatomyDashboard } from './AnatomyDashboard'
 import { Observations } from './Observations'
@@ -134,6 +135,7 @@ function Home({ mission, showIntro, onIntroStarted }: { mission: Mission; showIn
           <a className="button primary" href="/measurements"><Plus size={17} /> Record measurement</a>
         </div>
       </header>
+      <MonitoringLinks />
       <AnatomyDashboard crewId={mission.selected?.id} measurements={mission.measurements} assessments={mission.history}
         reachable={mission.reachable} showIntro={showIntro} onIntroStarted={onIntroStarted} />
       <LatestMeasurements measurements={mission.measurements} pending={mission.measurementsPending}
@@ -181,6 +183,7 @@ function MissionProfiles({ mission }: { mission: Mission }) {
     <>
       <header className="page-title split"><h1>Mission profile</h1>
         <div className="overview-actions">
+          <a className="button secondary" href="/mission/monitoring">Health monitoring</a>
           <a className="button secondary" href="/mission/pressure">Review cabin pressure</a>
           <a className="button secondary" href="/mission/observations">Mission observations <ArrowRight size={17} aria-hidden="true" /></a>
         </div>
@@ -280,8 +283,11 @@ export function App() {
   const [pathname, query] = route.split('?')
   const [, page, rawId] = pathname.split('/')
   const id = rawId && /^[a-zA-Z0-9_-]{1,64}$/.test(rawId) ? rawId : undefined
-  const initialMeasurementId = new URLSearchParams(query).get('measurement') ?? undefined
-  const requestedKind = new URLSearchParams(query).get('kind') ?? ''
+  const params = new URLSearchParams(query)
+  const initialMeasurementId = params.get('measurement') ?? undefined
+  const requestedKind = params.get('kind') ?? ''
+  const restrictedLog = params.get('source') === 'restricted'
+  const researchView = params.get('view') ?? ''
   const initialKind = Object.hasOwn(measurementLabels, requestedKind) ? requestedKind : ''
   const home = !['assessment', 'assessments', 'measurements', 'guides', 'mission', 'research', 'crew'].includes(page)
 
@@ -367,12 +373,13 @@ export function App() {
             : <AssessmentHistory {...assessmentRecords} />)}
           {page === 'guides' && <Guidance profile={mission.profile} guideId={id} />}
           {page === 'mission' && id === 'pressure' && <Pressure />}
-          {page === 'mission' && id === 'observations' && <Observations />}
-          {page === 'mission' && id !== 'pressure' && id !== 'observations' && <MissionProfiles mission={mission} />}
+          {page === 'mission' && id === 'monitoring' && <HealthMonitoring crew={mission.selected} reachable={mission.reachable} />}
+          {page === 'mission' && id === 'observations' && <Observations key={String(restrictedLog)} restricted={restrictedLog} />}
+          {page === 'mission' && !['pressure', 'observations', 'monitoring'].includes(id ?? '') && <MissionProfiles mission={mission} />}
           {page === 'crew' && <Crew members={mission.crew} profiles={mission.profiles} selectedId={mission.selected?.id} pending={mission.connection === 'checking'} onSelect={mission.selectCrew} />}
           {page === 'measurements' && <Measurements key={`${mission.selected?.id}:${initialKind}`} initialKind={initialKind} crew={mission.selected} measurements={mission.measurements}
             pending={mission.measurementsPending} reachable={mission.reachable} onSave={mission.recordMeasurement} onReconnect={mission.refreshWorkspace} />}
-          {page === 'research' && <Research />}
+          {page === 'research' && <Research view={researchView} />}
         </div>
       </main>
     </div>

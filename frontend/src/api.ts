@@ -49,6 +49,8 @@ export interface DoseResearchRecord {
   dataset_id: 'DosTel1'
   source: string
   download: string
+  identical_duplicates?: number
+  conflicting_timestamps?: number
   samples: { timestamp: string; absorbed_dose_rate: number | null; dose_equivalent_rate: number | null }[]
 }
 
@@ -157,8 +159,8 @@ export const api = {
   recordMeasurement: (crewId: string, input: MeasurementInput) =>
     request<Measurement>(`/crew-members/${crewId}/measurements`, { method: 'POST', body: JSON.stringify(input) }),
   researchRecord: (refresh = false) => request<ResearchRecord>(`/research/bidmc-01${refresh ? '?refresh=true' : ''}`),
-  issResearchRecord: () => request<IssResearchRecord>('/research/nasa-rr6-iss'),
-  doseResearchRecord: () => request<DoseResearchRecord>('/research/nasa-dostel1'),
+  issResearchRecord: (window: 'day' | 'week' = 'day') => request<IssResearchRecord>(`/research/nasa-rr6-iss?window=${window}`),
+  doseResearchRecord: (window: 'sample' | 'day' = 'sample') => request<DoseResearchRecord>(`/research/nasa-dostel1?window=${window}`),
   assessments: (crewId: string) =>
     request<Assessment[]>(`/crew-members/${crewId}/assessments?limit=20`),
   assessment: (crewId: string, id: string) =>
