@@ -157,7 +157,7 @@ export function MeasurementHistory({ crewId, cached, reachable, revision, onReco
             <thead><tr><th scope="col">Indicator</th><th scope="col">Reading</th><th scope="col">Recorded at</th><th scope="col"><span className="sr-only">Actions</span></th></tr></thead>
             <tbody>{visible.map(reading => <tr key={reading.id}>
               <th scope="row">{measurementLabels[reading.kind]}</th>
-              <td className="table-reading">{reading.value}{reading.diastolic !== null && `/${reading.diastolic}`} <small>{reading.unit}</small></td>
+              <td className="table-reading"><a href={`/measurements/${reading.id}`} aria-label={`View ${measurementLabels[reading.kind]} details`}>{reading.value}{reading.diastolic !== null && `/${reading.diastolic}`} <small>{reading.unit}</small></a></td>
               <td><time dateTime={reading.recorded_at}>{formatDate(reading.recorded_at)}</time></td>
               <td><a className="text-link" href={`/assessment?measurement=${reading.id}`} aria-label={`Assess ${measurementLabels[reading.kind]} from ${formatDate(reading.recorded_at)}`}>Assess</a></td>
             </tr>)}</tbody>

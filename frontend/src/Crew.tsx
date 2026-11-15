@@ -1,8 +1,10 @@
 import { Check, UserRound } from 'lucide-react'
+import { CreateCrew, CrewDetails } from './WorkspaceTools'
 import type { CrewMember, MissionProfile } from './api'
 
-export function Crew({ members, profiles, selectedId, pending, onSelect }: {
+export function Crew({ members, profiles, selectedId, pending, reachable, onCreated, onSelect }: {
   members: CrewMember[]; profiles: MissionProfile[]; selectedId?: string; pending: boolean
+  reachable: boolean; onCreated: () => Promise<void>
   onSelect: (id: string) => void
 }) {
   return <>
@@ -16,5 +18,7 @@ export function Crew({ members, profiles, selectedId, pending, onSelect }: {
       {!members.length && <p className="empty-state">{pending ? 'Loading crew…' : 'Crew members are unavailable.'}</p>}
     </section>
     {selectedId && <div className="form-actions"><a className="button primary" href="/">Open dashboard</a><a className="text-link" href="/mission">Mission profile</a></div>}
+    {selectedId && <CrewDetails key={selectedId} id={selectedId} profiles={profiles} reachable={reachable} />}
+    <CreateCrew profiles={profiles} reachable={reachable} onCreated={onCreated} />
   </>
 }

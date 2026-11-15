@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ArrowLeft, ArrowRight, ChevronRight, Plus, RefreshCw, TriangleAlert, Clock3, Info, CircleCheck } from 'lucide-react'
+import { ExternalAssessmentResult } from './WorkspaceTools'
 import { api, type Assessment, type EngineFinding } from './api'
 import { formatDate, humanize, symptomLabel } from './content'
 import { navigate } from './navigation'
@@ -174,6 +175,7 @@ export function AssessmentResult({
             {queuedLocally && !record && <p>{syncIssue
               ? 'The mission service rejected this assessment. A copy is still saved on this device.'
               : 'Saved on this device. This assessment will be submitted when the mission service is reachable again.'}</p>}
+            {waiting && reachable && crewId && !queuedLocally && <ExternalAssessmentResult crewId={crewId} id={id} onRecord={onRecord} />}
             {waiting && <p>This assessment is awaiting a result. Select Run assessment to evaluate it.</p>}
             {record?.status === 'demo_reviewed' && <p className="notice">This example uses synthetic data for demonstration.</p>}
             {record?.engine_result && <p className="notice">This result uses training rules. Follow mission-approved procedures for medical decisions.</p>}

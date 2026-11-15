@@ -1,0 +1,206 @@
+/* Shared station theme, including the independently deployed restricted workspace. */
+:root {
+  color: #EDF0FF;
+  background: #080D24;
+  --text: #EDF0FF;
+  --muted: #AFB5D1;
+  --line: #A78BFA30;
+  --paper: #11132D;
+  --raised: #252044;
+  --chrome: #0B1027;
+  --accent: #A78BFA;
+  --accent-light: #A78BFA18;
+  --teal: #67E8F9;
+  --info-bg: #171C3C;
+  --success: #7DDDB5;
+  --success-bg: #112D2B;
+  --warning: #F2C578;
+  --warning-bg: #32281D;
+  --danger: #FFA0AD;
+  --error-bg: #341E31;
+  --glass: linear-gradient(135deg, #24104485, #10162DEB 58%, #13233A99);
+  --panel-shadow: 0 12px 36px #03061738, inset 0 1px 0 #D5CCFF08;
+}
+
+body {
+  isolation: isolate;
+  background: #080D24;
+  background-image: radial-gradient(ellipse at 90% 5%, #241044 0, transparent 58%),
+    radial-gradient(ellipse at 10% 80%, #15244080 0, transparent 55%);
+}
+
+/* Two fixed, non-interactive layers: sparse static stars and transform-only nebulae. */
+body::before, body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+body::before {
+  opacity: .45;
+  background-image: radial-gradient(circle, #DBE5FF99 .65px, transparent 1px),
+    radial-gradient(circle, #A78BFA80 .8px, transparent 1.2px),
+    radial-gradient(circle, #67E8F966 .6px, transparent 1px);
+  background-size: 173px 191px, 307px 281px, 419px 373px;
+  background-position: 23px 41px, 89px 137px, 179px 17px;
+}
+body::after {
+  inset: -10%;
+  opacity: .65;
+  background: radial-gradient(ellipse at 75% 25%, #7C3AED20, transparent 45%),
+    radial-gradient(ellipse at 20% 65%, #22D3EE0D, transparent 42%);
+}
+
+h1, h2, h3 { font-weight: 600; }
+.page-title h1, .overview-heading h1 { letter-spacing: -.035em; }
+.eyebrow { color: var(--teal); letter-spacing: .19em; }
+:is(.vital-value, .anatomy-reading strong, .trend-stats dd, .table-reading,
+  .monitoring-metrics dd, .crew-indicator-value, .crew-exposure-metrics dd,
+  .pressure-summary dd, input[type='number'], time) {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.app-sidebar {
+  background: linear-gradient(170deg, #241044F5, #0C112BF5 44%, #101B32FA);
+  border-right-color: #A78BFA33;
+  box-shadow: 8px 0 32px #03061730;
+  scrollbar-width: thin;
+  scrollbar-color: #A78BFA44 transparent;
+}
+.brand .brand-symbol {
+  color: var(--teal);
+  background: linear-gradient(140deg, #A78BFA24, #67E8F910);
+  border-color: #A78BFA55;
+  box-shadow: inset 0 0 16px #A78BFA0C;
+}
+.brand .brand-name { font-weight: 650; letter-spacing: .09em; }
+.app-sidebar .main-nav a { min-height: 48px; border-radius: 12px; }
+.app-sidebar .main-nav a:hover { background: #A78BFA0E; color: var(--text); }
+.app-sidebar .main-nav a[aria-current] {
+  color: #DDD2FF;
+  background: linear-gradient(100deg, #A78BFA26, #67E8F908);
+  border-color: #A78BFA4D;
+  box-shadow: inset 3px 0 0 var(--accent), 0 4px 18px #03061720;
+}
+.main-nav a[aria-current] .nav-icon { color: var(--teal); }
+.sidebar-user-avatar, .crew-avatar {
+  background: linear-gradient(135deg, #A78BFA2E, #67E8F912);
+  border: 1px solid #A78BFA38;
+}
+.sidebar-user { margin-top: auto; }
+
+:is(.surface, .vital-grid > div, .workspace-tools) {
+  position: relative;
+  background: var(--glass);
+  border-color: var(--line);
+  box-shadow: var(--panel-shadow);
+}
+.vital-grid > div { border-color: var(--line) !important; }
+.vital-grid.surface { background: none; box-shadow: none; }
+.surface { backdrop-filter: blur(12px); }
+.workspace-tools { border: 1px solid var(--line); border-radius: var(--radius-panel); }
+.vital-grid > div:nth-child(even) .vital-icon { background: #67E8F912; color: var(--teal); }
+.vital-icon { background: #A78BFA16; border: 1px solid #A78BFA20; }
+.section-heading h2 > svg { color: var(--accent); }
+.guide-shortcut:hover { background: linear-gradient(135deg, #30204BCE, #13223CEB); }
+.profile-card.current, .crew-member-card[aria-pressed='true'] { border-color: var(--teal); }
+
+/* A small light follows the perimeter only while a card is being inspected. */
+@supports (offset-path: inset(0 round 16px)) {
+  :is(.surface, .vital-grid > div, .anatomy-card)::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 28px;
+    height: 3px;
+    border-radius: 50%;
+    background: linear-gradient(90deg, transparent, #67E8F9, #C4B5FD, transparent);
+    box-shadow: 0 0 8px #67E8F94D;
+    offset-path: inset(0 round var(--radius-panel));
+    opacity: 0;
+    pointer-events: none;
+  }
+  .vital-grid.surface::after { content: none; }
+}
+
+.button, .anatomy-pause { border-radius: 10px; }
+.primary, .overview-actions .primary {
+  background: linear-gradient(115deg, #A78BFA, #B8A4FC 65%, #99DAEF);
+  color: #100E28;
+  border-color: #C4B5FD;
+  box-shadow: 0 4px 18px #A78BFA16;
+}
+.primary:hover:not(:disabled), .overview-actions .primary:hover:not(:disabled) {
+  background: linear-gradient(115deg, #BAA5FF, #CBC0FF 65%, #B1ECF8);
+}
+.primary:active:not(:disabled), .overview-actions .primary:active { background: #A78BFA; }
+.secondary, .overview-actions .secondary { background: #12152B88; border-color: #A78BFA38; }
+.secondary:hover:not(:disabled) { background: #A78BFA16; border-color: #A78BFA80; }
+.button.danger { background: var(--error-bg); border-color: var(--danger); color: var(--danger); }
+.text-link { color: #C4B5FD; }
+.text-link:hover { color: var(--teal); }
+.skip-link { z-index: 60; }
+.menu-toggle:hover, .sidebar-close:hover { background: #A78BFA18; }
+
+:is(input:not([type='checkbox']):not([type='radio']), select, textarea) {
+  background-color: var(--chrome);
+  color: var(--text);
+  border-color: var(--line);
+  accent-color: var(--accent);
+}
+:is(input, select, textarea):hover { border-color: #A78BFA70; }
+:is(input, select, textarea):focus-visible { border-color: var(--teal); outline-color: var(--teal); }
+input[type='checkbox'], input[type='radio'] { accent-color: var(--accent); }
+select option { background: #10142D; color: var(--text); }
+.history-filters { background: #0C102780; }
+.indicator-tabs button[aria-pressed='true'] {
+  background: linear-gradient(110deg, #A78BFA24, #67E8F90A);
+  color: #D6C8FF;
+  border-color: #A78BFA55;
+}
+.trend-stats, .measurement-table :is(th, td) { border-color: var(--line); }
+.chart-grid { stroke: #A78BFA29; }
+.chart-area { fill: #A78BFA0B; }
+.chart-crosshair { stroke: var(--muted); }
+.measurement-table thead th { background: #0C1027; }
+.measurement-table tbody tr:hover { background: #A78BFA0A; }
+.site-footer { border-color: var(--line); color: var(--muted); }
+
+/* Semantic health states retain amber/red/green rather than decorative neon. */
+.surface.crew-indicator[data-deviation], .anatomy-card.anatomy-attention { border-color: #F2C57880; }
+.record-status.urgent, .notice.error, .emergency-notice { color: var(--danger); background: var(--error-bg); }
+.record-status.pending { color: var(--warning); background: var(--warning-bg); }
+.record-status.completed { color: var(--success); background: var(--success-bg); }
+
+@media (prefers-reduced-motion: no-preference) {
+  body::after { animation: station-nebula 48s ease-in-out infinite alternate; }
+  :is(.surface, .vital-grid > div, .button, .main-nav a, .crew-member-card) {
+    transition: transform 240ms ease, border-color 240ms ease, box-shadow 240ms ease, background-color 180ms ease;
+  }
+  @media (hover: hover) {
+    :is(.surface, .vital-grid > div):hover {
+      transform: translateY(-2px);
+      box-shadow: var(--panel-shadow), 0 0 18px #A78BFA0E;
+    }
+    /* Preserve the positioning of sticky forms and nested data containers. */
+    .surface:has(.surface):hover, .vital-grid.surface:hover { transform: none; }
+    :is(.surface, .vital-grid > div, .anatomy-card):hover::after {
+      opacity: .75;
+      animation: station-perimeter 10s linear infinite;
+    }
+    .button:not(:disabled):hover { transform: translateY(-1px); }
+  }
+}
+@keyframes station-nebula { to { transform: translate3d(3%, -2%, 0) scale(1.04); opacity: .9; } }
+@keyframes station-perimeter { to { offset-distance: 100%; } }
+
+@media (max-width: 760px) {
+  .app-sidebar { background: linear-gradient(165deg, #241044, #0C112B 55%, #101B32); }
+  .mobile-menu-trigger { background: #12152BF5; border-color: #A78BFA50; }
+  .surface { backdrop-filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

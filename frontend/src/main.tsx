@@ -2,6 +2,7 @@ import { StrictMode, type ComponentType } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles.css'
 import './theme.css'
+import './station.css'
 
 function render(App: ComponentType) {
   createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>)

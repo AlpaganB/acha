@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { observationsApi } from './api'
+import { DeviceIngest } from './DeviceIngest'
 import { RestrictedLog } from './RestrictedLog'
 
 export function RestrictedApp() {
@@ -23,7 +24,7 @@ export function RestrictedApp() {
       <h1>Crew monitoring</h1>
       <p>Restricted ACHA workspace</p>
     </header>
-    {state === 'ready' && <RestrictedLog healthReview />}
+    {state === 'ready' && <><RestrictedLog healthReview /><details className="workspace-tools"><summary>Device integration</summary><DeviceIngest /></details></>}
     {state === 'checking' && <p className="notice" role="status">Connecting to the restricted mission service…</p>}
     {(state === 'unavailable' || state === 'wrong-workspace') && <p className="notice" role="alert">
       {state === 'unavailable' ? 'The restricted mission service is unavailable.' : 'Connect this workspace to a restricted mission API.'}

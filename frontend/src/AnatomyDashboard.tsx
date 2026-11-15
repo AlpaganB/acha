@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Activity, ChevronRight, HeartPulse, Moon, Pause, Play, Thermometer, TriangleAlert, Waves } from 'lucide-react'
 import { api, type Assessment, type Measurement } from './api'
 import { formatDate, measurementLabels, symptomLabel } from './content'
@@ -8,10 +8,8 @@ import brain from './assets/skull-brain.png.png'
 import digestive from './assets/digestive-urinary.png.png'
 import './anatomy.css'
 
-const HOLD_MS = 4000
-const FADE_MS = 1000
-const STEP_MS = HOLD_MS + FADE_MS
-const INTRO_MS = 1500
+import { advanceStage, initialStage, phaseDuration, selectStage } from './anatomySequence'
+
 const views = [
   { title: 'Whole-body overview', image: skeleton, alt: 'Full human skeleton anatomical illustration' },
   { title: 'Cardiovascular health', image: heart, alt: 'Torso showing the heart and rib cage' },
@@ -74,17 +72,20 @@ export function AnatomyDashboard({ crewId, measurements, assessments, reachable,
   crewId?: string; measurements: Measurement[]; assessments: Assessment[]; reachable: boolean
   showIntro: boolean; onIntroStarted: () => void
 }) {
-  const [stage, setStage] = useState(() => ({ index: showIntro ? 0 : 1, sequence: 0, previous: null as number | null }))
+  const [stage, setStage] = useState(() => initialStage(showIntro && !matchMedia('(prefers-reduced-motion: reduce)').matches))
+  const [reducedMotion, setReducedMotion] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches)
   const [paused, setPaused] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches)
   const [hidden, setHidden] = useState(document.hidden)
   const [ready, setReady] = useState(false)
   const [retry, setRetry] = useState(0)
   const [failedImages, setFailedImages] = useState<string[]>([])
   const [history, setHistory] = useState<{ crewId: string; records: Measurement[]; failedKinds: string[] }>()
-  const timing = useRef({ remaining: showIntro ? INTRO_MS : STEP_MS, started: 0 })
+  const timing = useRef({ remaining: phaseDuration[stage.phase], started: 0 })
   const introStarted = useRef(false)
   const revision = measurements.map(record => record.id).join(',')
-  const stopped = paused || hidden || !ready
+  const stopped = hidden || !ready || (paused && !stage.manual)
+  const travelling = stage.phase !== 'hold'
+  const cardsVisible = stage.phase === 'hold' || stage.phase === 'intro'
 
   useEffect(() => {
     if (ready && !introStarted.current && showIntro) { introStarted.current = true; onIntroStarted() }
@@ -106,17 +107,23 @@ export function AnatomyDashboard({ crewId, measurements, assessments, reachable,
     return () => document.removeEventListener('visibilitychange', update)
   }, [])
 
-  useEffect(() => { timing.current.remaining = stage.index === 0 ? INTRO_MS : STEP_MS }, [stage.index, stage.sequence])
+  useEffect(() => {
+    const media = matchMedia('(prefers-reduced-motion: reduce)')
+    const update = () => { setReducedMotion(media.matches); if (media.matches) { setPaused(true); setStage(current => selectStage(current, current.target, true)) } }
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+  useEffect(() => { timing.current.remaining = phaseDuration[stage.phase] }, [stage.phase, stage.sequence])
   useEffect(() => {
     if (stopped) return
     const timerState = timing.current
     timerState.started = performance.now()
-    const timer = window.setTimeout(() => setStage(current => ({ index: current.index === 3 ? 1 : current.index + 1, sequence: current.sequence + 1, previous: current.index })), timerState.remaining)
+    const timer = window.setTimeout(() => setStage(current => reducedMotion ? selectStage(current, current.index === 3 ? 1 : Math.max(1, current.index + 1), true) : advanceStage(current)), timerState.remaining)
     return () => {
       window.clearTimeout(timer)
       timerState.remaining = Math.max(0, timerState.remaining - (performance.now() - timerState.started))
     }
-  }, [stage.sequence, stopped])
+  }, [stage.sequence, stopped, reducedMotion])
 
   useEffect(() => {
     if (!crewId || !reachable) return
@@ -139,21 +146,21 @@ export function AnatomyDashboard({ crewId, measurements, assessments, reachable,
   const flagged = assessment && ['urgent', 'review', 'needs_attention'].includes(assessment.status)
   const cardReading = (kind: string, label?: string) => <Reading kind={kind} label={label} reading={latest(kind)} />
 
-  return <section className={`anatomy-dashboard ${ready ? 'is-ready' : ''} ${stopped ? 'is-paused' : ''}`} aria-label="Body systems overview">
+  return <section className={`anatomy-dashboard ${ready ? 'is-ready' : ''} ${stopped ? 'is-paused' : ''} ${travelling ? 'is-travelling' : ''}`} aria-label="Body systems overview">
     <header className="anatomy-toolbar">
       <h2>Health systems</h2>
       <button className="anatomy-pause" onClick={() => setPaused(value => !value)} aria-label={paused ? 'Play body system rotation' : 'Pause body system rotation'}>{paused ? <Play size={15} /> : <Pause size={15} />}<span>{paused ? 'Play' : 'Pause'}</span></button>
     </header>
     <nav className="anatomy-navigation" aria-label="Body system views">
-      {views.slice(1).map((view, index) => <button key={view.title} aria-current={stage.index === index + 1 ? 'step' : undefined}
-        onClick={() => setStage(current => ({ index: index + 1, sequence: current.sequence + 1, previous: current.index === index + 1 ? null : current.index }))}>
+      {views.slice(1).map((view, index) => <button key={view.title} aria-current={(stage.phase === 'intro' || stage.phase === 'wide' || stage.phase === 'out' ? stage.target : stage.index) === index + 1 ? 'step' : undefined}
+        onClick={() => setStage(current => selectStage(current, index + 1, reducedMotion))}>
         <span className="anatomy-tab-number">0{index + 1}</span><span>{view.title}</span>
-        <span className="anatomy-progress-rail" aria-hidden="true"><SystemSignal index={index + 1} /><span className="anatomy-progress">{stage.index === index + 1 && <span key={stage.sequence} />}</span></span>
+        <span className="anatomy-progress-rail" aria-hidden="true"><SystemSignal index={index + 1} /><span className="anatomy-progress">{stage.phase === 'hold' && stage.index === index + 1 && <span key={stage.sequence} />}</span></span>
       </button>)}
     </nav>
     {reachable && failedVisibleKinds.length > 0 && <p className="anatomy-history-error" role="status">Couldn’t load {failedVisibleKinds.map(kind => measurementLabels[kind].toLowerCase()).join(', ')} history. <button className="text-link" onClick={() => setRetry(value => value + 1)}>Retry</button></p>}
-    <div className={`anatomy-stage ${stage.index === 0 ? 'intro-stage' : ''}`}>
-      {views.map((view, index) => <div key={view.title} className={`anatomy-panel ${stage.index === index ? 'is-active' : stage.previous === index ? 'is-exiting' : ''}`} aria-hidden={stage.index !== index} inert={stage.index !== index}>
+    <div className="anatomy-stage" data-phase={stage.phase} data-system={stage.index}>
+      {views.map((view, index) => <div key={view.title} className={`anatomy-panel ${cardsVisible && stage.index === index ? 'is-active' : ''}`} aria-hidden={!cardsVisible || stage.index !== index} inert={!cardsVisible || stage.index !== index}>
         <div className="anatomy-column anatomy-column-left">
           {index === 0 && <>
             <article className="anatomy-card"><h3><Thermometer size={15} /> Body temperature</h3>{cardReading('body_temperature')}</article>
@@ -172,16 +179,7 @@ export function AnatomyDashboard({ crewId, measurements, assessments, reachable,
           </>}
           {index === 3 && <SymptomCard title="Digestive check-in" assessment={assessment} codes={['nausea', 'abdominal_discomfort', 'constipation', 'diarrhea']} />}
         </div>
-        <figure className={`anatomy-visual anatomy-visual-${index}`}>
-          <div className="anatomy-orbit" aria-hidden="true" />
-          <div className="anatomy-image-window"><div className="anatomy-image-track">
-            {failedImages.includes(view.image) ? <p className="anatomy-empty">Illustration unavailable</p> : <img src={view.image} alt={view.alt} decoding="async" draggable={false} />}
-          </div></div>
-          {index === 0 && <div className="anatomy-intro-loader" aria-label="Opening overview">
-            <span className="anatomy-loader-ring" aria-hidden="true" /><span className="anatomy-loader-inner" aria-hidden="true" />
-            <Activity size={19} aria-hidden="true" />
-          </div>}
-        </figure>
+        <div className="anatomy-visual-space" aria-hidden="true" />
         <div className="anatomy-column anatomy-column-right">
           {index === 0 && <SymptomCard title="Reported concerns" assessment={assessment} />}
           {index === 1 && <>
@@ -197,6 +195,33 @@ export function AnatomyDashboard({ crewId, measurements, assessments, reachable,
           </>}
         </div>
       </div>)}
+      <div className="anatomy-camera-grid">
+        <figure className={`anatomy-visual anatomy-camera phase-${stage.phase}`} style={{
+          '--focus-y': ['50%', '25%', '6%', '41%'][stage.index],
+          '--focus-shift': ['0%', '25%', '44%', '9%'][stage.index],
+          '--focus-scale': [1, 2.8, 5, 2.7][stage.index],
+          '--phase-duration': `${phaseDuration[stage.phase]}ms`,
+        } as CSSProperties}>
+          <div className="anatomy-orbit orbit-outer" aria-hidden="true" />
+          <div className="anatomy-orbit orbit-inner" aria-hidden="true" />
+          <div className="anatomy-image-window">
+            {failedImages.includes(skeleton) ? <p className="anatomy-empty">Illustration unavailable</p> :
+              <img key={`skeleton-${stage.sequence}`} className="anatomy-skeleton" src={skeleton}
+                alt={stage.phase === 'intro' || stage.phase === 'wide' || stage.phase === 'out' ? views[0].alt : ''}
+                aria-hidden={stage.phase === 'hold' || stage.phase === 'in'} draggable={false} />}
+            {views.slice(1).map((view, index) => <div key={`${index}-${stage.sequence}`}
+              className={`anatomy-region anatomy-region-${index + 1} ${stage.index === index + 1 ? 'is-current' : ''}`}
+              aria-hidden={stage.index !== index + 1 || !['hold', 'in'].includes(stage.phase)}>
+              {failedImages.includes(view.image) ? <p className="anatomy-empty">Illustration unavailable</p> :
+                <img src={view.image} alt={view.alt} draggable={false} />}
+            </div>)}
+          </div>
+          {stage.phase === 'intro' && <div className="anatomy-intro-loader" aria-label="Opening overview">
+            <span className="anatomy-loader-ring" aria-hidden="true" /><span className="anatomy-loader-inner" aria-hidden="true" />
+            <Activity size={19} aria-hidden="true" />
+          </div>}
+        </figure>
+      </div>
     </div>
   </section>
 }

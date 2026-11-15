@@ -5,6 +5,7 @@ export interface MissionProfile {
   equipment: string[]
   constraints: string[]
   guidance_protocol_ids: string[]
+  measurement_schedules: { kind: string; interval_minutes: number }[]
 }
 
 export interface CrewMember {
@@ -147,7 +148,26 @@ async function listAll<T>(path: string): Promise<T[]> {
   }
 }
 
+export type MissionProfileInput = Omit<MissionProfile, 'id'>
+export interface AssessmentResultInput { status: string; rationale: string; next_step: string; protocol_id: string | null }
+export interface DeviceSampleInput {
+  sequence: number; recorded_at: string; mission_elapsed_ms: number; clock_error_ms: number; firmware: string
+  quality: 'ok' | 'saturated' | 'detached' | 'artefact'; value: number | null; uncertainty: number | null
+  activity: 'unknown' | 'rest' | 'exercise' | 'task'
+}
+export interface DeviceReceipt { sequence: number; status: string; observation_id: string | null }
+
 export const api = {
+  createCrew: (input: { display_name: string; mission_profile_id: string }) =>
+    request<CrewMember>('/crew-members', { method: 'POST', body: JSON.stringify(input) }),
+  crewMember: (id: string, signal: AbortSignal) => request<CrewMember>(`/crew-members/${id}`, { signal }),
+  createProfile: (input: MissionProfileInput) =>
+    request<MissionProfile>('/mission-profiles', { method: 'POST', body: JSON.stringify(input) }),
+  profile: (id: string, signal: AbortSignal) => request<MissionProfile>(`/mission-profiles/${id}`, { signal }),
+  measurement: (crewId: string, id: string, signal: AbortSignal) =>
+    request<Measurement>(`/crew-members/${crewId}/measurements/${id}`, { signal }),
+  storeAssessmentResult: (crewId: string, id: string, input: AssessmentResultInput) =>
+    request<Assessment>(`/crew-members/${crewId}/assessments/${id}/result`, { method: 'PUT', body: JSON.stringify(input) }),
   crew: () => listAll<CrewMember>('/crew-members'),
   profiles: () => listAll<MissionProfile>('/mission-profiles'),
   monitoring: (crewId: string, query: URLSearchParams, signal: AbortSignal) =>
@@ -439,6 +459,10 @@ export interface RadiationReview {
 }
 
 export const observationsApi = {
+  ingestSample: (key: string, mission: string, channel: string, sample: DeviceSampleInput, signal: AbortSignal) =>
+    request<DeviceReceipt>(`/observations/missions/${encodeURIComponent(mission)}/devices/${encodeURIComponent(channel)}/samples`, {
+      method: 'POST', headers: { Authorization: `Bearer ${key}` }, body: JSON.stringify(sample), signal,
+    }),
   deployment: (signal: AbortSignal) => request<{ status: string; workspace?: string }>('/health', { signal }),
   parameters: () => request<ParameterDefinition[]>('/observations/parameters'),
   access: (token: string) => request<ObservationAccess>('/observations/access', { headers: { Authorization: `Bearer ${token}` } }),
