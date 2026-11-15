@@ -54,6 +54,38 @@ def test_mission_profile_assignment(client, crew):
     assert updated.json() in client.get("crew-members").json()
 
 
+def test_assessment_follow_up_persists_linked_evidence_and_closes_once(client, crew):
+    base = f"crew-members/{crew['id']}"
+    original, first, second = [measurement(recorded_at=f"2026-11-14T10:{minute}:00Z") for minute in ("00", "10", "12")]
+    wrong_kind = measurement(kind="spo2", value=98, recorded_at="2026-11-14T10:15:00Z")
+    for reading in (original, first, second, wrong_kind):
+        assert client.post(f"{base}/measurements", json=reading).status_code == 201
+    check_in = assessment(crew, measurement_ids=[original["id"]])
+    endpoint = f"{base}/assessments/{check_in['id']}/follow-ups"
+    assert client.post(f"{base}/assessments", json=check_in).status_code == 201
+    follow_up = {"id": str(uuid4()), "measurement_id": first["id"], "outcome": "continue_review"}
+    assert client.post(endpoint, json=follow_up).status_code == 409
+    assert client.post(f"{base}/assessments/{check_in['id']}/evaluate").status_code == 200
+    assert client.get(endpoint).json() == []
+    for reading in (original, wrong_kind, {"id": str(uuid4())}):
+        assert client.post(endpoint, json={**follow_up, "measurement_id": reading["id"]}).status_code == 422
+    first_result = client.post(endpoint, json=follow_up)
+    assert first_result.status_code == 201
+    assert first_result.json()["measurement"]["id"] == first["id"]
+    assert client.post(endpoint, json={**follow_up, "id": str(uuid4())}).status_code == 409
+
+    complete = {"id": str(uuid4()), "measurement_id": second["id"], "outcome": "workflow_complete"}
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        responses = list(executor.map(lambda _: client.post(endpoint, json=complete), range(2)))
+    assert sorted(item.status_code for item in responses) == [200, 201]
+    assert client.post(endpoint, json={**complete, "id": str(uuid4())}).status_code == 409
+    assert client.post(endpoint, json={**complete, "outcome": "continue_review"}).status_code == 409
+    history = client.get(endpoint)
+    assert [item["outcome"] for item in history.json()] == ["continue_review", "workflow_complete"]
+    assert history.headers["cache-control"] == "no-store"
+    assert client.get(endpoint.replace(crew["id"], str(uuid4()), 1)).status_code == 404
+
+
 def test_mission_profile_and_crew_validation(client):
     schedule = {"kind": "spo2", "interval_minutes": 60}
     profile = {"name": "Test", "environment": "spacecraft", "measurement_schedules": [schedule, schedule]}

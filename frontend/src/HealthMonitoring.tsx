@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Activity, ArrowRight, Gauge, Moon, Radio } from 'lucide-react'
 import { api, type CrewMember, type Measurement, type MissionObservation, type SleepEpisode, type ParameterDefinition } from './api'
 import { formatDate } from './content'
-import { reviewSleepLogs } from './monitoringAnalysis'
+import { reviewSleepLogs, sleepShortfall } from './monitoringAnalysis'
 import { comparableTo, usableSeries } from './observationAnalysis'
 import { printable, utcTime } from './ObservationTrends'
 
@@ -32,7 +32,9 @@ type SleepReadings = Pick<Measurement, 'kind' | 'recorded_at' | 'value'>[]
 const readingHours = (hours: number) => `${new Intl.NumberFormat('en', { maximumFractionDigits: 2 }).format(hours)} h`
 
 function SleepHistory({ records, days }: { records: SleepReadings; days: number }) {
+  const [target, setTarget] = useState('')
   const report = reviewSleepLogs(records, days)
+  const shortfall = sleepShortfall(report, Number(target))
   const missing = days - report.usable.length - report.ambiguousDays.length
   return <>
     <dl className="monitoring-metrics">
@@ -63,11 +65,19 @@ function SleepHistory({ records, days }: { records: SleepReadings; days: number 
         <td>{item.conflicting ? 'Conflicting reports' : item.hours === null ? 'Missing' : 'Self-reported'}</td>
       </tr>)}</tbody>
     </table></div>
+    <details className="research-observations">
+      <summary>Seven-day sleep shortfall</summary>
+      <p>Enter a daily sleep target from the training scenario or mission plan. The estimate sums time below that target across seven non-overlapping 24-hour reports.</p>
+      <label>Sleep target (hours)<input type="number" min={0.1} max={24} step="any" value={target}
+        onChange={event => setTarget(event.target.value)} /></label>
+      {target && <p role="status">{!(Number(target) > 0 && Number(target) <= 24) ? 'Enter a target greater than 0 and at most 24 hours.'
+        : shortfall === null ? 'Seven complete, non-overlapping daily reports are needed.' : `Estimated shortfall ${readingHours(shortfall)}.`}</p>}
+    </details>
     <p className="muted">Duration alone does not describe sleep quality. A personal median is a descriptive reference.</p>
   </>
 }
 
-export function HealthMonitoring({ crew, reachable }: { crew?: CrewMember; reachable: boolean }) {
+export function HealthMonitoring({ crew, reachable, load }: { crew?: CrewMember; reachable: boolean; load: typeof api.measurements }) {
   const [days, setDays] = useState(14)
   const [state, setState] = useState<{ crewId: string; days: number; records?: Measurement[]; error?: string }>()
   const crewId = crew?.id
@@ -77,11 +87,11 @@ export function HealthMonitoring({ crew, reachable }: { crew?: CrewMember; reach
     const start = new Date()
     start.setUTCHours(0, 0, 0, 0)
     start.setUTCDate(start.getUTCDate() - days + 1)
-    void api.measurements(crewId, { kind: 'sleep_duration', since: start.toISOString(), limit: 200 }).then(records => {
+    void load(crewId, { kind: 'sleep_duration', since: start.toISOString(), limit: 200 }).then(records => {
       if (active) setState({ crewId, days, records })
-    }, () => { if (active) setState({ crewId, days, error: 'The mission API could not load the sleep history.' }) })
+    }, () => { if (active) setState({ crewId, days, error: 'Sleep history could not be loaded.' }) })
     return () => { active = false }
-  }, [crewId, days, reachable])
+  }, [crewId, days, reachable, load])
   const current = state?.crewId === crewId && state?.days === days ? state : undefined
 
   return <>
@@ -112,6 +122,17 @@ export function HealthMonitoring({ crew, reachable }: { crew?: CrewMember; reach
       <p>Review archived radiation dose rates from the ISS or open the restricted log to view personal dosimeter records.</p>
       <div className="form-actions"><a className="button secondary" href={radiationResearch}>Review radiation archive</a>
         <a className="text-link" href={restrictedLog}>Open restricted log</a></div>
+    </section>
+    <section className="surface form-panel observation-stack" aria-labelledby="crew-domains">
+      <h2 id="crew-domains">Restricted crew monitoring</h2>
+      <dl className="detail-list">
+        <div><dt>Cardiovascular and respiratory</dt><dd>Rest and activity context, HRV, pressure, oxygenation, spirometry, ECG and symptoms.</dd></div>
+        <div><dt>Sleep, cognition and well-being</dt><dd>Sleep episodes and schedules, versioned cognitive tasks, and confidential self-reports.</dd></div>
+        <div><dt>Exercise, nutrition and metabolism</dt><dd>Exercise intervals, strength and bone measures, intake, body mass and lab results.</dd></div>
+        <div><dt>Immune, neurological, ocular and gastrointestinal</dt><dd>Symptoms, wounds, relevant assays, vision and balance assessments, and urinary or bowel observations.</dd></div>
+      </dl>
+      <div className="form-actions"><a className="button secondary" href={restrictedLog}>Open restricted log</a>
+        <a className="text-link" href="/research?view=evidence">View NASA evidence</a></div>
     </section>
   </>
 }

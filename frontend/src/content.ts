@@ -33,6 +33,11 @@ export const measurementLabels: Record<string, string> = {
   sleep_duration: 'Sleep duration',
 }
 
+export const measurementUnits: Record<string, string> = {
+  heart_rate: 'bpm', respiratory_rate: 'breaths/min', spo2: '%', blood_pressure: 'mmHg',
+  body_temperature: '°C', sleep_duration: 'h',
+}
+
 interface Guide {
   id: string
   title: string

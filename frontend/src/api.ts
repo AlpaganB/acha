@@ -29,6 +29,25 @@ export interface Measurement {
 
 export type MeasurementInput = Omit<Measurement, 'unit'>
 
+export interface MeasurementQuery {
+  kind?: string
+  since?: string
+  until?: string
+  limit?: number
+  offset?: number
+}
+
+export interface FollowUpInput {
+  id: string
+  measurement_id: string
+  outcome: 'continue_review' | 'workflow_complete'
+}
+
+export interface FollowUpEntry extends FollowUpInput {
+  recorded_at: string
+  measurement: Measurement
+}
+
 export interface ResearchRecord {
   source: string
   record: string
@@ -152,7 +171,7 @@ export const api = {
   profiles: () => listAll<MissionProfile>('/mission-profiles'),
   monitoring: (crewId: string, query: URLSearchParams, signal: AbortSignal) =>
     request<IndicatorReport>(`/crew-members/${crewId}/monitoring?${query}`, { signal }),
-  measurements: (crewId: string, query: { kind?: string; since?: string; until?: string; limit?: number; offset?: number } = {}) => {
+  measurements: (crewId: string, query: MeasurementQuery = {}) => {
     const params = new URLSearchParams({ limit: '12' })
     for (const [key, value] of Object.entries(query)) {
       if (value !== undefined && value !== '') params.set(key, String(value))
@@ -161,6 +180,7 @@ export const api = {
   },
   recordMeasurement: (crewId: string, input: MeasurementInput) =>
     request<Measurement>(`/crew-members/${crewId}/measurements`, { method: 'POST', body: JSON.stringify(input) }),
+  measurement: (crewId: string, id: string) => request<Measurement>(`/crew-members/${crewId}/measurements/${id}`),
   researchRecord: (refresh = false) => request<ResearchRecord>(`/research/bidmc-01${refresh ? '?refresh=true' : ''}`),
   waveforms: (start: number, signal: AbortSignal) =>
     request<WaveformWindow>(`/research/bidmc-01-waveforms?start=${start}`, { signal }, 20_000),
@@ -178,6 +198,12 @@ export const api = {
     request<Assessment>(`/crew-members/${crewId}/assessments?evaluate=true`, {
       method: 'POST',
       body: JSON.stringify(input),
+    }),
+  followUps: (crewId: string, id: string) =>
+    request<FollowUpEntry[]>(`/crew-members/${crewId}/assessments/${id}/follow-ups`),
+  recordFollowUp: (crewId: string, id: string, input: FollowUpInput) =>
+    request<FollowUpEntry>(`/crew-members/${crewId}/assessments/${id}/follow-ups`, {
+      method: 'POST', body: JSON.stringify(input),
     }),
   setProfile: (crewId: string, profileId: string) =>
     request<CrewMember>(`/crew-members/${crewId}/mission-profile`, {

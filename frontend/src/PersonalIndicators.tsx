@@ -71,6 +71,10 @@ export function ReferenceControls({ onApply }: { onApply: (query: string) => voi
         setError('Choose a reference period that ends by the review date.')
         return
       }
+      if (end.getTime() - start.getTime() > 366 * 86_400_000) {
+        setError('Choose a reference period of up to 366 days.')
+        return
+      }
       query.set('reference_start', start.toISOString())
       query.set('reference_end', new Date(Math.min(end.getTime(), Date.now())).toISOString())
     }
@@ -95,25 +99,28 @@ export function ReferenceControls({ onApply }: { onApply: (query: string) => voi
   </form>
 }
 
-export function DemoMonitoring({ crewId, reachable, refreshKey }: { crewId: string; reachable: boolean; refreshKey?: string }) {
+export function DemoMonitoring({ crewId, reachable, refreshKey, load }: {
+  crewId: string; reachable: boolean; refreshKey?: string; load: typeof api.monitoring
+}) {
   const [request, setRequest] = useState({ query: '', revision: 0 })
   const [state, setState] = useState<{ report?: IndicatorReport; error?: string }>()
   useEffect(() => {
     if (!reachable) return
     const controller = new AbortController()
-    void api.monitoring(crewId, new URLSearchParams(request.query), controller.signal).then(report => {
+    void load(crewId, new URLSearchParams(request.query), controller.signal).then(report => {
       if (!controller.signal.aborted) setState({ report })
     }, error => {
       if (!controller.signal.aborted) setState({ error: error instanceof Error ? error.message : 'The reference is unavailable.' })
     })
     return () => controller.abort()
-  }, [crewId, reachable, request, refreshKey])
+  }, [crewId, reachable, request, refreshKey, load])
 
   return <div className="crew-monitoring-stack">
     <ReferenceControls onApply={query => { setState(undefined); setRequest(current => ({ query, revision: current.revision + 1 })) }} />
-    {!reachable ? <p className="notice" role="status">Connect to the local API to review personal indicators.</p>
-      : state?.report ? <IndicatorCards indicators={state.report.indicators} />
+    {!reachable ? <p className="notice" role="status">Connect to the mission service to review personal indicators.</p>
+      : state?.report ? <IndicatorCards indicators={state.report.indicators.filter(row => row.parameter !== 'sleep_duration')} />
         : <p className="notice" role="status">{state?.error ?? 'Loading personal indicators…'}</p>}
-    <p className="muted">The demo compares dates and measurement types from the selected crew member’s recorded history. The observation band describes that history.</p>
+    <p className="muted">Spot-reading comparisons use the selected crew member’s history. Posture, activity, and device context are unavailable in public measurement records.</p>
+    <a className="text-link" href="/mission/monitoring">Review sleep reports and their coverage</a>
   </div>
 }

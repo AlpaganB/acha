@@ -3,6 +3,7 @@ import { api, type IssResearchRecord, type ResearchRecord } from './api'
 import { RadiationResearch } from './RadiationResearch'
 import { WellbeingResearch } from './WellbeingResearch'
 import { AssayResearch, WaveformResearch } from './MeasurementResearch'
+import { Evidence } from './Evidence'
 
 const SleepResearch = lazy(() => import('./SleepResearch').then(module => ({ default: module.SleepResearch })))
 
@@ -51,12 +52,19 @@ function IssResearch() {
       <p className="form-feedback" role="status">{error || (loading ? 'Fetching NASA telemetry…'
         : record ? `${record.samples.length} timestamps · NASA environmental research` : '')}</p>
       {record && <>
+        {record.samples.length > 0 && <p className="muted">First sample {utc.format(new Date(record.samples[0].recorded_at))} UTC · Last sample {utc.format(new Date(record.samples[record.samples.length - 1].recorded_at))} UTC.</p>}
         <dl className="detail-list">{issMetrics.map(metric => {
           const values = record.samples.flatMap(sample => sample[metric.key] ?? [])
+          const intervals = record.samples.slice(1).filter((sample, index) => {
+            const earlier = record.samples[index]
+            return sample[metric.key] !== null && earlier[metric.key] !== null
+              && Date.parse(sample.recorded_at) - Date.parse(earlier.recorded_at) === 300_000
+          }).length
           return <div key={metric.key}><dt>{metric.label}</dt><dd>{values.length
-            ? `${Math.min(...values)}–${Math.max(...values)} ${metric.unit} · ${values.length} available`
+            ? `${Math.min(...values)}–${Math.max(...values)} ${metric.unit} · ${values.length} of ${record.samples.length} values · ${intervals} five-minute intervals with both readings`
             : 'No observations'}</dd></div>
         })}</dl>
+        <p className="muted">Coverage counts measured pairs only. This archive provides habitat context for monitoring design.</p>
         <details className="research-observations">
           <summary>Browse {record.samples.length} observations</summary>
           <div className="research-table" tabIndex={0} role="region" aria-label="ISS cabin observations"><table>
@@ -134,16 +142,17 @@ export function Research({ view }: { view: string }) {
   return <>
     <header className="page-title"><h1>Research data</h1></header>
     <nav className="monitoring-tabs" aria-label="Research datasets">
-      <a className="button secondary" aria-current={!['sleep', 'radiation', 'wellbeing', 'waveforms', 'laboratory'].includes(view) ? 'page' : undefined}
+      <a className="button secondary" aria-current={!['sleep', 'radiation', 'wellbeing', 'waveforms', 'laboratory', 'evidence'].includes(view) ? 'page' : undefined}
         href="/research">Vitals and cabin</a>
       <a className="button secondary" aria-current={view === 'sleep' ? 'page' : undefined} href="/research?view=sleep">Sleep</a>
       <a className="button secondary" aria-current={view === 'radiation' ? 'page' : undefined} href="/research?view=radiation">Radiation</a>
       <a className="button secondary" aria-current={view === 'wellbeing' ? 'page' : undefined} href="/research?view=wellbeing">Well-being</a>
       <a className="button secondary" aria-current={view === 'waveforms' ? 'page' : undefined} href="/research?view=waveforms">Waveforms</a>
       <a className="button secondary" aria-current={view === 'laboratory' ? 'page' : undefined} href="/research?view=laboratory">Laboratory</a>
+      <a className="button secondary" aria-current={view === 'evidence' ? 'page' : undefined} href="/research?view=evidence">NASA evidence</a>
     </nav>
     {view === 'sleep' ? <Suspense fallback={<p className="notice" role="status">Loading scored sleep research…</p>}>
       <SleepResearch /></Suspense> : view === 'radiation' ? <RadiationResearch /> : view === 'wellbeing' ? <WellbeingResearch />
-        : view === 'waveforms' ? <WaveformResearch /> : view === 'laboratory' ? <AssayResearch /> : <OtherRecords />}
+        : view === 'waveforms' ? <WaveformResearch /> : view === 'laboratory' ? <AssayResearch /> : view === 'evidence' ? <Evidence /> : <OtherRecords />}
   </>
 }

@@ -45,6 +45,15 @@ export function reviewSleepLogs(measurements: Pick<Measurement, 'kind' | 'record
     difference: latest && reference !== null ? latest.hours - reference : null }
 }
 
+export function sleepShortfall(report: ReturnType<typeof reviewSleepLogs>, target: number) {
+  if (!Number.isFinite(target) || target <= 0 || target > 24) return null
+  const dates = report.daily.slice(-7)
+  if (dates.length !== 7 || dates.some(item => item.hours === null)) return null
+  const week = report.usable.slice(-7)
+  if (week.some((item, index) => index > 0 && item.earliestTimestamp - week[index - 1].latestTimestamp < 24 * hour)) return null
+  return week.reduce((sum, item) => sum + Math.max(0, target - item.hours), 0)
+}
+
 export type SleepSegment = readonly [startSeconds: number, durationSeconds: number, stage: string]
 
 export function reviewSleepStages(segments: readonly SleepSegment[]) {

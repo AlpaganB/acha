@@ -1,12 +1,8 @@
 import { useRef, useState } from 'react'
-import type { CrewMember, Measurement, MeasurementInput } from './api'
-import { measurementLabels } from './content'
+import type { api, CrewMember, Measurement, MeasurementInput } from './api'
+import { measurementLabels, measurementUnits } from './content'
 import { navigate } from './navigation'
 import { MeasurementHistory } from './MeasurementHistory'
-
-const units: Record<string, string> = {
-  heart_rate: 'bpm', respiratory_rate: 'breaths/min', spo2: '%', blood_pressure: 'mmHg', body_temperature: '°C', sleep_duration: 'h',
-}
 
 const measurementGuides: Record<string, { equipment: string; steps: string[] }> = {
   heart_rate: { equipment: 'Heart rate monitor', steps: ['Select the heart rate reading on your monitor.', 'Record the displayed value in beats per minute (bpm). Do not enter an oxygen percentage here.'] },
@@ -17,11 +13,14 @@ const measurementGuides: Record<string, { equipment: string; steps: string[] }> 
   sleep_duration: { equipment: 'Self-reported sleep log', steps: ['Add up the hours you slept during the previous 24 hours, including naps.', 'Enter hours as a decimal: 7 hours 30 minutes is 7.5. This is a self-reported observation, not a neurological assessment.'] },
 }
 
-export function Measurements({ crew, measurements, pending, reachable, onSave, onReconnect, initialKind = '' }: {
+export function Measurements({ crew, measurements, pending, reachable, local, followUpId, load, onSave, onReconnect, initialKind = '' }: {
   crew?: CrewMember
   measurements: Measurement[]
   pending: boolean
   reachable: boolean
+  local: boolean
+  followUpId?: string
+  load: typeof api.measurements
   onSave: (input: MeasurementInput) => Promise<Measurement>
   onReconnect: () => Promise<void>
   initialKind?: string
@@ -39,6 +38,7 @@ export function Measurements({ crew, measurements, pending, reachable, onSave, o
     const fields = new FormData(form)
     const value = Number(fields.get('value'))
     const diastolic = kind === 'blood_pressure' ? Number(fields.get('diastolic')) : null
+    const capturedAt = String(fields.get('recorded_at') ?? '')
     setSaved(undefined)
     if (!Number.isFinite(value) || (diastolic !== null && !Number.isFinite(diastolic))) {
       setError('Enter a valid numeric reading.')
@@ -49,9 +49,14 @@ export function Measurements({ crew, measurements, pending, reachable, onSave, o
       setError('Enter a diastolic pressure greater than zero and no higher than the systolic pressure.')
       return
     }
-    const signature = JSON.stringify([crew.id, kind, value, diastolic])
+    const timestamp = capturedAt ? Date.parse(capturedAt) : Date.now()
+    if (!Number.isFinite(timestamp) || timestamp > Date.now()) {
+      setError('Choose a recording time that has already passed.')
+      return
+    }
+    const signature = JSON.stringify([crew.id, kind, value, diastolic, capturedAt])
     if (lastAttempt.current?.signature !== signature) {
-      lastAttempt.current = { signature, input: { id: crypto.randomUUID(), kind, value, diastolic, recorded_at: new Date().toISOString() } }
+      lastAttempt.current = { signature, input: { id: crypto.randomUUID(), kind, value, diastolic, recorded_at: new Date(timestamp).toISOString() } }
     }
     submitting.current = true
     setBusy(true)
@@ -76,13 +81,15 @@ export function Measurements({ crew, measurements, pending, reachable, onSave, o
       <div className="measurement-workspace">
       <section className="surface form-panel" aria-labelledby="record-heading">
         <h2 id="record-heading">Record a measurement</h2>
-      <p className="muted">Use sample data in this public demo.</p>
+        <p className="muted">{local ? 'Enter a fictional reading. It will be stored on this device.' : 'Use sample readings. Measurements are saved to the public mission service.'}</p>
+        {followUpId && <p className="notice">Record a repeat reading, then return to the check-in to link it.
+          {local && kind === 'heart_rate' && ' For the training case, you can use 67 bpm.'}</p>}
         <form onSubmit={event => { event.preventDefault(); void save(event.currentTarget) }}>
           <div className="measurement-fields">
             <label>Indicator<select value={kind} disabled={busy} onChange={event => { setKind(event.target.value); setError(''); setSaved(undefined) }}>
               {Object.entries(measurementLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
             </select></label>
-            <label>{kind === 'blood_pressure' ? 'Systolic' : kind === 'sleep_duration' ? 'Sleep in the previous 24 hours' : 'Reading'} ({units[kind]})
+            <label>{kind === 'blood_pressure' ? 'Systolic' : kind === 'sleep_duration' ? 'Sleep in the previous 24 hours' : 'Reading'} ({measurementUnits[kind]})
               <input key={kind} name="value" type="number" inputMode="decimal" required step="any" disabled={busy}
                 min={kind === 'spo2' || kind === 'sleep_duration' || kind === 'respiratory_rate' ? 0 : kind === 'body_temperature' ? -273.15 : 0.000001}
                 max={kind === 'spo2' ? 100 : kind === 'sleep_duration' ? 24 : undefined} />
@@ -90,6 +97,8 @@ export function Measurements({ crew, measurements, pending, reachable, onSave, o
             {kind === 'blood_pressure' && <label>Diastolic (mmHg)
               <input name="diastolic" type="number" inputMode="decimal" required step="any" min="0.000001" disabled={busy} />
             </label>}
+            <label>Recorded at (local time)<input name="recorded_at" type="datetime-local" disabled={busy} />
+              <small className="muted">Leave blank to record now.</small></label>
           </div>
           <details className="measurement-guide" key={`guide-${kind}`}>
             <summary>How to record {measurementLabels[kind].toLowerCase()}</summary>
@@ -99,15 +108,18 @@ export function Measurements({ crew, measurements, pending, reachable, onSave, o
           </details>
           <div className="form-actions">
             <button className="button primary" disabled={!crew || !reachable || busy}>Save measurement</button>
-            {saved && <button type="button" className="button secondary" onClick={() => navigate(`/assessment?measurement=${saved.id}`)}>
-              Assess saved measurement
+            {saved && <button type="button" className="button secondary" onClick={() => navigate(followUpId
+              ? `/assessments/${followUpId}?measurement=${saved.id}` : `/assessment?measurement=${saved.id}`)}>
+              {followUpId ? 'Return to follow-up' : 'Assess saved measurement'}
             </button>}
           </div>
           <p className={`form-feedback ${error ? 'feedback-error' : ''}`} role={error ? 'alert' : 'status'}>{error || (busy ? 'Saving measurement…'
-            : saved ? 'Measurement saved.' : !reachable && !pending ? 'Connect to the mission service to save a measurement.' : '')}</p>
+            : saved ? (local ? 'Synthetic measurement saved on this device.' : 'Measurement saved to the mission service.')
+              : !reachable && !pending ? 'Mission service unavailable. Retry the connection to save here.' : '')}</p>
         </form>
       </section>
-      <MeasurementHistory crewId={crew?.id} cached={measurements} reachable={reachable} revision={historyRevision} onReconnect={onReconnect} initialKind={initialKind} />
+      <MeasurementHistory crewId={crew?.id} cached={measurements} reachable={reachable} revision={historyRevision}
+        load={load} onReconnect={onReconnect} initialKind={initialKind} />
       </div>
     </>
   )
