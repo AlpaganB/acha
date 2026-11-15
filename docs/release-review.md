@@ -2,6 +2,8 @@
 
 Reviewed repository: `AlpaganB/acha`, starting at `ae8039b`. This is an implementation review against the supplied ACHA context, not a clinical validation.
 
+This review describes an earlier candidate. See the [competition release handoff](competition-release.md) for the current branch, implementation, and deployment gaps.
+
 ## Assessment
 
 The repository has a working foundation: React/TypeScript, FastAPI, PostgreSQL migrations, deterministic Python assessment logic, persisted assessment snapshots, personal-history comparisons and follow-up records. The biggest submission risk is an unclear first-use story across three different execution modes. Preserve the architecture and concentrate the remaining time on one convincing crew workflow.

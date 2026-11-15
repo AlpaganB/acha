@@ -2,6 +2,8 @@
 
 ## Current evidence
 
+The 15 November competition candidate adds deterministic replay and inline local follow-up to the React app. Its separate [release verification](../docs/competition-release.md#verification-and-reproduction) covers browser persistence and no mission API writes during training. This report describes the standalone Python engine and its historical reference comparisons.
+
 The implemented score arithmetic and application behavior have been tested. Clinical sensitivity, specificity, false-alert rates and astronaut suitability remain unmeasured. Both the production score implementation and the separately transcribed reference were prepared in this development effort. External clinical review is still required for clinical acceptance.
 
 | Target | Evidence | Outcome |

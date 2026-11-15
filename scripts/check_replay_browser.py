@@ -6,7 +6,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 from uuid import uuid4
 
-from playwright.sync_api import expect, sync_playwright
+from playwright.sync_api import Error, expect, sync_playwright
 
 
 def main():
@@ -128,11 +128,18 @@ def main():
 
         with browser.new_context(service_workers='block') as stalled_connection:
             page = stalled_connection.new_page()
-            page.route('**/api/v1/**', lambda _route: None)
+            pending_routes = []
+            page.route('**/api/v1/**', lambda route: pending_routes.append(route))
             page.goto(base)
             expect(page.get_by_text('Service unavailable', exact=True)).to_be_visible(timeout=13_000)
             expect(page.get_by_role('button', name='Retry', exact=True)).to_be_visible()
             expect(page.get_by_role('button', name='Try a 90-second training scenario')).to_be_visible()
+            for route in pending_routes:
+                try:
+                    route.abort()
+                except Error:
+                    # Chromium can discard an interception when the app aborts its fetch.
+                    pass
             print('Stalled mission requests reached the connection timeout and left training available')
 
         if args.research:
@@ -188,6 +195,7 @@ def check_connected(browser, base, api):
         expect(page.get_by_role('heading', name='Assessment result', exact=False)).to_be_visible()
         persisted = context.request.get(f"{api}/api/v1/crew-members/{crew['id']}/assessments")
         assert persisted.ok and persisted.json()[0]['id'] == submitted.value.json()['id']
+        page.unroute_all(behavior='wait')
         print('Connected browser saved a measurement and a linked assessment to isolated PostgreSQL')
 
 

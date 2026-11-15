@@ -15,16 +15,18 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/screenshots/crew-workspace.png" width="100%" alt="ACHA crew health workspace with the lunar horizon, latest measurements, and assessment history">
+  <img src="docs/assets/screenshots/release/command-center-desktop.png" width="100%" alt="ACHA's synthetic lunar training replay showing the brain view, heart-rate comparison, and mission events">
 </p>
 
 When a crew is far from Earth, its members may need to assess health changes before a flight surgeon can respond. ACHA lets crew members record measurements, compare them with their own recent readings, and review findings and related training guides.
 
 The web app records measurements and submits assessments through an API. The standalone onboard demo runs the assessment engine on a local workstation so the crew can complete a check-in during a simulated loss of contact with Earth.
 
-**Replay a space mission.** Open **Scenarios** in the sidebar and choose a seven-day lunar fatigue check-in, a six-hour orbital cabin pressure excursion, or a 72-hour solar event and relay outage. Use **Play**, **Next**, or the timeline slider to follow the readings, data gaps, crew decisions, and final debrief. The replays use fictional data, work offline after the app shell is cached, and create no mission records.
+**Replay a space mission.** From the local candidate’s Overview, select **Try a 90-second training scenario**. Lunar Fatigue plays inside Body systems. In the same panel, switch to Orbital Pressure or Solar Relay Outage. Use **Pause**, **Next**, **Previous**, or the timeline slider to inspect readings, missing samples, and mission events at a specific checkpoint. The sidebar’s **Scenarios** page also offers full replay links. The fictional replays work offline after the app shell has been cached.
 
-**Practice the check-in.** Choose **Practice the check-in** in the lunar debrief, or select **Open synthetic scenario** from Crew monitoring and then **Open scenario check-in**. Review Emirhan’s recorded change, record a repeat reading, link it in **Follow-up**, and close the check-in. This exercise saves fictional records in this browser. **Return to mission service** switches back to the shared sample workspace.
+**Practice the check-in.** At the Lunar Fatigue review, open the fictional assessment, step to the resting repeat, save and link it, then close the follow-up. These explicit steps save fictional records in this browser. **Exit scenario** restores the Overview’s recorded workspace. The Crew Monitoring page also offers a separate browser-local practice workspace.
+
+The [competition handoff](docs/competition-release.md) describes what was verified locally and which version is currently deployed.
 
 ## How a check-in works
 
@@ -93,3 +95,4 @@ Run PostgreSQL and apply `python -m alembic upgrade head` from `backend/` before
 | [Health monitoring and environmental data](docs/health-monitoring.md) | Repository assessment, source and parameter registries, pressure analysis, and remaining gaps |
 | [Upgrade audit and workflow acceptance](docs/health-monitoring.md#upgrade-audit-and-acceptance) | Data flow, deployment comparison, monitoring scope and reproducible demo checks |
 | [NASA Space Apps submission](demo/SUBMISSION.md) | Challenge mapping, research sources, and demo narration |
+| [Competition handoff](docs/competition-release.md) | Submission checklist, source rights, screenshots, test results, and release manifest |

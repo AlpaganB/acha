@@ -2,6 +2,8 @@
 
 ACHA is an onboard crew-health monitoring and decision-support prototype. The release contains a local browser interface, the Python assessment engine, persistent observation history, cached response guides and a simulated ground handover.
 
+For the judge's quickest demonstration, start with **Try a 90-second training scenario** in the React Overview. It uses synthetic browser playback and an explicit local follow-up. This page describes the separate Python onboard demo. See the [competition handoff](../docs/competition-release.md) for the modes and screenshots.
+
 ## Run the demo
 
 Open a terminal in the extracted folder. The local demo requires Python 3.10 or newer and Pydantic 2. Once this dependency is installed, the complete onboard flow runs without internet access.
@@ -30,7 +32,7 @@ python -m pip install -r requirements-api.txt
 python -m uvicorn fastapi_app:app --host 127.0.0.1 --port 8765
 ```
 
-The local demo uses SQLite. SQLite and the supplied web UI make this package runnable independently of the team repository. That repository returned HTTP 404. The supplied UI uses native HTML and JavaScript. The JSON contract allows the team's React interface to connect to the same assessment service. See README.md for the engine contract.
+The local demo uses SQLite and its own native HTML/JavaScript interface. The team repository is private, so confirm judge access before sharing a repository link. See [the engine contract](README.md) for local request and response fields.
 
 ## Evidence and scope
 
@@ -43,10 +45,10 @@ The local demo uses SQLite. SQLite and the supplied web UI make this package run
 ## Repeatable verification
 
 ```bash
-python -W error::ResourceWarning -m unittest discover -q
+python -m pytest -q
 node test_browser_flow.mjs
 ```
 
-The Python suite verifies the engine and application routes, durable storage, duplicate-safe handover, three observation scenarios and instrument failure. The Node harness executes browser logic against a simulated DOM, storage, network and service worker cache. An actual browser session was attempted, but the test environment blocked its loopback connection. FastAPI/PostgreSQL installation and execution were unavailable because this environment could not reach the package registry and had no PostgreSQL instance.
+The Python suite verifies the engine and application routes, durable storage, duplicate-safe handover, three observation scenarios and instrument failure. The Node harness exercises the standalone browser logic with a simulated DOM, storage, network and service worker. The competition candidate separately verifies the React interface in Edge and the FastAPI service with PostgreSQL 15. See [current verification](../docs/competition-release.md#verification-and-reproduction).
 
 The prior 82,500 source-rule scenario comparisons and 10-record dataset replay remain in VALIDATION.md and the associated evidence files. The assessment engine files are unchanged by this application release. SUBMISSION.md contains the English submission copy and demo script.
