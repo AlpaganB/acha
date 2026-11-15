@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://acha.tr/">Open the Website</a> ·
+  <a href="https://acha.tr/">Open The Website</a> ·
   <a href="https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/">NASA Space Apps 2026</a>
 </p>
 
