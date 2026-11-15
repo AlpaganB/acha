@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   ArrowRight, Check, ChevronDown, Radio, WifiOff, LayoutDashboard, Activity,
-  Orbit, FlaskConical, HeartPulse, Plus, Menu, UserRound, BookOpen, ClipboardList, Droplets, Gauge, Moon, Wind, Clapperboard, Play,
+  Orbit, FlaskConical, HeartPulse, Plus, Menu, UserRound, BookOpen, ClipboardList, Droplets, Gauge, Moon, Wind, Clapperboard,
 } from 'lucide-react'
 import { AssessmentForm } from './AssessmentForm'
 import { AssessmentHistory, AssessmentResult, Records } from './AssessmentResults'
@@ -11,6 +11,7 @@ import { AnatomyDashboard } from './AnatomyDashboard'
 import { Measurements } from './Measurements'
 import { MissionScenarios } from './MissionScenarios'
 import { ScenarioConsole } from './ScenarioConsole'
+import { RecordedWorkflow } from './RecordedWorkflow'
 import { missionElapsed } from './missionScenarioData'
 import { useScenarioPlayer, type ScenarioPlayer } from './useScenarioPlayer'
 import { DemoMonitoring } from './PersonalIndicators'
@@ -20,7 +21,7 @@ import { Crew } from './Crew'
 import { MeasurementDetails, ProfileTools } from './WorkspaceTools'
 import { DeviceIngest } from './DeviceIngest'
 import { Research } from './Research'
-import { environmentLabels, formatDate, measurementLabels } from './content'
+import { environmentLabels, formatDate, humanize, measurementLabels } from './content'
 import { navigate } from './navigation'
 import { useMission } from './useMission'
 import { readLocal, saveLocal } from './storage'
@@ -139,7 +140,7 @@ function LatestMeasurements({ measurements, pending, available, local, profile }
 
   return (
     <section className="telemetry-strip" aria-labelledby="measurements-heading">
-      <div className="section-heading"><h2 id="measurements-heading"><span className="technical-label">01 /</span> Latest telemetry</h2>
+      <div className="section-heading"><h2 id="measurements-heading"><span className="technical-label">01 /</span> Latest recorded measurements</h2>
         <a className="text-link" href="/measurements">View readings</a>
       </div>
       <dl className="vital-grid surface" aria-busy={pending}>
@@ -179,34 +180,22 @@ function LatestMeasurements({ measurements, pending, available, local, profile }
 function Home({ mission, player }: { mission: Mission; player: ScenarioPlayer }) {
   const active = player.state.mode === 'scenario'
   const review = mission.history[0]
-  const reviewRequired = review && ['urgent', 'review', 'needs_attention'].includes(review.status)
   const unavailable = Object.keys(vitalIcons).filter(kind => !mission.measurements.some(record => record.kind === kind)).length
   return (
     <>
       <header className="overview-heading">
         <div>
           <h1>Mission Health Command Center</h1>
-          <p>{active ? player.scenario?.title : 'Recorded observations, body systems and crew follow-up.'}</p>
+          <p>{active ? player.scenario?.title : 'Record crew observations, run an assessment and document follow-up.'}</p>
         </div>
-        {!active && <div className="overview-actions">
-          <a className="button secondary" href="/monitoring">Crew monitoring</a>
-          <a className="button secondary" href="/assessment"><ClipboardList size={16} /> Start assessment</a>
-          <a className="button primary" href="/measurements"><Plus size={17} /> Record measurement</a>
-        </div>}
       </header>
       {active && <ScenarioConsole player={player} embedded />}
       <div hidden={active}>
-      <div className="home-training-entry">
-        <button className="button primary" type="button" onClick={() => player.dispatch({ type: 'open', id: 'lunar-fatigue', play: true })}>
-          <Play size={16} aria-hidden="true" /> Try a 90-second training scenario
-        </button>
-        <p>Fictional crew and observations · Runs in this browser</p>
-      </div>
+      {!active && <RecordedWorkflow mission={mission} onStartTraining={() => player.dispatch({ type: 'open', id: 'lunar-fatigue', play: true })} />}
       <section className="recorded-actions" aria-label="Recorded workspace status">
-        <span><strong>{mission.profile?.name ?? 'Mission unassigned'}</strong> · {mission.selected?.display_name ?? 'Crew unavailable'}</span>
-        <span>{mission.measurementsPending ? 'Checking measurements' : mission.measurements.length ? `${unavailable} of ${Object.keys(vitalIcons).length} observation channels without a reading` : 'No current measurements'}</span>
-        {reviewRequired ? <a className="text-link" href={`/assessments/${review.id}`}>Latest assessment flagged for review</a>
-          : <span>{mission.historyPending ? 'Checking assessments' : review ? 'No active findings in the latest assessment' : mission.historyAvailable ? 'No assessments recorded' : 'Assessment status unavailable'}</span>}
+        {!!mission.measurements.length && <span>{unavailable} of {Object.keys(vitalIcons).length} observation channels without a reading</span>}
+        {review ? <a className="text-link" href={`/assessments/${review.id}`}>Latest assessment · {humanize(review.status)}</a>
+          : <span>{mission.historyPending ? 'Checking assessments' : mission.historyAvailable ? 'No assessments recorded' : 'Assessment status unavailable'}</span>}
         {!!mission.queued.length && <span>{mission.queued.length} waiting to sync</span>}
         {mission.lastSync && <span>Workspace synced <time dateTime={mission.lastSync}>{formatDate(mission.lastSync)}</time></span>}
       </section>

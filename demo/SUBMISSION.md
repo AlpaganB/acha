@@ -29,6 +29,8 @@ ACHA is a crew health research and training prototype for missions with delayed 
 
 ## 90-second judge script
 
+For a live product demonstration, begin in **Crew health workflow** on the connected candidate. Use a disposable crew and sample measurements. Save a reading, open **Assess saved measurement**, submit it, then record and link a repeat in Follow-up. Return to Overview to show the saved result and closure. Use the training replay below to illustrate mission situations that are difficult to reproduce in a live demonstration.
+
 | Time | Show and say |
 | --- | --- |
 | 0–15 s | Open Overview in a fresh browser. Click **Try a 90-second training scenario** and pause at the first checkpoint. “This fictional crew starts with a resting pulse of 66 bpm. That matches the median of five prior training sessions.” |

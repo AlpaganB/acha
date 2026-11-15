@@ -38,6 +38,7 @@ def main():
             page.on('request', lambda request: writes.append(request.url)
                     if '/api/' in request.url and request.method not in ('GET', 'HEAD', 'OPTIONS') else None)
             page.goto(base)
+            expect(page.get_by_role('region', name='Crew health workflow')).to_be_visible()
             start = page.get_by_role('button', name='Try a 90-second training scenario')
             expect(start).to_be_visible()
             start.click()
@@ -225,10 +226,12 @@ def check_connected(browser, base, api):
         crew = member.json()
         page = context.new_page()
         page.route('**/api/v1/**', lambda route: route.fulfill(response=route.fetch(url=route.request.url.replace(base, api, 1))))
-        page.goto(f'{base}/measurements?kind=heart_rate')
-        page.get_by_role('link', name='Change crew member').click()
+        page.goto(f'{base}/crew')
         page.get_by_role('button', name=re.compile(crew['display_name'])).click()
-        page.get_by_role('link', name='Measurements', exact=True).click()
+        page.get_by_role('link', name='Open dashboard').click()
+        workflow = page.get_by_role('region', name='Crew health workflow')
+        expect(workflow.get_by_text('No measurements saved for this crew member.')).to_be_visible()
+        workflow.get_by_role('link', name='Record a measurement').click()
         form = page.get_by_role('region', name='Record a measurement')
         form.get_by_role('combobox', name='Indicator', exact=True).select_option('heart_rate')
         form.get_by_role('spinbutton', name='Reading (bpm)').fill('71')
@@ -237,7 +240,9 @@ def check_connected(browser, base, api):
         assert saved.value.ok, saved.value.text()
         measurement = saved.value.json()
         expect(page.get_by_text('Measurement saved to the mission service.')).to_be_visible()
-        page.get_by_role('button', name='Assess saved measurement').click()
+        page.get_by_role('link', name='Overview', exact=True).click()
+        expect(workflow.get_by_text('Heart rate · 71 bpm')).to_be_visible()
+        workflow.get_by_role('link', name='Assess saved measurement').click()
         expect(page.get_by_role('checkbox', name=re.compile(r'Heart rate.*71 bpm'))).to_be_checked()
         with page.expect_response(lambda response: response.request.method == 'POST' and urlparse(response.url).path.endswith('/assessments')) as submitted:
             page.get_by_role('button', name='Submit assessment').click()
@@ -246,9 +251,23 @@ def check_connected(browser, base, api):
         assert submitted.value.json()['engine_result'] is not None
         expect(page.get_by_role('heading', name='Assessment result', exact=False)).to_be_visible()
         persisted = context.request.get(f"{api}/api/v1/crew-members/{crew['id']}/assessments")
-        assert persisted.ok and persisted.json()[0]['id'] == submitted.value.json()['id']
+        assessment_id = submitted.value.json()['id']
+        assert persisted.ok and persisted.json()[0]['id'] == assessment_id
+        page.get_by_role('link', name='Overview', exact=True).click()
+        expect(workflow.get_by_text('No repeat linked yet')).to_be_visible()
+        workflow.get_by_role('link', name='Review assessment and follow-up').click()
+        follow_up = page.get_by_role('region', name='Follow-up', exact=True)
+        follow_up.get_by_role('link', name='Record repeat measurement').click()
+        form.get_by_role('spinbutton', name='Reading (bpm)').fill('70')
+        form.get_by_role('button', name='Save measurement').click()
+        page.get_by_role('button', name='Return to follow-up').click()
+        follow_up.get_by_role('combobox', name='Disposition').select_option('workflow_complete')
+        follow_up.get_by_role('button', name='Save follow-up').click()
+        expect(follow_up.get_by_text('Workflow complete.', exact=False)).to_be_visible()
+        page.get_by_role('link', name='Overview', exact=True).click()
+        expect(workflow.get_by_text('Follow-up closed', exact=True)).to_be_visible()
         page.unroute_all(behavior='wait')
-        print('Connected browser saved a measurement and a linked assessment to isolated PostgreSQL')
+        print('Connected Overview workflow saved a measurement, evaluated it and closed a repeat follow-up in isolated PostgreSQL')
 
 
 if __name__ == '__main__':

@@ -1,5 +1,19 @@
-.home-training-entry { display: flex; flex-wrap: wrap; align-items: center; gap: .7rem 1rem; margin: 0 0 1rem; }
-.home-training-entry p { margin: 0; color: var(--muted, #a9bacd); font-size: .83rem; }
+.recorded-workflow { margin-bottom: .75rem; overflow: hidden; }
+.recorded-workflow-heading, .recorded-workflow-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .6rem 1rem; padding: .8rem .95rem; }
+.recorded-workflow h2 { font-size: 1.12rem; }
+.recorded-workflow p { margin: 0; color: var(--muted); font-size: .8rem; line-height: 1.4; }
+.recorded-workflow-heading p { margin-top: .2rem; }
+.recorded-workflow-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-block: 1px solid var(--line); }
+.recorded-workflow-steps > div { min-width: 0; display: flex; flex-direction: column; align-items: start; gap: .5rem; padding: .75rem .95rem; }
+.recorded-workflow-steps > div + div { border-left: 1px solid var(--line); }
+.recorded-workflow h3 { display: flex; align-items: center; gap: .38rem; font-size: .92rem; }
+.recorded-workflow h3 svg { color: var(--accent); }
+.recorded-workflow-steps strong { color: var(--text); }
+.recorded-workflow-steps time { display: block; }
+.recorded-workflow-steps .button { margin-top: auto; }
+.recorded-workflow-footer { background: var(--chrome); }
+.recorded-workflow-footer > div { display: grid; gap: .15rem; }
+.recorded-workflow-footer > div p { font-size: .7rem; }
 .recorded-actions, .replay-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1.1rem; padding: .65rem .85rem; border: 1px solid #234252; background: #0b1b26; border-radius: 8px; font-size: .78rem; color: #bed2df; }
 .recorded-actions { margin-bottom: 1rem; }
 .recorded-actions strong, .replay-actions strong { color: #f2f8fc; }
@@ -94,7 +108,8 @@
 }
 @media (max-width: 550px) {
   .telemetry-strip .vital-grid.surface { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .home-training-entry .button { width: 100%; }
+  .recorded-workflow-steps { grid-template-columns: minmax(0, 1fr); }
+  .recorded-workflow-steps > div + div { border-left: 0; border-top: 1px solid var(--line); }
   .replay-metrics { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem; }
   .replay-metric { padding: .55rem; }
   .replay-no-findings { margin-left: 0; }
