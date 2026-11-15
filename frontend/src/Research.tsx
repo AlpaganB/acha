@@ -14,6 +14,33 @@ const issMetrics = [
   { key: 'carbon_dioxide_ppm', label: 'Ambient CO₂', unit: 'ppm' },
 ] as const
 
+function IssCarbonDioxidePlot({ samples }: { samples: IssResearchRecord['samples'] }) {
+  const values = samples.flatMap(sample => sample.carbon_dioxide_ppm ?? [])
+  if (!values.length) return null
+  const minimum = Math.min(...values)
+  const maximum = Math.max(...values)
+  const first = Date.parse(samples[0].recorded_at)
+  const last = Date.parse(samples.at(-1)!.recorded_at)
+  const x = (stamp: string) => 8 + (Date.parse(stamp) - first) / Math.max(1, last - first) * 704
+  const y = (value: number) => 96 - (value - minimum) / (maximum - minimum || 1) * 85
+  return <figure className="monitoring-figure">
+    <svg viewBox="0 0 720 110" role="img" aria-label={`Archived RR-6 cabin carbon dioxide, ${minimum} to ${maximum} parts per million`} preserveAspectRatio="none">
+      <line className="pressure-axis" x1="8" x2="712" y1="101" y2="101" />
+      {samples.map((sample, index) => {
+        const value = sample.carbon_dioxide_ppm
+        const previous = samples[index - 1]
+        if (value === null) return null
+        return <g key={sample.recorded_at}>
+          {previous?.carbon_dioxide_ppm != null && Date.parse(sample.recorded_at) - Date.parse(previous.recorded_at) === 300_000 &&
+            <line className="pressure-trace" x1={x(previous.recorded_at)} x2={x(sample.recorded_at)} y1={y(previous.carbon_dioxide_ppm)} y2={y(value)} />}
+          <circle className="pressure-point" cx={x(sample.recorded_at)} cy={y(value)} r="1.7"><title>{utc.format(new Date(sample.recorded_at))} UTC · {value} ppm</title></circle>
+        </g>
+      })}
+    </svg>
+    <figcaption>Cabin CO₂ (ppm). Lines connect samples exactly five minutes apart with values at both times.</figcaption>
+  </figure>
+}
+
 function IssResearch() {
   const [record, setRecord] = useState<IssResearchRecord>()
   const [window, setWindow] = useState<'day' | 'week'>('week')
@@ -41,7 +68,7 @@ function IssResearch() {
         <label>Archive window <select value={window} disabled={loading} onChange={event => {
           setWindow(event.target.value as 'day' | 'week'); setRecord(undefined); setError(''); setPage(0)
         }}><option value="week">15–22 December 2017 (UTC)</option><option value="day">15–16 December 2017 (UTC)</option></select></label></div>
-      <p>NASA OSDR · Rodent Research 6 · historical cabin telemetry.</p>
+      <p>NASA OSDR · Rodent Research 6 · historical ISS cabin environment collected in support of rodent research.</p>
       <div className="form-actions">
         <button className="button secondary" disabled={loading} onClick={() => void fetchRecord()}>
           {record ? 'Refresh from NASA' : 'Fetch from NASA'}
@@ -65,6 +92,7 @@ function IssResearch() {
             : 'No observations'}</dd></div>
         })}</dl>
         <p className="muted">Coverage counts measured pairs only. This archive provides habitat context for monitoring design.</p>
+        <IssCarbonDioxidePlot samples={record.samples} />
         <details className="research-observations">
           <summary>Browse {record.samples.length} observations</summary>
           <div className="research-table" tabIndex={0} role="region" aria-label="ISS cabin observations"><table>

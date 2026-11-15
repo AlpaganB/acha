@@ -6,7 +6,7 @@
       "destination": "https://acha-api-production.up.railway.app/api/v1/:path*"
     },
     {
-      "source": "/(assessment|assessments|measurements|guides|mission|research|crew|scenarios)/:path*",
+      "source": "/(assessment|assessments|measurements|guides|mission|research|crew|monitoring|scenarios)/:path*",
       "destination": "/index.html"
     }
   ],

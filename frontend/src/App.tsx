@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   ArrowRight, Check, ChevronDown, Radio, WifiOff, LayoutDashboard, Activity,
-  Orbit, FlaskConical, HeartPulse, Plus, Menu, UserRound, BookOpen, ClipboardList, Droplets, Gauge, Thermometer, Clapperboard,
+  Orbit, FlaskConical, HeartPulse, Plus, Menu, UserRound, BookOpen, ClipboardList, Droplets, Gauge, Moon, Wind, Clapperboard, Play,
 } from 'lucide-react'
 import { AssessmentForm } from './AssessmentForm'
 import { AssessmentHistory, AssessmentResult, Records } from './AssessmentResults'
@@ -10,6 +10,9 @@ import { HealthMonitoring } from './HealthMonitoring'
 import { AnatomyDashboard } from './AnatomyDashboard'
 import { Measurements } from './Measurements'
 import { MissionScenarios } from './MissionScenarios'
+import { ScenarioConsole } from './ScenarioConsole'
+import { missionElapsed } from './missionScenarioData'
+import { useScenarioPlayer, type ScenarioPlayer } from './useScenarioPlayer'
 import { DemoMonitoring } from './PersonalIndicators'
 import { Observations } from './Observations'
 import { Pressure } from './Pressure'
@@ -27,7 +30,7 @@ import type { Measurement, MissionProfile } from './api'
 type Mission = ReturnType<typeof useMission>
 
 
-const vitalIcons = { heart_rate: HeartPulse, spo2: Droplets, blood_pressure: Gauge, body_temperature: Thermometer }
+const vitalIcons = { heart_rate: HeartPulse, spo2: Droplets, blood_pressure: Gauge, respiratory_rate: Wind, sleep_duration: Moon }
 const menuIcons = { overview: LayoutDashboard, monitoring: HeartPulse, measurements: Activity, assessments: ClipboardList, guides: BookOpen, mission: Orbit, scenarios: Clapperboard, research: FlaskConical }
 function MenuIcon({ name, pulse }: { name: keyof typeof menuIcons; pulse: number }) {
   const Icon = menuIcons[name]
@@ -51,7 +54,7 @@ function Sparkline({ readings }: { readings: Measurement[] }) {
 function locationPath() {
   const legacy = window.location.hash.match(/^#(assessment|results|guides|mission)(\/[a-zA-Z0-9_-]+)?$/)
   if (legacy) return `/${legacy[1] === 'results' ? 'assessments' : legacy[1]}${legacy[2] ?? ''}`
-  return (window.location.pathname.replace(/\/+$/, '') + window.location.search) || '/'
+  return (window.location.pathname.replace(/\/+$/, '') || '/') + window.location.search
 }
 
 function useRoute() {
@@ -123,8 +126,8 @@ function CrewMonitoring({ mission, onOpenScenario }: { mission: Mission; onOpenS
   </>
 }
 
-function LatestMeasurements({ measurements, pending, available }: {
-  measurements: Measurement[]; pending: boolean; available: boolean
+function LatestMeasurements({ measurements, pending, available, local, profile }: {
+  measurements: Measurement[]; pending: boolean; available: boolean; local: boolean; profile?: MissionProfile
 }) {
   const latest = new Map<string, Measurement>()
   for (const reading of measurements) {
@@ -144,6 +147,9 @@ function LatestMeasurements({ measurements, pending, available }: {
           const label = measurementLabels[kind]
           const reading = latest.get(kind)
           const Icon = vitalIcons[kind as keyof typeof vitalIcons]
+          const interval = profile?.measurement_schedules?.find(schedule => schedule.kind === kind)?.interval_minutes
+          const age = reading ? Math.floor((Date.now() - Date.parse(reading.recorded_at)) / 60_000) : null
+          const overdue = interval != null && age != null && age >= interval
           return (
             <div key={kind}>
               <dt><span className="vital-icon"><Icon size={18} aria-hidden="true" /></span>{label}<a href={`/measurements?kind=${kind}`} aria-label={`Open ${label.toLowerCase()} history`}><ArrowRight size={15} /></a></dt>
@@ -154,6 +160,7 @@ function LatestMeasurements({ measurements, pending, available }: {
                     <small>{reading.unit}</small>
                   </span>
                   <time dateTime={reading.recorded_at}>{formatDate(reading.recorded_at)}</time>
+                  <small className="recorded-provenance">{local ? 'Fictional training record' : 'Recorded spot measurement'}{overdue ? ' · Past scheduled interval' : ''}</small>
                   <Sparkline readings={measurements.filter(item => item.kind === kind)} />
                 </dd>
               ) : <dd className="missing-reading">
@@ -169,26 +176,45 @@ function LatestMeasurements({ measurements, pending, available }: {
   )
 }
 
-function Home({ mission, showIntro, onIntroStarted }: { mission: Mission; showIntro: boolean; onIntroStarted: () => void }) {
+function Home({ mission, player }: { mission: Mission; player: ScenarioPlayer }) {
+  const active = player.state.mode === 'scenario'
+  const review = mission.history[0]
+  const reviewRequired = review && ['urgent', 'review', 'needs_attention'].includes(review.status)
+  const unavailable = Object.keys(vitalIcons).filter(kind => !mission.measurements.some(record => record.kind === kind)).length
   return (
     <>
       <header className="overview-heading">
         <div>
-          <span className="technical-label">Flight medicine / crew systems</span>
-          <h1>Astronaut health console</h1>
-          <p>Recorded observations, body systems and crew follow-up.</p>
+          <h1>Mission Health Command Center</h1>
+          <p>{active ? player.scenario?.title : 'Recorded observations, body systems and crew follow-up.'}</p>
         </div>
-        <div className="overview-actions">
+        {!active && <div className="overview-actions">
           <a className="button secondary" href="/monitoring">Crew monitoring</a>
           <a className="button secondary" href="/assessment"><ClipboardList size={16} /> Start assessment</a>
           <a className="button primary" href="/measurements"><Plus size={17} /> Record measurement</a>
-        </div>
+        </div>}
       </header>
+      {active && <ScenarioConsole player={player} embedded />}
+      <div hidden={active}>
+      <div className="home-training-entry">
+        <button className="button primary" type="button" onClick={() => player.dispatch({ type: 'open', id: 'lunar-fatigue', play: true })}>
+          <Play size={16} aria-hidden="true" /> Try a 90-second training scenario
+        </button>
+        <p>Fictional crew and observations · Runs in this browser</p>
+      </div>
+      <section className="recorded-actions" aria-label="Recorded workspace status">
+        <span><strong>{mission.profile?.name ?? 'Mission unassigned'}</strong> · {mission.selected?.display_name ?? 'Crew unavailable'}</span>
+        <span>{mission.measurementsPending ? 'Checking measurements' : mission.measurements.length ? `${unavailable} of ${Object.keys(vitalIcons).length} observation channels without a reading` : 'No current measurements'}</span>
+        {reviewRequired ? <a className="text-link" href={`/assessments/${review.id}`}>Latest assessment flagged for review</a>
+          : <span>{mission.historyPending ? 'Checking assessments' : review ? 'No active findings in the latest assessment' : mission.historyAvailable ? 'No assessments recorded' : 'Assessment status unavailable'}</span>}
+        {!!mission.queued.length && <span>{mission.queued.length} waiting to sync</span>}
+        {mission.lastSync && <span>Workspace synced <time dateTime={mission.lastSync}>{formatDate(mission.lastSync)}</time></span>}
+      </section>
       <LatestMeasurements measurements={mission.measurements} pending={mission.measurementsPending}
-          available={mission.measurementsAvailable} />
+        available={mission.measurementsAvailable} local={mission.local} profile={mission.profile} />
       <div className="console-grid">
         <AnatomyDashboard crewId={mission.selected?.id} measurements={mission.measurements} assessments={mission.history}
-          reachable={mission.reachable} load={mission.records.measurements} showIntro={showIntro} onIntroStarted={onIntroStarted} />
+          reachable={mission.reachable} load={mission.records.measurements} suspended={active} />
         <aside className="console-briefing" aria-label="Mission briefing">
         <section className="surface briefing-records" aria-labelledby="recent-heading">
           <div className="section-heading">
@@ -208,6 +234,7 @@ function Home({ mission, showIntro, onIntroStarted }: { mission: Mission; showIn
         </section>
         <a className="surface guide-shortcut" href="/guides"><BookOpen size={20} /><span><span className="technical-label">Reference / procedures</span><strong>Medical guides</strong><small>Procedures and emergency contacts</small></span><ArrowRight size={17} /></a>
         </aside>
+      </div>
       </div>
     </>
   )
@@ -304,7 +331,6 @@ function MissionApp({ local, changeMode, modeError }: { local: boolean; changeMo
   useOfflineShell()
   const main = useRef<HTMLElement>(null)
   const previousRoute = useRef(route)
-  const anatomyIntroSeen = useRef(false)
   const sidebar = useRef<HTMLElement>(null)
   const menuToggle = useRef<HTMLButtonElement>(null)
   const restoreMenuFocus = useRef(true)
@@ -359,6 +385,8 @@ function MissionApp({ local, changeMode, modeError }: { local: boolean; changeMo
   const initialKind = Object.hasOwn(measurementLabels, requestedKind) ? requestedKind : ''
   const scenarios = page === 'scenarios'
   const home = !scenarios && !['assessment', 'assessments', 'measurements', 'guides', 'mission', 'research', 'crew', 'monitoring'].includes(page)
+  const player = useScenarioPlayer(route, home || (scenarios && Boolean(rawId)))
+  const replay = player.scenario && (home || (scenarios && rawId === player.scenario.id)) ? player.scenario : undefined
   const [attached, setAttached] = useState<{ crewId: string; record?: Measurement; error?: string }>()
   const listedMeasurement = mission.measurements.some(item => item.id === initialMeasurementId)
   const activeCrewId = mission.selected?.id
@@ -433,18 +461,18 @@ function MissionApp({ local, changeMode, modeError }: { local: boolean; changeMo
       <main ref={main} id="main-content" className={`main-content ${home ? 'home' : 'inner-page'}`} tabIndex={-1} inert={isMobile && mobileMenuOpen}>
         <div className="console-statusbar" aria-label="Mission service status">
           <span className="console-identity"><Radio size={13} aria-hidden="true" /> ACHA <span>/</span> CREW HEALTH OPERATIONS</span>
-          <div className="console-context"><span>{mission.selected?.display_name ?? 'Crew not selected'}</span><span className="service-state" data-state={local ? 'simulation' : !mission.online ? 'offline' : mission.connection}>
-            {local ? 'Synthetic scenario' : !mission.online ? 'Offline · cached records' : mission.connection === 'connected' ? 'Service connected' : mission.connection === 'checking' ? 'Connecting' : 'Service unavailable'}
+          <div className="console-context"><span>{replay ? `${replay.subject} · ${missionElapsed(player.simulatedTime!)}` : mission.selected?.display_name ?? 'Crew not selected'}</span><span className="service-state" data-state={replay || local ? 'simulation' : !mission.online ? 'offline' : mission.connection}>
+            {replay ? 'Synthetic training' : local ? 'Synthetic local records' : !mission.online ? 'Offline · cached workspace' : mission.connection === 'connected' ? 'Service connected · sample workspace' : mission.connection === 'checking' ? 'Connecting' : 'Service unavailable'}
           </span></div>
         </div>
-        {local && !scenarios && <div className="connection-notice scenario-banner"><strong>Synthetic scenario</strong><span>Fictional crew records · Stored on this device</span>
+        {local && !scenarios && !replay && <div className="connection-notice scenario-banner"><strong>Synthetic scenario</strong><span>Fictional crew records · Stored on this device</span>
           <button className="text-link" onClick={() => changeMode(false)}>Return to mission service</button></div>}
-        {!scenarios && !mission.reachable && (mission.connection !== 'checking' || !mission.online) && <div className="connection-notice" role="status"><WifiOff size={15} />{mission.online ? 'Couldn’t refresh mission-service records.' : 'You’re offline. Recently cached mission records are available.'}{mission.online && <button className="text-link" onClick={() => void mission.refreshWorkspace()}>Retry</button>}{!home && <button className="text-link" onClick={() => changeMode(true)}>Open synthetic scenario</button>}</div>}
+        {!scenarios && !replay && !mission.reachable && (mission.connection !== 'checking' || !mission.online) && <div className="connection-notice" role="status"><WifiOff size={15} />{mission.online ? 'Couldn’t refresh mission-service records.' : 'You’re offline. This device can show any records it has cached.'}{mission.online && <button className="text-link" onClick={() => void mission.refreshWorkspace()}>Retry</button>}{!home && <button className="text-link" onClick={() => changeMode(true)}>Open synthetic scenario</button>}</div>}
         {modeError && <p className="notice error" role="alert">{modeError}</p>}
         <div className="route-content">
-          {home && <Home mission={mission} showIntro={!anatomyIntroSeen.current} onIntroStarted={() => { anatomyIntroSeen.current = true }} />}
+          {home && <Home mission={mission} player={player} />}
           {page === 'monitoring' && <CrewMonitoring mission={mission} onOpenScenario={() => changeMode(true)} />}
-          {scenarios && <MissionScenarios id={rawId} onOpenPractice={() => changeMode(true, `/assessments/${scenarioAssessmentId}`)} />}
+          {scenarios && <MissionScenarios id={rawId} player={player} />}
           {page === 'assessment' && (
             <>
               <header className="page-title">

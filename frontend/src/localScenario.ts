@@ -1,5 +1,6 @@
 import type { Assessment, AssessmentInput, FollowUpEntry, FollowUpInput, Indicator, IndicatorReport, Measurement, MeasurementInput, MeasurementQuery } from './api'
 import { measurementLabels, measurementUnits } from './content'
+import { lunarBaseline, missionScenarios, scenarioFrame } from './missionScenarioData'
 import { readLocal, saveLocal, type Workspace } from './storage'
 
 const day = 86_400_000
@@ -131,17 +132,18 @@ function seedScenario() {
   if (readScenario()) return true
   const now = Date.now()
   const time = (offset: number) => new Date(now - offset).toISOString()
-  const previous = [62, 66, 64, 65, 63, 67]
+  const previous = lunarBaseline.heart
+  const [sleep, pulse] = scenarioFrame(missionScenarios[0], 2).latest.values
   const measurements = previous.flatMap((value, index): Measurement[] => {
     const recorded_at = time((index + 1) * day + 3_600_000)
     return [
       { id: `scenario-heart-${index}`, kind: 'heart_rate', value, unit: 'bpm', diastolic: null, recorded_at },
-      { id: `scenario-sleep-${index}`, kind: 'sleep_duration', value: [7.5, 8, 7, 7.5, 8, 7.5][index],
+      { id: `scenario-sleep-${index}`, kind: 'sleep_duration', value: lunarBaseline.sleep[index],
         unit: 'h', diastolic: null, recorded_at },
     ]
   })
-  measurements.push({ id: 'scenario-heart-current', kind: 'heart_rate', value: 83, unit: 'bpm', diastolic: null, recorded_at: time(1_800_000) },
-    { id: 'scenario-sleep-current', kind: 'sleep_duration', value: 5, unit: 'h', diastolic: null, recorded_at: time(1_800_000) })
+  measurements.push({ id: 'scenario-heart-current', kind: 'heart_rate', value: pulse!, unit: 'bpm', diastolic: null, recorded_at: time(1_800_000) },
+    { id: 'scenario-sleep-current', kind: 'sleep_duration', value: sleep!, unit: 'h', diastolic: null, recorded_at: time(1_800_000) })
   const initial = makeAssessment({ id: scenarioAssessmentId, mission_profile_id: profileId, assessed_at: time(1_200_000),
     symptoms: [{ code: 'fatigue', severity: 4 }], measurement_ids: ['scenario-heart-current', 'scenario-sleep-current'],
     notes: 'Simulated early shift after 5 hours of reported sleep. Heart-rate setup and posture were not logged. Repeat at rest using the training monitor.' }, measurements)
@@ -152,6 +154,46 @@ const requiredScenario = () => {
   const scenario = readScenario()
   if (!scenario) throw new Error('The synthetic scenario is unavailable on this device.')
   return scenario
+}
+
+const practiceRepeatId = 'replay-lunar-resting-repeat'
+
+export function readLunarPractice() {
+  const scenario = readScenario()
+  const entries = scenario?.followUps[scenarioAssessmentId] ?? []
+  return {
+    opened: Boolean(scenario?.assessments.some(item => item.id === scenarioAssessmentId)),
+    repeat: scenario?.measurements.find(item => item.id === practiceRepeatId),
+    linked: entries.some(item => item.measurement_id === practiceRepeatId),
+    closed: entries.some(item => item.outcome === 'workflow_complete'),
+  }
+}
+
+export async function updateLunarPractice(action: 'open' | 'repeat' | 'link' | 'close') {
+  if (action === 'open') {
+    if (!await openScenario()) throw new Error('Allow site storage to open this fictional check-in.')
+    return
+  }
+  await updateScenario(scenario => {
+    const original = scenario.assessments.find(item => item.id === scenarioAssessmentId)
+    const entries = scenario.followUps[scenarioAssessmentId] ?? []
+    if (!original) throw new Error('Open the fictional check-in first.')
+    if (entries.some(item => item.outcome === 'workflow_complete')) return
+    const repeat = scenario.measurements.find(item => item.id === practiceRepeatId)
+    if (action === 'repeat') {
+      if (repeat) return
+      const value = scenarioFrame(missionScenarios[0], 3).latest.values[1]!
+      scenario.measurements.unshift({ id: practiceRepeatId, kind: 'heart_rate', value, unit: 'bpm', diastolic: null,
+        recorded_at: new Date().toISOString() })
+      return
+    }
+    if (!repeat) throw new Error('Record the fictional repeat first.')
+    const linked = entries.some(item => item.measurement_id === practiceRepeatId)
+    if (action === 'close' && !linked) throw new Error('Link the repeat before closing this check-in.')
+    if (action === 'link' && linked) return
+    scenario.followUps[scenarioAssessmentId] = [...entries, { id: `${practiceRepeatId}-${action}`, measurement_id: practiceRepeatId,
+      measurement: repeat, outcome: action === 'close' ? 'workflow_complete' : 'continue_review', recorded_at: new Date().toISOString() }]
+  })
 }
 
 function assessmentValues(input: AssessmentInput) {

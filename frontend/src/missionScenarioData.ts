@@ -25,7 +25,7 @@ interface Checkpoint {
   relay?: RelayEvent
 }
 
-interface MissionScenario {
+export interface MissionScenario {
   id: 'lunar-fatigue' | 'orbital-pressure' | 'solar-event'
   environment: string
   title: string
@@ -43,7 +43,7 @@ interface MissionScenario {
 
 const hour = 60
 const day = 24 * hour
-const lunarBaseline = {
+export const lunarBaseline = {
   sleep: [7.5, 7.8, 7.6, 7.4, 7.7],
   heart: [64, 67, 66, 65, 68],
   reaction: [244, 251, 250, 247, 258],
@@ -86,9 +86,9 @@ const lunar: MissionScenario = {
     { minute: 5 * day, title: 'Confirm improvement', status: 'Monitoring', event: 'Two shifts later the measurements are closer to baseline.',
       system: 'ACHA shows the repeat observations beside the original departure rather than overwriting the early-shift values.',
       crew: 'Notes that fatigue has eased and waits for the final scheduled review.' },
-    { minute: 7 * day, title: 'Close the training check-in', status: 'Follow-up closed', event: 'The final reports are close to Emirhan’s reference.',
-      system: 'The replay closes the workflow with the initial assessment, linked repeat, and recovery observations in the timeline.',
-      crew: 'Records the outcome and resumes routine monitoring in the exercise.' },
+    { minute: 7 * day, title: 'Review the check-in outcome', status: 'Closure available', event: 'The final reports are close to Emirhan’s reference.',
+      system: 'The replay retains the original assessment, repeat observation and recovery context. The practice check-in stays open until you close it.',
+      crew: 'Reviews the outcome and can record completion of the fictional workflow.' },
   ],
   outcome: 'The check-in preserves the original context and the repeat reading. The timeline shows improvement after the shift change without assigning a cause or a clinical score.',
   source: { label: 'NASA · Sleep and fatigue in spaceflight', url: 'https://www.nasa.gov/human-systems-integration-division/human-performance/fatigue-countermeasures-laboratory/' },

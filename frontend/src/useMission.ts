@@ -14,6 +14,7 @@ export function useMission(local: boolean) {
   const [workspace, setWorkspace] = useState(() => local ? scenarioWorkspace : readLocal<Workspace>('active-workspace'))
   const [crewId, setCrewId] = useState(() => local ? null : readLocal<string>('crew'))
   const [connection, setConnection] = useState<'checking' | 'connected' | 'unreachable'>('checking')
+  const [lastSync, setLastSync] = useState<string>()
   const [measurements, setMeasurements] = useState<CrewRecords<Measurement>>({})
   const [history, setHistory] = useState<CrewRecords<Assessment>>({})
   const [queued, setQueued] = useState(() => local ? [] : listQueued())
@@ -35,6 +36,7 @@ export function useMission(local: boolean) {
       const [crew, profiles] = await Promise.all([api.crew(), api.profiles()])
       if (signal?.aborted || request !== workspaceRequest.current) return
       setWorkspace({ crew, profiles })
+      setLastSync(new Date().toISOString())
       setConnection('connected')
     } catch {
       if (!signal?.aborted && request === workspaceRequest.current) setConnection('unreachable')
@@ -230,6 +232,7 @@ export function useMission(local: boolean) {
   return {
     online,
     connection: local ? 'connected' : connection,
+    lastSync,
     local,
     records,
     reachable,

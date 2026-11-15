@@ -2,20 +2,21 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Activity, ChevronRight, HeartPulse, Moon, Pause, Play, Thermometer, TriangleAlert, Waves } from 'lucide-react'
 import { api, type Assessment, type Measurement } from './api'
 import { formatDate, measurementLabels, symptomLabel } from './content'
-import skeleton from './assets/full-body-skeleton.png.png'
-import heart from './assets/torso-heart.png.png'
-import brain from './assets/skull-brain.png.png'
-import digestive from './assets/digestive-urinary.png.png'
+import skeleton from './assets/full-body-skeleton.webp'
+import heart from './assets/torso-heart.webp'
+import brain from './assets/skull-brain.webp'
+import digestive from './assets/digestive-urinary.webp'
 import './anatomy.css'
 
 import { advanceStage, initialStage, phaseDuration, selectStage } from './anatomySequence'
 
-const views = [
+export const anatomyViews = [
   { title: 'Whole-body overview', image: skeleton, alt: 'Full human skeleton anatomical illustration' },
   { title: 'Cardiovascular health', image: heart, alt: 'Torso showing the heart and rib cage' },
   { title: 'Brain & recovery', image: brain, alt: 'Skull and brain anatomical illustration' },
   { title: 'Digestive & urinary health', image: digestive, alt: 'Digestive and urinary systems anatomical illustration' },
 ]
+const views = anatomyViews
 const kinds = ['heart_rate', 'spo2', 'blood_pressure', 'body_temperature', 'sleep_duration']
 
 function SystemSignal({ index }: { index: number }) {
@@ -68,28 +69,23 @@ function SymptomCard({ assessment, codes, title }: { assessment?: Assessment; co
   </article>
 }
 
-export function AnatomyDashboard({ crewId, measurements, assessments, reachable, load = api.measurements, showIntro, onIntroStarted }: {
+export function AnatomyDashboard({ crewId, measurements, assessments, reachable, load = api.measurements, suspended = false }: {
   crewId?: string; measurements: Measurement[]; assessments: Assessment[]; reachable: boolean
-  load?: typeof api.measurements; showIntro: boolean; onIntroStarted: () => void
+  load?: typeof api.measurements; suspended?: boolean
 }) {
-  const [stage, setStage] = useState(() => initialStage(showIntro && !matchMedia('(prefers-reduced-motion: reduce)').matches))
+  const [stage, setStage] = useState(() => initialStage(false))
   const [reducedMotion, setReducedMotion] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches)
-  const [paused, setPaused] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches)
+  const [paused, setPaused] = useState(true)
   const [hidden, setHidden] = useState(document.hidden)
   const [ready, setReady] = useState(false)
   const [retry, setRetry] = useState(0)
   const [failedImages, setFailedImages] = useState<string[]>([])
   const [history, setHistory] = useState<{ crewId: string; records: Measurement[]; failedKinds: string[] }>()
   const timing = useRef({ remaining: phaseDuration[stage.phase], started: 0 })
-  const introStarted = useRef(false)
   const revision = measurements.map(record => record.id).join(',')
-  const stopped = hidden || !ready || (paused && !stage.manual)
+  const stopped = suspended || hidden || !ready || (paused && !stage.manual)
   const travelling = stage.phase !== 'hold'
   const cardsVisible = ['hold', 'intro', 'in'].includes(stage.phase)
-
-  useEffect(() => {
-    if (ready && !introStarted.current && showIntro) { introStarted.current = true; onIntroStarted() }
-  }, [ready, showIntro, onIntroStarted])
 
   useEffect(() => {
     let active = true
@@ -126,7 +122,7 @@ export function AnatomyDashboard({ crewId, measurements, assessments, reachable,
   }, [stage.sequence, stopped, reducedMotion])
 
   useEffect(() => {
-    if (!crewId || !reachable) return
+    if (suspended || !crewId || !reachable) return
     let active = true
     void Promise.allSettled(kinds.map(kind => load(crewId, { kind, limit: 12 }))).then(results => {
       if (!active) return
@@ -134,7 +130,7 @@ export function AnatomyDashboard({ crewId, measurements, assessments, reachable,
       setHistory({ crewId, records, failedKinds: results.flatMap((result, index) => result.status === 'rejected' ? [kinds[index]] : []) })
     })
     return () => { active = false }
-  }, [crewId, reachable, revision, retry, load])
+  }, [crewId, reachable, revision, retry, load, suspended])
 
   const crewHistory = history && history.crewId === crewId ? history : undefined
   const visibleKinds = [['body_temperature'], ['heart_rate', 'spo2', 'blood_pressure'], ['sleep_duration'], []][stage.index]
@@ -153,7 +149,7 @@ export function AnatomyDashboard({ crewId, measurements, assessments, reachable,
     </header>
     <nav className="anatomy-navigation" aria-label="Body system views">
       {views.slice(1).map((view, index) => <button key={view.title} aria-current={(stage.phase === 'intro' || stage.phase === 'wide' || stage.phase === 'out' ? stage.target : stage.index) === index + 1 ? 'step' : undefined}
-        onClick={() => setStage(current => selectStage(current, index + 1, reducedMotion))}>
+        onClick={() => { setPaused(true); setStage(current => selectStage(current, index + 1, true)) }}>
         <span className="anatomy-tab-number">0{index + 1}</span><span>{view.title}</span>
         <span className="anatomy-progress-rail" aria-hidden="true"><SystemSignal index={index + 1} /><span className="anatomy-progress">{stage.phase === 'hold' && stage.index === index + 1 && <span key={stage.sequence} />}</span></span>
       </button>)}
