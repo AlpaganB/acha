@@ -53,8 +53,8 @@ function Trend({ readings, kind }: { readings: Measurement[]; kind: string }) {
   </>
 }
 
-export function MeasurementTrends({ readings, fixedKind, scope = 'loaded readings' }: {
-  readings: Measurement[]; fixedKind?: string; scope?: string
+export function MeasurementTrends({ readings, fixedKind }: {
+  readings: Measurement[]; fixedKind?: string
 }) {
   const [selected, setSelected] = useState('')
   const counts = Object.keys(measurementLabels).map(kind => ({ kind, count: readings.filter(reading => reading.kind === kind).length }))
@@ -76,7 +76,6 @@ export function MeasurementTrends({ readings, fixedKind, scope = 'loaded reading
       <div><dt>{kind === 'blood_pressure' ? 'Systolic change' : 'First to latest'}</dt><dd>{difference === null ? '—' : `${difference > 0 ? '+' : ''}${Number(difference.toFixed(2))}`} <small>{difference === null ? 'One reading' : kind === 'spo2' ? 'percentage points' : latest.unit}</small></dd></div>
     </dl>}
     <Trend readings={readings} kind={kind} />
-    <p className="muted trend-note">{points.length === 1 ? 'First reading recorded. Add another to compare changes. ' : ''}Based on {scope}. Changes describe recorded values, without a clinical interpretation.</p>
   </>
 }
 
@@ -165,7 +164,7 @@ export function MeasurementHistory({ crewId, cached, reachable, revision, onReco
           </table></div> : <p className="empty-state">{loading ? 'Loading readings…' : error ? 'Readings are unavailable.' : !crewId ? 'Choose a crew member to view readings.' : 'No readings match these filters.'}</p>}
         </div>
         <div className="history-actions" role="status">
-          {visible.length > 0 && <span className="muted">{visible.length} readings loaded</span>}
+          {visible.length > 0 && <span className="muted">{visible.length} {visible.length === 1 ? 'reading' : 'readings'}</span>}
           {!usingCache && hasMore && loadedKey === queryKey && !error && <button className="button secondary" disabled={loading} onClick={() => setPage(value => value + 1)}>{loading ? 'Loading…' : 'Load older readings'}</button>}
         </div>
       </>}

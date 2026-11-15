@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   ArrowRight, Check, ChevronDown, Radio, WifiOff, LayoutDashboard, Activity,
-  ClipboardList, Orbit, BookOpen, FlaskConical, HeartPulse, Droplets, Gauge, Thermometer, Plus, ShieldCheck,
+  ClipboardList, Orbit, BookOpen, FlaskConical, HeartPulse, Droplets, Gauge, Thermometer, Plus, Menu, UserRound,
 } from 'lucide-react'
 import { AssessmentForm } from './AssessmentForm'
 import { AssessmentHistory, AssessmentResult, Records } from './AssessmentResults'
@@ -10,15 +10,25 @@ import { Measurements } from './Measurements'
 import { AnatomyDashboard } from './AnatomyDashboard'
 import { Observations } from './Observations'
 import { Pressure } from './Pressure'
+import { Crew } from './Crew'
 import { Research } from './Research'
 import { environmentLabels, formatDate, measurementLabels } from './content'
 import { navigate } from './navigation'
 import { useMission } from './useMission'
+import { readLocal, saveLocal } from './storage'
 import type { Measurement, MissionProfile } from './api'
 
 type Mission = ReturnType<typeof useMission>
 
 const vitalIcons = { heart_rate: HeartPulse, spo2: Droplets, blood_pressure: Gauge, body_temperature: Thermometer }
+
+const menuIcons = { overview: LayoutDashboard, measurements: Activity, assessments: ClipboardList, mission: Orbit, guides: BookOpen, research: FlaskConical }
+function MenuIcon({ name, pulse }: { name: keyof typeof menuIcons; pulse: number }) {
+  const Icon = menuIcons[name]
+  return <Icon key={pulse} size={19} aria-hidden="true" className={`nav-icon nav-icon-${name}${pulse ? ' nav-icon-play' : ''}`}>
+    {name === 'guides' && <path className="nav-book-page" d="M12 7c2-3 5-3 8-3v12c-3 0-6 1-8 5" />}
+  </Icon>
+}
 
 function Sparkline({ readings }: { readings: Measurement[] }) {
   const values = [...readings].sort((a, b) => Date.parse(a.recorded_at) - Date.parse(b.recorded_at)).map(reading => reading.value)
@@ -117,11 +127,7 @@ function Home({ mission, showIntro, onIntroStarted }: { mission: Mission; showIn
     <>
       <header className="overview-heading">
         <div>
-          <span className="eyebrow">YOUR MISSION. YOUR HEALTH.</span>
           <h1>Health overview</h1>
-          <p className="crew-context">{mission.selected?.display_name}
-            {mission.profile && <> <span aria-hidden="true">/</span> {mission.profile.name}</>}
-          </p>
         </div>
         <div className="overview-actions">
           <a className="button secondary" href="/assessment"><ClipboardList size={16} /> Start assessment</a>
@@ -145,12 +151,12 @@ function Home({ mission, showIntro, onIntroStarted }: { mission: Mission; showIn
           </div>
         </section>
         <section className="surface mission-summary" aria-labelledby="mission-summary-heading">
-          <div className="section-heading"><h2 id="mission-summary-heading"><Orbit size={18} /> Mission context</h2></div>
-          <div className="mission-emblem"><Orbit size={36} aria-hidden="true" /><span>{mission.profile?.name ?? 'Mission unavailable'}<small>{mission.profile ? environmentLabels[mission.profile.environment] : 'Connect to load mission context'}</small></span></div>
+          <div className="section-heading"><h2 id="mission-summary-heading">Mission</h2></div>
+          <div className="mission-emblem"><Orbit size={30} aria-hidden="true" /><span>{mission.profile?.name ?? 'Unavailable'}<small>{mission.profile ? environmentLabels[mission.profile.environment] : ''}</small></span></div>
           <dl className="detail-list"><div><dt>Available equipment</dt><dd>{mission.profile?.equipment.join(', ') || 'No equipment listed'}</dd></div></dl>
           <a className="text-link" href="/mission">View mission profile <ArrowRight size={14} /></a>
         </section>
-        <a className="surface guide-shortcut" href="/guides"><BookOpen size={20} /><span><strong>Onboard guidance</strong><small>Open training & emergency guides</small></span><ArrowRight size={17} /></a>
+        <a className="surface guide-shortcut" href="/guides"><BookOpen size={20} /><span><strong>Medical guides</strong><small>Procedures and emergency contacts</small></span><ArrowRight size={17} /></a>
       </div>
       </div>
     </>
@@ -230,13 +236,54 @@ export function App() {
   const main = useRef<HTMLElement>(null)
   const previousRoute = useRef(route)
   const anatomyIntroSeen = useRef(false)
+  const sidebar = useRef<HTMLElement>(null)
+  const menuToggle = useRef<HTMLButtonElement>(null)
+  const restoreMenuFocus = useRef(true)
+  const [navPulse, setNavPulse] = useState({ href: '', sequence: 0 })
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => readLocal<boolean>('sidebar-collapsed') ?? false)
+  const [isMobile, setIsMobile] = useState(() => matchMedia('(max-width: 760px)').matches)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const menuOpen = isMobile ? mobileMenuOpen : !sidebarCollapsed
+
+  useEffect(() => { saveLocal('sidebar-collapsed', sidebarCollapsed) }, [sidebarCollapsed])
+  useEffect(() => {
+    const media = matchMedia('(max-width: 760px)')
+    const update = () => { setIsMobile(media.matches); setMobileMenuOpen(false) }
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
+
+  useEffect(() => {
+    if (!isMobile || !mobileMenuOpen) return
+    restoreMenuFocus.current = true
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const items = () => Array.from(sidebar.current?.querySelectorAll<HTMLElement>('a[href], button:not(:disabled)') ?? [])
+    const focusTimer = window.setTimeout(() => sidebar.current?.querySelector<HTMLButtonElement>('.sidebar-close')?.focus(), 240)
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); setMobileMenuOpen(false) }
+      if (event.key !== 'Tab') return
+      const focusable = items()
+      const first = focusable[0], last = focusable.at(-1)
+      if (!sidebar.current?.contains(document.activeElement)) { event.preventDefault(); first?.focus() }
+      else if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+    }
+    document.addEventListener('keydown', handleKey)
+    return () => {
+      window.clearTimeout(focusTimer)
+      document.body.style.overflow = overflow
+      document.removeEventListener('keydown', handleKey)
+      if (restoreMenuFocus.current) menuToggle.current?.focus()
+    }
+  }, [isMobile, mobileMenuOpen])
   const [pathname, query] = route.split('?')
   const [, page, rawId] = pathname.split('/')
   const id = rawId && /^[a-zA-Z0-9_-]{1,64}$/.test(rawId) ? rawId : undefined
   const initialMeasurementId = new URLSearchParams(query).get('measurement') ?? undefined
   const requestedKind = new URLSearchParams(query).get('kind') ?? ''
   const initialKind = Object.hasOwn(measurementLabels, requestedKind) ? requestedKind : ''
-  const home = !['assessment', 'assessments', 'measurements', 'guides', 'mission', 'research'].includes(page)
+  const home = !['assessment', 'assessments', 'measurements', 'guides', 'mission', 'research', 'crew'].includes(page)
 
   useLayoutEffect(() => {
     if (previousRoute.current === route) return
@@ -254,44 +301,43 @@ export function App() {
   }
 
   return (
-    <div className="app" onClick={event => {
+    <div className={`app ${sidebarCollapsed ? 'sidebar-collapsed' : ''} ${mobileMenuOpen ? 'mobile-nav-open' : ''}`} onClick={event => {
       if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
       const anchor = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>('a[href^="/"]') : null
       if (!anchor || anchor.target || anchor.origin !== window.location.origin) return
+      if (sidebar.current?.contains(anchor)) setNavPulse(current => ({ href: anchor.pathname, sequence: current.sequence + 1 }))
+      if (isMobile && sidebar.current?.contains(anchor)) { restoreMenuFocus.current = false; setMobileMenuOpen(false) }
       event.preventDefault()
       navigate(anchor.pathname + anchor.search)
     }}>
       <a className="skip-link" href="#main-content" onClick={event => { event.preventDefault(); main.current?.focus() }}>Skip to content</a>
-      <aside className="app-sidebar">
+      {isMobile && mobileMenuOpen && <button className="sidebar-backdrop" aria-label="Dismiss navigation" tabIndex={-1} onClick={() => setMobileMenuOpen(false)} />}
+      {isMobile && <button ref={menuToggle} className="mobile-menu-trigger menu-toggle" aria-controls="app-sidebar" aria-expanded={mobileMenuOpen} aria-label="Open menu" inert={mobileMenuOpen} aria-hidden={mobileMenuOpen ? true : undefined} onClick={() => setMobileMenuOpen(true)}><Menu size={20} /></button>}
+      <aside ref={sidebar} id="app-sidebar" className="app-sidebar" role={isMobile ? 'dialog' : undefined} aria-label="Navigation" aria-modal={isMobile && mobileMenuOpen ? true : undefined} aria-hidden={isMobile && !mobileMenuOpen ? true : undefined} inert={isMobile && !mobileMenuOpen}>
+        <div className="sidebar-brand-row">
+          <button ref={isMobile ? undefined : menuToggle} className={`menu-toggle sidebar-menu-toggle ${isMobile ? 'sidebar-close' : ''}`} aria-controls="app-sidebar" aria-expanded={menuOpen}
+            aria-label={isMobile ? 'Close menu' : sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            onClick={() => isMobile ? setMobileMenuOpen(false) : setSidebarCollapsed(value => !value)}><Menu size={20} /></button>
           <a href="/" className="brand" aria-label="ACHA home">
-            <span className="brand-symbol"><HeartPulse size={25} /></span>
-            <span>ACHA<small>CREW HEALTH ASSISTANT</small></span>
+            <span className="brand-symbol" aria-hidden="true"><HeartPulse size={23} /></span>
+            <span className="brand-copy"><span className="brand-name">ACHA</span><small>Crew Health Assistant</small></span>
           </a>
-          <span className="nav-caption">WORKSPACE</span>
-          <nav className="main-nav" aria-label="Primary navigation">
-            <a href="/" aria-current={home ? 'page' : undefined}><LayoutDashboard size={19} /><span>Overview</span></a>
-            <a href="/measurements" aria-current={page === 'measurements' ? 'page' : undefined}><Activity size={19} /><span>Measurements</span></a>
-            <a href="/assessments" aria-current={page === 'assessment' || page === 'assessments' ? 'page' : undefined}><ClipboardList size={19} /><span>Assessments</span></a>
-            <a href="/mission" aria-current={page === 'mission' ? 'page' : undefined}><Orbit size={19} /><span>Mission</span></a>
-            <a href="/guides" aria-label="Emergency guides" aria-current={page === 'guides' ? 'page' : undefined}><BookOpen size={19} /><span>Guides</span></a>
-            <a href="/research" aria-current={page === 'research' ? 'page' : undefined}><FlaskConical size={19} /><span>Research</span></a>
-          </nav>
-          <div className="sidebar-bottom"><ShieldCheck size={20} /><strong>Built for the journey</strong><p>Training & research workspace</p><span>Autonomous Crew Health Assistant</span></div>
-      </aside>
-      <header className="site-header">
-        <div className="header-inner">
-          <div className="workspace-location"><span>Crew workspace</span><span>/</span><strong>{home ? 'Overview' : page === 'assessment' || page === 'assessments' ? 'Assessments' : page.charAt(0).toUpperCase() + page.slice(1)}</strong></div>
-          <span className={`connection-badge ${mission.reachable ? 'connected' : 'disconnected'}`} role="status">{mission.reachable ? <Check size={13} /> : <WifiOff size={13} />}{mission.reachable ? 'Service connected' : mission.connection === 'checking' ? 'Connecting' : 'Service unavailable'}</span>
-          <label className="header-crew">Crew member
-            <select aria-label="Active crew member" value={mission.selected?.id ?? ''} disabled={!mission.crew.length || mission.changingProfile}
-              onChange={event => mission.selectCrew(event.target.value)}>
-              {!mission.crew.length && <option value="">Loading crew…</option>}
-              {mission.crew.map(member => <option key={member.id} value={member.id}>{member.display_name}</option>)}
-            </select>
-          </label>
         </div>
-      </header>
-      <main ref={main} id="main-content" className={`main-content ${home ? 'home' : 'inner-page'}`} tabIndex={-1}>
+          <nav className="main-nav" aria-label="Primary navigation">
+            <a href="/" aria-label="Overview" title="Overview" aria-current={home ? 'page' : undefined}><MenuIcon name="overview" pulse={navPulse.href === '/' ? navPulse.sequence : 0} /><span>Overview</span></a>
+            <a href="/measurements" aria-label="Measurements" title="Measurements" aria-current={page === 'measurements' ? 'page' : undefined}><MenuIcon name="measurements" pulse={navPulse.href === '/measurements' ? navPulse.sequence : 0} /><span>Measurements</span></a>
+            <a href="/assessments" aria-label="Assessments" title="Assessments" aria-current={page === 'assessment' || page === 'assessments' ? 'page' : undefined}><MenuIcon name="assessments" pulse={navPulse.href === '/assessments' ? navPulse.sequence : 0} /><span>Assessments</span></a>
+            <a href="/mission" aria-label="Mission" title="Mission" aria-current={page === 'mission' ? 'page' : undefined}><MenuIcon name="mission" pulse={navPulse.href === '/mission' ? navPulse.sequence : 0} /><span>Mission</span></a>
+            <a href="/guides" aria-label="Emergency guides" title="Guides" aria-current={page === 'guides' ? 'page' : undefined}><MenuIcon name="guides" pulse={navPulse.href === '/guides' ? navPulse.sequence : 0} /><span>Guides</span></a>
+            <a href="/research" aria-label="Research" title="Research" aria-current={page === 'research' ? 'page' : undefined}><MenuIcon name="research" pulse={navPulse.href === '/research' ? navPulse.sequence : 0} /><span>Research</span></a>
+          </nav>
+          <a className="sidebar-user" href="/crew" aria-label={`Crew${mission.selected ? `: ${mission.selected.display_name}` : ''}`} title="Crew" aria-current={page === 'crew' ? 'page' : undefined}>
+            <span className="sidebar-user-avatar"><UserRound size={19} aria-hidden="true" /></span>
+            <span className="sidebar-user-details"><strong>{mission.selected?.display_name ?? 'Crew'}</strong><small>{mission.profile?.name ?? 'Select a crew member'}</small></span>
+          </a>
+      </aside>
+      <main ref={main} id="main-content" className={`main-content ${home ? 'home' : 'inner-page'}`} tabIndex={-1} inert={isMobile && mobileMenuOpen}>
+        {!mission.reachable && (mission.connection !== 'checking' || !mission.online) && <p className="connection-notice" role="status"><WifiOff size={15} />{mission.online ? 'Couldn’t refresh your records.' : 'You’re offline. Showing saved records.'}{mission.online && <button className="text-link" onClick={() => void mission.refreshWorkspace()}>Retry</button>}</p>}
         <div className="route-content">
           {home && <Home mission={mission} showIntro={!anatomyIntroSeen.current} onIntroStarted={() => { anatomyIntroSeen.current = true }} />}
           {page === 'assessment' && (
@@ -323,15 +369,12 @@ export function App() {
           {page === 'mission' && id === 'pressure' && <Pressure />}
           {page === 'mission' && id === 'observations' && <Observations />}
           {page === 'mission' && id !== 'pressure' && id !== 'observations' && <MissionProfiles mission={mission} />}
+          {page === 'crew' && <Crew members={mission.crew} profiles={mission.profiles} selectedId={mission.selected?.id} pending={mission.connection === 'checking'} onSelect={mission.selectCrew} />}
           {page === 'measurements' && <Measurements key={`${mission.selected?.id}:${initialKind}`} initialKind={initialKind} crew={mission.selected} measurements={mission.measurements}
             pending={mission.measurementsPending} reachable={mission.reachable} onSave={mission.recordMeasurement} onReconnect={mission.refreshWorkspace} />}
           {page === 'research' && <Research />}
         </div>
       </main>
-      <footer className="site-footer">
-        <span>Autonomous Crew Health Assistant</span>
-        <a className="text-link" href="/research">Research data</a>
-      </footer>
     </div>
   )
 }

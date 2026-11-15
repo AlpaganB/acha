@@ -72,11 +72,11 @@ export function Measurements({ crew, measurements, pending, reachable, onSave, o
 
   return (
     <>
-      <header className="page-title"><h1>Measurements</h1><p className="crew-context">{crew?.display_name} <a className="text-link crew-change" href="/mission">Change crew member</a></p></header>
+      <header className="page-title"><h1>Measurements</h1><p className="crew-context">{crew?.display_name} <a className="text-link crew-change" href="/crew">Change crew member</a></p></header>
       <div className="measurement-workspace">
       <section className="surface form-panel" aria-labelledby="record-heading">
         <h2 id="record-heading">Record a measurement</h2>
-        <p className="muted">Use sample readings in this public workspace.</p>
+        <p className="muted">Public demo — use sample data.</p>
         <form onSubmit={event => { event.preventDefault(); void save(event.currentTarget) }}>
           <div className="measurement-fields">
             <label>Indicator<select value={kind} disabled={busy} onChange={event => { setKind(event.target.value); setError(''); setSaved(undefined) }}>
@@ -95,11 +95,8 @@ export function Measurements({ crew, measurements, pending, reachable, onSave, o
             <summary>How to record {measurementLabels[kind].toLowerCase()}</summary>
             <p><strong>Equipment:</strong> {measurementGuides[kind].equipment}</p>
             <ol>{measurementGuides[kind].steps.map(step => <li key={step}>{step}</li>)}</ol>
-            <p>Recording help for this prototype. Follow your device instructions and approved mission procedure.</p>
+            <p>Follow the device instructions and your mission procedure.</p>
           </details>
-          {(kind === 'heart_rate' || kind === 'blood_pressure') && <p className="measurement-source">
-            <a href="https://www.nasa.gov/hrp/risks/" className="text-link" target="_blank" rel="noreferrer">NASA research on cardiovascular adaptation</a>
-          </p>}
           <div className="form-actions">
             <button className="button primary" disabled={!crew || !reachable || busy}>Save measurement</button>
             {saved && <button type="button" className="button secondary" onClick={() => navigate(`/assessment?measurement=${saved.id}`)}>
