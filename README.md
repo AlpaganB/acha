@@ -30,7 +30,7 @@ The web app records measurements and submits assessments through an API. The sta
 2. **Record a reading.** Save heart rate, respiratory rate, blood oxygen saturation, blood pressure, body temperature, or sleep duration. Each reading has a unit and a timestamp and stays in that crew member's history.
 3. **Submit an assessment.** Select saved readings, report symptoms, or combine both. The engine evaluates the available inputs and reports missing information.
 4. **Review the result.** Read the rationale and suggested next step, then open the training guide when one is linked. Previous assessments preserve the mission profile and inputs used at the time.
-5. **Document follow-up.** Link a later reading from the same crew member and record either continued review or workflow completion. Closing the check-in preserves the original result and repeat-reading history.
+5. **Document follow up.** Link a later reading from the same crew member and record either continued review or workflow completion. Closing the check-in preserves the original result and repeat-reading history.
 
 ### How the engine evaluates a check-in
 
