@@ -89,6 +89,6 @@ The `--test-api http://127.0.0.1:8009` option adds a connected measurement and a
 | --- | --- |
 | Date and branch | 15 November 2026, local `main` |
 | GitHub `main` at audit | `80682ea6d1bec17e491bbfe6afc5495c3a2bb910`. The local checkout was fast-forwarded to incorporate the team's README change before the hardening pass. |
-| Candidate build | Vite 8.3.8 public build in `frontend/dist`, entry bundle `index-DT6NJ5uH.js`. The connected crew workflow comes first on Overview, with training as a secondary action. PostgreSQL migration `0009` verified in the local test fixture. |
+| Candidate build | Vite 8.3.8 public build in `frontend/dist`, entry bundle `index-Dscj4spL.js`. The connected crew workflow comes first on Health overview, with training as a secondary action. PostgreSQL migration `0009` verified in the local test fixture. |
 | Published split | [acha.tr](https://acha.tr/) runs the integrated command center (`index-DJGI7vAu.js`). Railway remains on a build without the two NASA archive routes. The audit candidate was built locally. |
 | Release decision | **GO for training rehearsal. NO-GO for final submission with the current hosted data claims and unresolved rights.** Verify the two hosted archives, the team’s distribution/license and asset permissions, judge access and the Project tab before approving submission. |

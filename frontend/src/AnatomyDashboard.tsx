@@ -144,7 +144,7 @@ export function AnatomyDashboard({ crewId, measurements, assessments, reachable,
 
   return <section className={`anatomy-dashboard ${ready ? 'is-ready' : ''} ${stopped ? 'is-paused' : ''} ${travelling ? 'is-travelling' : ''}`} aria-label="Body systems overview">
     <header className="anatomy-toolbar">
-      <div><span className="technical-label">02 / Anatomical overview</span><h2>Body systems</h2></div>
+      <h1>Body systems</h1>
       <button className="anatomy-pause" onClick={() => setPaused(value => !value)} aria-label={paused ? 'Play body system rotation' : 'Pause body system rotation'}>{paused ? <Play size={15} /> : <Pause size={15} />}<span>{paused ? 'Play' : 'Pause'}</span></button>
     </header>
     <nav className="anatomy-navigation" aria-label="Body system views">
@@ -155,7 +155,7 @@ export function AnatomyDashboard({ crewId, measurements, assessments, reachable,
       </button>)}
     </nav>
     <div className="anatomy-data-status" role="status">
-      {reachable && failedVisibleKinds.length > 0 ? <><TriangleAlert size={13} aria-hidden="true" /><span>Couldn't load {failedVisibleKinds.map(kind => measurementLabels[kind].toLowerCase()).join(', ')} history.</span><button className="text-link" onClick={() => setRetry(value => value + 1)}>Retry</button></> : <><span className="technical-label">Observation view</span><span>Recorded data only · Not a diagnostic scan</span></>}
+      {reachable && failedVisibleKinds.length > 0 ? <><TriangleAlert size={13} aria-hidden="true" /><span>Couldn't load {failedVisibleKinds.map(kind => measurementLabels[kind].toLowerCase()).join(', ')} history.</span><button className="text-link" onClick={() => setRetry(value => value + 1)}>Retry</button></> : <><span>Recorded measurements · For reference</span></>}
     </div>
     <div className="anatomy-stage" data-phase={stage.phase} data-system={stage.index}>
       {views.map((view, index) => <div key={view.title} className={`anatomy-panel ${cardsVisible && stage.index === index ? 'is-active' : ''} ${stage.phase === 'out' && stage.index === index ? 'is-exiting' : ''}`} aria-hidden={!cardsVisible || stage.index !== index} inert={!cardsVisible || stage.index !== index}>

@@ -14,11 +14,8 @@
 .recorded-workflow-footer { background: var(--chrome); }
 .recorded-workflow-footer > div { display: grid; gap: .15rem; }
 .recorded-workflow-footer > div p { font-size: .7rem; }
-.recorded-actions, .replay-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1.1rem; padding: .65rem .85rem; border: 1px solid #234252; background: #0b1b26; border-radius: 8px; font-size: .78rem; color: #bed2df; }
-.recorded-actions { margin-bottom: 1rem; }
-.recorded-actions strong, .replay-actions strong { color: #f2f8fc; }
-.telemetry-strip .vital-grid.surface { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-.recorded-provenance { display: block; margin-top: .2rem; color: var(--muted); font-size: .69rem; }
+.replay-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1.1rem; padding: .65rem .85rem; border: 1px solid #234252; background: #0b1b26; border-radius: 8px; font-size: .78rem; color: #bed2df; }
+.replay-actions strong { color: #f2f8fc; }
 .replay-console { --replay-accent: #77deea; --replay-line: #294654; --replay-muted: #a6becd; display: grid; gap: .75rem; }
 .replay-console.orbital-pressure { --replay-accent: #8de3be; }
 .replay-console.solar-event { --replay-accent: #edca87; }
@@ -101,13 +98,11 @@
 .replay-practice .practice-state { color: #e5f4fb; }
 #fictional-check-in { scroll-margin: 4rem; }
 @media (max-width: 980px) {
-  .telemetry-strip .vital-grid.surface { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .replay-anatomy { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
   .replay-feed { grid-row: auto; grid-column: 1; border-left: 0; border-top: 1px solid var(--replay-line); }
   .replay-feed ol { max-height: 220px; }
 }
 @media (max-width: 550px) {
-  .telemetry-strip .vital-grid.surface { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .recorded-workflow-steps { grid-template-columns: minmax(0, 1fr); }
   .recorded-workflow-steps > div + div { border-left: 0; border-top: 1px solid var(--line); }
   .replay-metrics { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem; }

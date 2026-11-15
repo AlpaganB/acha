@@ -128,7 +128,9 @@ def main():
             expect(play_button).to_be_visible()
             if width == 1440:
                 screenshot(page, 'solar-handover')
-            page.get_by_role('link', name='Overview console').click()
+            if width == 390:
+                page.get_by_role('button', name='Open menu').click()
+            page.get_by_role('navigation', name='Primary navigation').get_by_role('link', name='Overview', exact=True).click()
             expect(slider).to_have_value('6')
             anatomy.get_by_role('button', name='Exit scenario').click()
             expect(start).to_be_visible()
@@ -152,7 +154,7 @@ def main():
             pending_routes = []
             page.route('**/api/v1/**', lambda route: pending_routes.append(route))
             page.goto(base)
-            expect(page.get_by_text('Service unavailable', exact=True)).to_be_visible(timeout=13_000)
+            expect(page.locator('.service-state[data-state="unreachable"]')).to_be_visible(timeout=13_000)
             expect(page.get_by_role('button', name='Retry', exact=True)).to_be_visible()
             expect(page.get_by_role('button', name='Try a 90-second training scenario')).to_be_visible()
             for route in pending_routes:
