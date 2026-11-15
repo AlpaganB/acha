@@ -48,7 +48,7 @@ The standalone demo covers the full terrestrial NEWS2 reference calculation in i
 
 | Source | How ACHA uses it |
 | --- | --- |
-| Crew entries | The API stores entered measurements and symptoms in PostgreSQL. The seed provides a crew roster and mission profiles with empty histories. |
+| Crew entries | The API stores entered measurements and symptoms in PostgreSQL. The public demo starts with eight days of synthetic readings and a completed check-in for each sample crew member. |
 | PhysioNet BIDMC | The Research page parses 481 published hospital observations and calculates the medians. **Fetch from PhysioNet** downloads the original record and recalculates them. This dataset has its own research view. [Data source and attribution](demo/DATA_SOURCE.md) |
 | NASA OSDR Rodent Research 6 | **Fetch from NASA** on the Research page loads historical ISS cabin temperature, relative humidity and ambient CO₂ from the public Environmental Data Application. [Source registry](docs/health-monitoring.md#scientific-source-registry) |
 | NASA OSDR RadLab DosTel1 | **Fetch from RadLab** loads historical instrument dose rates from the ISS Columbus module. [Source registry](docs/health-monitoring.md#scientific-source-registry) |

@@ -296,13 +296,24 @@ def test_database_health_and_demo_data(client, test_database_url):
     assert client.get("health").json() == {"status": "ok"}
     for _ in range(2):
         seed_demo_data(test_database_url)
-    expected = {"Alpagan", "Emirhan", "Asım"}
+    expected = {"Alpagan": 66, "Emirhan": 77, "Asım": 69}
     members = [row for row in client.get("crew-members").json() if row["display_name"] in expected]
     assert len(members) == len(expected)
     for member in members:
         base = f"crew-members/{member['id']}"
-        assert client.get(f"{base}/measurements").json() == []
-        assert client.get(f"{base}/assessments").json() == []
+        readings = client.get(f"{base}/measurements", params={"limit": 100}).json()
+        assert len(readings) == 48
+        assert {reading["kind"] for reading in readings} == {
+            "heart_rate", "spo2", "blood_pressure", "respiratory_rate", "body_temperature", "sleep_duration",
+        }
+        assert next(reading["value"] for reading in readings if reading["kind"] == "heart_rate") == expected[member["display_name"]]
+        assessment, = client.get(f"{base}/assessments").json()
+        assert assessment["notes"].startswith("Synthetic demo check-in.")
+        assert assessment["engine_result"]["comparisons"]["heart_rate"]["samples"] == 6
+        follow_up, = client.get(f"{base}/assessments/{assessment['id']}/follow-ups").json()
+        assert follow_up["outcome"] == "workflow_complete"
+        assert follow_up["measurement"]["crew_member_id"] == member["id"]
+        assert follow_up["measurement"]["recorded_at"] > assessment["assessed_at"]
     profiles = {row["name"]: row for row in client.get("mission-profiles").json()}
     assert profiles["Orbital Station"]["guidance_protocol_ids"] == ["demo-chest", "demo-breathing", "demo-review"]
     assert profiles["Lunar Habitat"]["guidance_protocol_ids"] == ["demo-unresponsive", "demo-urgent", "demo-review"]

@@ -154,7 +154,10 @@ function Home({ mission, player }: { mission: Mission; player: ScenarioPlayer })
   const reviewRequired = review && ['urgent', 'review', 'needs_attention'].includes(review.status)
   return <>
     <header className="overview-heading overview-header">
-      <h1>{active ? player.scenario?.title ?? 'Training scenario' : 'Health overview'}</h1>
+      <div>
+        <h1>{active ? player.scenario?.title ?? 'Training scenario' : 'Health overview'}</h1>
+        {!active && !mission.local && <p>Demo workspace · Use synthetic data only.</p>}
+      </div>
       {!active && <div className="overview-actions">
         <a className="button secondary" href="/assessment">Start assessment</a>
         <a className="button primary" href="/measurements">Record measurement</a>

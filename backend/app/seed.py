@@ -1,21 +1,22 @@
 import json
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from uuid import UUID
+from uuid import UUID, uuid5
 
 from sqlalchemy import case
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import Session
 
 from .database import make_engine
 from .models import (
-    Assessment,
+    AssessmentFollowUp,
     CrewMember,
     Measurement,
     MissionProfile,
-    assessment_measurements,
 )
+from .records import save_assessment
 from .schemas import (
     AssessmentCreate,
-    AssessmentResult,
     CrewMemberCreate,
     MeasurementCreate,
     MissionProfileCreate,
@@ -53,38 +54,58 @@ def seed_demo_data(value: str | None = None) -> None:
                 statement = insert(CrewMember).values(id=UUID(item["id"]), **row.model_dump())
                 connection.execute(statement.on_conflict_do_nothing(index_elements=[CrewMember.id]))
 
-            for item in data["measurements"]:
-                crew_id = UUID(item["crew_member_id"])
-                row = MeasurementCreate.model_validate(
-                    {key: val for key, val in item.items() if key != "crew_member_id"}
-                )
-                statement = insert(Measurement).values(crew_member_id=crew_id, **row.model_dump())
-                connection.execute(statement.on_conflict_do_nothing(index_elements=[Measurement.id]))
-
-            for item in data["assessments"]:
-                crew_id = UUID(item["crew_member_id"])
-                row = AssessmentCreate.model_validate(
-                    {key: val for key, val in item.items() if key not in {"crew_member_id", "result"}}
-                )
-                result = (
-                    AssessmentResult.model_validate(item["result"]).model_dump() if "result" in item else {}
-                )
-                statement = insert(Assessment).values(
-                    crew_member_id=crew_id, **row.model_dump(exclude={"measurement_ids"}), **result
-                )
-                inserted_id = connection.scalar(
-                    statement.on_conflict_do_nothing(index_elements=[Assessment.id]).returning(Assessment.id)
-                )
-                if inserted_id is not None and row.measurement_ids:
-                    connection.execute(
-                        insert(assessment_measurements),
-                        [
-                            {"assessment_id": inserted_id, "measurement_id": item}
-                            for item in row.measurement_ids
-                        ],
-                    )
+            with Session(bind=connection) as session:
+                for item in data["crew_members"]:
+                    seed_crew_history(session, data, item)
     finally:
         engine.dispose()
+
+
+def seed_crew_history(session: Session, data: dict, member: dict) -> None:
+    crew_id = UUID(member["id"])
+    history = data["crew_history"][member["id"]]
+    start = datetime.fromisoformat(f'{data["history_start"]}T{history["utc_time"]}').replace(tzinfo=UTC)
+    readings_by_day: list[dict[str, MeasurementCreate]] = []
+    measurements = []
+    for day, values in enumerate(history["readings"]):
+        daily = {}
+        for minute, (kind, value) in enumerate(zip(data["indicators"], values, strict=True)):
+            recorded_at = start + timedelta(days=day, minutes=minute)
+            value, diastolic = value if kind == "blood_pressure" else (value, None)
+            reading = MeasurementCreate(
+                id=uuid5(crew_id, f"demo:{recorded_at.date()}:{kind}"),
+                kind=kind,
+                value=value,
+                diastolic=diastolic,
+                recorded_at=recorded_at,
+            )
+            daily[kind] = reading
+            measurements.append({"crew_member_id": crew_id, **reading.model_dump()})
+        readings_by_day.append(daily)
+
+    session.execute(insert(Measurement).values(measurements).on_conflict_do_nothing(index_elements=[Measurement.id]))
+
+    check_in = readings_by_day[-2]
+    profile_id = UUID(member["mission_profile_id"])
+    profile = session.get_one(MissionProfile, profile_id)
+    assessment = AssessmentCreate(
+        id=uuid5(crew_id, "demo:2026-11:morning-check-in"),
+        mission_profile_id=profile_id,
+        assessed_at=max(reading.recorded_at for reading in check_in.values()) + timedelta(minutes=5),
+        measurement_ids=[reading.id for reading in check_in.values()],
+        notes=history["note"],
+    )
+    _, created = save_assessment(session, crew_id, assessment, profile, evaluate=True)
+    if created:
+        repeat = readings_by_day[-1]["heart_rate"]
+        session.execute(insert(AssessmentFollowUp).values(
+            id=uuid5(assessment.id, "demo:repeat-heart-rate"),
+            assessment_id=assessment.id,
+            measurement_id=repeat.id,
+            outcome="workflow_complete",
+            recorded_at=repeat.recorded_at + timedelta(minutes=10),
+        ))
+        session.commit()
 
 
 if __name__ == "__main__":
