@@ -16,7 +16,7 @@ test('offline navigation restores every public workspace route without intercept
     caches: { open: async () => ({ match: async url => url === 'https://acha.test/index.html' ? shell : undefined }) },
     fetch: async () => { throw new TypeError('Offline') },
   })
-  for (const path of ['/', '/monitoring', '/measurements', '/assessment', '/assessments/check-in', '/guides', '/mission', '/research', '/crew']) {
+  for (const path of ['/', '/monitoring', '/monitoring/anatomy', '/measurements', '/assessment', '/assessments/check-in', '/guides', '/mission', '/research', '/crew']) {
     let response
     handlers.get('fetch')({
       request: { url: `https://acha.test${path}`, method: 'GET', mode: 'navigate' },

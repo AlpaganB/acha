@@ -1,11 +1,10 @@
-import { ArrowLeft, ChevronRight, ShieldAlert } from 'lucide-react'
+import { ArrowLeft, ChevronRight } from 'lucide-react'
 import type { MissionProfile } from './api'
 import { guides, guideTopicId, humanize } from './content'
 
 export function EmergencyNotice() {
   return (
     <aside className="emergency-notice" aria-label="Emergency contact">
-      <ShieldAlert size={22} aria-hidden="true" />
       <div>
         <strong>In an emergency</strong>
         <p>Use your mission’s emergency communication channel and follow the approved onboard procedure.</p>
@@ -31,12 +30,11 @@ export function Guidance({ profile, guideId }: { profile?: MissionProfile; guide
           <div>
             {guide && guide.handoff.length > 0 && <>
               <h2>What to report</h2>
-              <p>When you contact the crew, share the details you already have.</p>
               <ul className="handoff-list">{guide.handoff.map(item => <li key={item}>{item}</li>)}</ul>
             </>}
             {guide ? <>
               <h2>Training guide</h2>
-              <p>For an actual incident, follow the mission’s approved onboard procedure.</p>
+              {guide.id === 'demo-review' && <p>For an actual incident, follow the mission’s approved onboard procedure.</p>}
               <ol className="handoff-list">{guide.steps.map(step => <li key={step}>{step}</li>)}</ol>
               <a className="text-link" href={guide.source} target="_blank" rel="noreferrer">Read the source online</a>
             </> : <>

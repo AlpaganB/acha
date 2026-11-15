@@ -20,15 +20,13 @@ export function RestrictedApp() {
   }, [attempt])
 
   return <main className="main-content inner-page">
-    <div className="console-statusbar"><span className="console-identity">ACHA / RESTRICTED CREW OPERATIONS</span>
+    <div className="console-statusbar"><span className="console-identity">Restricted workspace</span>
       <span className="service-state" data-state={state === 'ready' ? 'connected' : state === 'checking' ? 'checking' : 'unreachable'}>
         {state === 'ready' ? 'Service connected' : state === 'checking' ? 'Connecting' : 'Service unavailable'}
       </span>
     </div>
     <header className="page-title">
-      <span className="technical-label">Flight medicine / restricted workspace</span>
       <h1>Crew monitoring</h1>
-      <p>Restricted ACHA workspace</p>
     </header>
     {state === 'ready' && <><RestrictedLog healthReview /><details className="workspace-tools"><summary>Device integration</summary><DeviceIngest /></details></>}
     {state === 'checking' && <p className="notice" role="status">Connecting to the restricted mission service…</p>}
