@@ -42,10 +42,9 @@ function MenuIcon({ name }: { name: keyof typeof menuIcons }) {
 function Sparkline({ readings }: { readings: Measurement[] }) {
   const values = [...readings].sort((a, b) => Date.parse(a.recorded_at) - Date.parse(b.recorded_at)).map(reading => reading.value)
   if (values.length < 2) return null
-  const min = Math.min(...values), range = Math.max(...values) - min || 1
-  const coordinates = values.map((value, index) => `${values.length === 1 ? 110 : 8 + index / (values.length - 1) * 204},${36 - (value - min) / range * 26}`)
-  return <svg className="vital-sparkline" viewBox="0 0 220 46" aria-hidden="true">
-    <line x1="0" x2="220" y1="40" y2="40" className="sparkline-base" />
+  const min = Math.min(...values), range = Math.max(...values) - min
+  const coordinates = values.map((value, index) => `${4 + index / (values.length - 1) * 104},${range ? 23 - (value - min) / range * 18 : 14}`)
+  return <svg className="vital-sparkline" viewBox="0 0 112 28" aria-hidden="true">
     <polyline points={coordinates.join(' ')} fill="none" stroke="currentColor" strokeWidth="2" />
     <circle cx={coordinates.at(-1)!.split(',')[0]} cy={coordinates.at(-1)!.split(',')[1]} r="3" fill="currentColor" />
   </svg>
@@ -116,8 +115,8 @@ function CrewMonitoring({ mission, onOpenScenario }: { mission: Mission; onOpenS
   </>
 }
 
-function LatestMeasurements({ measurements, pending, available, local, profile }: {
-  measurements: Measurement[]; pending: boolean; available: boolean; local: boolean; profile?: MissionProfile
+function LatestMeasurements({ measurements, pending, available, profile }: {
+  measurements: Measurement[]; pending: boolean; available: boolean; profile?: MissionProfile
 }) {
   return (
     <section className="overview-measurements" aria-labelledby="measurements-heading">
@@ -125,7 +124,7 @@ function LatestMeasurements({ measurements, pending, available, local, profile }
         <h2 id="measurements-heading">Latest measurements</h2>
         <a className="text-link" href="/measurements">View history</a>
       </div>
-      <dl className="overview-readings" aria-busy={pending}>
+      <dl className="surface overview-readings" aria-busy={pending}>
         {overviewKinds.map(kind => {
           const readings = measurements.filter(item => item.kind === kind)
             .sort((a, b) => Date.parse(b.recorded_at) - Date.parse(a.recorded_at))
@@ -133,22 +132,18 @@ function LatestMeasurements({ measurements, pending, available, local, profile }
           const label = overviewLabels[kind] ?? measurementLabels[kind]
           const interval = profile?.measurement_schedules?.find(schedule => schedule.kind === kind)?.interval_minutes
           const overdue = reading && interval != null && Date.now() - Date.parse(reading.recorded_at) >= interval * 60_000
-          return <div className="overview-reading surface" key={kind}>
+          return <div className="overview-reading" key={kind}>
             <dt><a href={`/measurements?kind=${kind}`}>{label}</a>{overdue && <span className="reading-due">Due</span>}</dt>
             {reading ? <dd>
-              <div className="overview-reading-value">
-                <span className="vital-value">{reading.value}{reading.diastolic !== null && `/${reading.diastolic}`}<small>{reading.unit}</small></span>
-                <Sparkline readings={readings.slice(0, 12)} />
-              </div>
+              <span className="vital-value">{reading.value}{reading.diastolic !== null && `/${reading.diastolic}`}<small>{reading.unit}</small></span>
               <time dateTime={reading.recorded_at}>{formatDate(reading.recorded_at)}</time>
+              <Sparkline readings={readings.slice(0, 12)} />
             </dd> : <dd>
-              <span className="reading-dash" aria-hidden="true">—</span>
               <span className="reading-caption">{pending ? 'Loading…' : available ? 'No reading' : 'Unavailable'}</span>
             </dd>}
           </div>
         })}
       </dl>
-      {local && <p className="overview-source">Synthetic training readings</p>}
     </section>
   )
 }
@@ -170,24 +165,17 @@ function Home({ mission, player }: { mission: Mission; player: ScenarioPlayer })
         <strong>{review.status === 'urgent' ? 'Urgent assessment' : 'Assessment needs review'}</strong>
         <span>Open assessment</span>
       </a>}
-      {!active && <RecordedWorkflow mission={mission} onStartTraining={() => player.dispatch({ type: 'open', id: 'lunar-fatigue', play: true })} />}
       <LatestMeasurements measurements={mission.measurements} pending={mission.measurementsPending}
-        available={mission.measurementsAvailable} local={mission.local} profile={mission.profile} />
-      <div className="overview-lower">
-        <section className="surface briefing-records overview-records" aria-labelledby="recent-heading">
-          <div className="section-heading">
-            <h2 id="recent-heading">Recent assessments</h2>
-            <a className="text-link" href="/assessments">View all</a>
-          </div>
-          <Records records={mission.history} queued={mission.queued} limit={3} pending={mission.historyPending}
-            available={mission.historyAvailable} syncIssues={mission.syncIssues} />
-        </section>
-        <section className="surface overview-links" aria-labelledby="workspace-heading">
-          <h2 id="workspace-heading">Crew</h2>
-          <a href="/crew">{mission.selected?.display_name ?? 'Select a crew member'}</a>
-          <a href="/guides" className="overview-guide">Emergency guides</a>
-        </section>
-      </div>
+        available={mission.measurementsAvailable} profile={mission.profile} />
+      <section className="surface briefing-records overview-records" aria-labelledby="recent-heading">
+        <div className="section-heading">
+          <h2 id="recent-heading">Recent assessments</h2>
+          <a className="text-link" href="/assessments">View all</a>
+        </div>
+        <Records records={mission.history} queued={mission.queued} limit={3} pending={mission.historyPending}
+          available={mission.historyAvailable} syncIssues={mission.syncIssues} />
+      </section>
+      <RecordedWorkflow mission={mission} onStartTraining={() => player.dispatch({ type: 'open', id: 'lunar-fatigue', play: true })} />
     </div>
   </>
 }
@@ -414,11 +402,13 @@ function MissionApp({ local, changeMode, modeError }: { local: boolean; changeMo
           </a>
       </aside>
       <main ref={main} id="main-content" className={`main-content ${home ? 'home' : 'inner-page'}`} tabIndex={-1} inert={isMobile && mobileMenuOpen}>
-        <div className="console-statusbar" aria-label="Mission service status">
-          <div className="console-context">{replay && <span className="replay-context">{replay.subject} · {missionElapsed(player.simulatedTime!)}</span>}<span className="service-state" data-state={replay || local ? 'simulation' : !mission.online ? 'offline' : mission.connection}>
-            {replay || local ? 'Training data' : !mission.online ? 'Offline' : mission.connection === 'connected' ? 'Sample workspace' : mission.connection === 'checking' ? 'Connecting' : 'Unavailable'}
-          </span>{!!mission.queued.length && <a className="text-link" href="/assessments">{mission.queued.length} pending sync</a>}</div>
-        </div>
+        {(replay || !mission.online || !!mission.queued.length) && <div className="console-statusbar" aria-label="Workspace status">
+          <div className="console-context">
+            {replay && <span className="replay-context">{replay.subject} · {missionElapsed(player.simulatedTime!)}</span>}
+            {!mission.online && <span className="service-state" data-state="offline">Offline</span>}
+            {!!mission.queued.length && <a className="text-link" href="/assessments">{mission.queued.length} pending sync</a>}
+          </div>
+        </div>}
         {local && !scenarios && !replay && <div className="connection-notice scenario-banner"><strong>Training workspace</strong>
           <button className="text-link" onClick={() => changeMode(false)}>Return to mission service</button></div>}
         {!scenarios && !replay && !mission.reachable && (mission.connection !== 'checking' || !mission.online) && <div className="connection-notice" role="status">{mission.online ? 'Couldn’t refresh mission-service records.' : 'You’re offline. This device can show any records it has cached.'}{mission.online && <button className="text-link" onClick={() => void mission.refreshWorkspace()}>Retry</button>}{!home && <button className="text-link" onClick={() => changeMode(true)}>Open synthetic scenario</button>}</div>}
