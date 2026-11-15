@@ -1,35 +1,33 @@
-/* The anatomy instrument uses one shared grid footprint for every system. */
-.anatomy-dashboard { min-width: 0; border: 1px solid #51405F; border-radius: 6px; background: #130F23; overflow: hidden; }
-.anatomy-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px 12px; background: #251635; border-bottom: 1px solid var(--line); }
-.anatomy-toolbar .technical-label { font-size: 8px; color: #B6A1CD; }
-.anatomy-toolbar h2 { margin-top: 4px; font-size: 19px; font-weight: 550; letter-spacing: -.02em; }
-.anatomy-pause { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 7px 10px; border: 1px solid #5A466A; border-radius: 4px; color: var(--muted); background: #1C132A; font-family: var(--mono); font-size: 10px; }
-.anatomy-pause:hover { color: var(--text); border-color: #A28ABA; }
-.anatomy-navigation { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: #382A47; border-bottom: 1px solid var(--line); }
-.anatomy-navigation button { position: relative; display: flex; align-items: center; gap: 8px; min-height: 68px; padding: 10px 12px 24px; border: 0; background: #1A1329; color: var(--muted); text-align: left; font-size: 11px; line-height: 1.5; }
-.anatomy-navigation button:hover { background: #281B39; }
-.anatomy-navigation button[aria-current] { color: #DED1F4; background: #2B1B3B; box-shadow: inset 0 2px 0 #B39BCD; }
-.anatomy-tab-number { font-family: var(--mono); font-size: 9px; color: #A28DB8; }
+.anatomy-dashboard { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius-panel); background: var(--paper); overflow: hidden; }
+.anatomy-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px 12px; background: var(--paper); border-bottom: 1px solid var(--line); }
+
+.anatomy-toolbar :is(h1, h2) { margin-top: 4px; font-size: 19px; font-weight: 550; letter-spacing: -.02em; }
+.anatomy-pause { display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); background: var(--chrome); font-family: var(--mono); font-size: 10px; }
+.anatomy-pause:hover { color: var(--text); border-color: var(--accent); }
+.anatomy-navigation { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border-bottom: 1px solid var(--line); }
+.anatomy-navigation button { position: relative; display: flex; align-items: center; gap: 8px; min-height: 68px; padding: 10px 12px 24px; border: 0; background: var(--chrome); color: var(--muted); text-align: left; font-size: 11px; line-height: 1.5; }
+.anatomy-navigation button:hover { background: var(--raised); }
+.anatomy-navigation button[aria-current] { color: var(--text); background: var(--accent-light); box-shadow: inset 0 2px 0 var(--accent); }
+
 .anatomy-progress-rail { position: absolute; inset: auto 12px 4px; display: flex; align-items: center; gap: 8px; height: 15px; }
-.anatomy-progress { flex: 1; height: 1px; background: #493952; overflow: hidden; }
-.anatomy-progress > span { display: block; height: 100%; width: 100%; background: #BBA4DF; transform-origin: left; animation: anatomy-progress 4000ms linear both; }
-.anatomy-data-status { display: flex; align-items: center; flex-wrap: wrap; align-content: center; gap: 5px 8px; height: 42px; padding: 6px 16px; color: var(--muted); background: #100D1D; border-bottom: 1px solid #30243D; font-size: 9px; line-height: 1.6; overflow-y: auto; }
-.anatomy-data-status .technical-label { font-size: 8px; margin-right: auto; }
+.anatomy-progress { flex: 1; height: 1px; background: var(--line); overflow: hidden; }
+.anatomy-progress > span { display: block; height: 100%; width: 100%; background: var(--accent); transform-origin: left; animation: anatomy-progress 4000ms linear both; }
+.anatomy-data-status { display: flex; align-items: center; flex-wrap: wrap; align-content: center; gap: 5px 8px; height: 42px; padding: 6px 16px; color: var(--muted); background: var(--chrome); border-bottom: 1px solid var(--line); font-size: 9px; line-height: 1.6; overflow-y: auto; }
+
 .anatomy-data-status > svg { color: var(--warning); }
 .anatomy-data-status .text-link { font-size: 10px; }
-/* Invisible panels still contribute their natural size: no clipping or layout jumps. */
-.anatomy-stage { position: relative; display: grid; isolation: isolate; min-height: 420px; background: radial-gradient(ellipse at 50% 45%, #29134399 0, transparent 58%), #100E20; }
+.anatomy-stage { position: relative; display: grid; isolation: isolate; min-height: 420px; background: radial-gradient(ellipse at 50% 45%, #24374c70 0, transparent 62%), #14171c; }
 .anatomy-panel, .anatomy-camera-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 1.25fr) minmax(0, 1fr); gap: 12px; padding: 16px; }
 .anatomy-panel { grid-area: 1 / 1; align-items: start; min-height: 420px; visibility: hidden; pointer-events: none; }
 .anatomy-panel.is-active, .anatomy-panel.is-exiting { visibility: visible; }
 .anatomy-panel.is-active { pointer-events: auto; }
 .anatomy-column { display: grid; gap: 10px; min-width: 0; position: relative; z-index: 2; align-self: center; }
-.anatomy-card { min-width: 0; position: relative; padding: 13px; border: 1px solid #44354F; border-radius: 4px; background: #20172E; opacity: 0; }
+.anatomy-card { min-width: 0; position: relative; padding: 13px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper); opacity: 0; }
 .anatomy-panel.is-active .anatomy-card { opacity: 1; }
-.anatomy-column-right .anatomy-card { background: #151B2C; border-color: #344151; }
+.anatomy-column-right .anatomy-card { background: var(--paper); border-color: var(--line); }
 .anatomy-card h3 { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; font-family: 'Geist Variable', sans-serif; font-size: 11px; font-weight: 500; line-height: 1.5; }
-.anatomy-card h3 > svg { flex-shrink: 0; color: #B7A1CC; }
-.anatomy-column-right .anatomy-card h3 > svg { color: #90BFCB; }
+
+
 .anatomy-reading { display: grid; gap: 7px; }
 .anatomy-reading > span { color: var(--muted); font-size: 10px; }
 .anatomy-reading > strong { font-family: var(--mono); font-variant-numeric: tabular-nums lining-nums; font-size: clamp(25px, 2.6vw, 34px); font-weight: 450; line-height: 1.3; letter-spacing: -.04em; }
@@ -39,7 +37,6 @@
 .anatomy-visual { position: relative; display: flex; align-items: center; justify-content: center; align-self: stretch; margin: 0; min-width: 0; min-height: 0; }
 .anatomy-camera-grid { position: absolute; inset: 0; pointer-events: none; }
 .anatomy-camera { grid-column: 2; }
-/* Rectangular contain viewport keeps jaw, shoulders and full skeleton in frame. */
 .anatomy-image-window { position: relative; width: 100%; height: 100%; max-height: 390px; isolation: isolate; overflow: hidden; }
 .anatomy-skeleton, .anatomy-region { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; }
 .anatomy-region { display: flex; align-items: center; justify-content: center; }
@@ -62,9 +59,9 @@
 .anatomy-empty { color: var(--muted); font-size: 11px; line-height: 1.7; margin-bottom: 12px; }
 .anatomy-footnote { color: var(--muted); font-family: var(--mono); font-size: 9px; line-height: 1.6; margin: 8px 0; }
 .anatomy-plot { display: block; width: 100%; height: 65px; margin-top: 6px; overflow: visible; }
-.anatomy-plot line { stroke: #44354F; stroke-dasharray: 2 5; stroke-width: .8; }
+.anatomy-plot line { stroke: var(--line); stroke-dasharray: 2 5; stroke-width: .8; }
 .anatomy-plot polyline { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.anatomy-plot circle { fill: var(--accent); stroke: #20172E; stroke-width: 1.5; }
+.anatomy-plot circle { fill: var(--accent); stroke: var(--paper); stroke-width: 1.5; }
 .anatomy-column-right .anatomy-plot polyline { stroke: var(--teal); }
 .anatomy-column-right .anatomy-plot circle { fill: var(--teal); }
 .oxygen-readings { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 10px; font-size: 9px; }
@@ -75,9 +72,9 @@
 .anatomy-symptoms li { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; padding: 7px 0; font-size: 11px; border-bottom: 1px solid var(--line); }
 .anatomy-symptoms small { color: var(--muted); font-family: var(--mono); font-size: 9px; }
 .anatomy-card.anatomy-attention { border-color: #947546; border-left: 2px solid var(--warning); }
-.anatomy-attention h3 > svg { color: var(--warning); }
+
 .anatomy-card.anatomy-urgent { border-color: #9C5B6C; border-left-color: var(--danger); }
-.anatomy-urgent h3 > svg { color: var(--danger); }
+
 .anatomy-assessment-label { text-transform: capitalize; font-size: 13px; line-height: 1.6; margin-bottom: 10px; }
 .system-signal { width: 20px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; opacity: .5; }
 .signal-base { opacity: .4; }
@@ -100,8 +97,8 @@
 .anatomy-dashboard.is-paused .anatomy-progress > span, .anatomy-dashboard:not(.is-ready) .anatomy-progress > span { animation-play-state: paused !important; }
 .anatomy-dashboard.is-paused .anatomy-card, .anatomy-dashboard.is-paused .anatomy-card > * { animation-play-state: paused !important; }
 @media (hover: hover) {
-  .anatomy-card:hover { background: #291D39; border-color: #856998; }
-  .anatomy-column-right .anatomy-card:hover { background: #1C2437; border-color: #648894; }
+  .anatomy-card:hover { background: var(--raised); border-color: var(--accent); }
+  .anatomy-column-right .anatomy-card:hover { background: var(--raised); border-color: var(--accent); }
   .anatomy-card.anatomy-attention:hover { border-color: var(--warning); }
   .anatomy-card.anatomy-urgent:hover { border-color: var(--danger); }
 }
@@ -123,9 +120,9 @@
 }
 @media (max-width: 620px) {
   .anatomy-toolbar { padding: 12px; }
-  .anatomy-toolbar h2 { font-size: 18px; }
+  .anatomy-toolbar :is(h1, h2) { font-size: 18px; }
   .anatomy-navigation button { display: block; padding: 9px 8px 23px; font-size: 9px; min-height: 78px; }
-  .anatomy-tab-number { display: block; font-size: 8px; }
+
   .anatomy-progress-rail { inset-inline: 8px; }
   .anatomy-panel, .anatomy-camera-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: 270px auto; gap: 10px; padding: 12px; }
   .anatomy-visual-space, .anatomy-camera { grid-row: 1; grid-column: 1 / -1; height: 270px; }

@@ -154,10 +154,11 @@ function Home({ mission, player }: { mission: Mission; player: ScenarioPlayer })
   const reviewRequired = review && ['urgent', 'review', 'needs_attention'].includes(review.status)
   return <>
     <header className="overview-heading overview-header">
-      <div>
-        <h1>{active ? player.scenario?.title ?? 'Training scenario' : 'Health overview'}</h1>
-        {!active && <p>Record crew observations, run an assessment and document follow-up.</p>}
-      </div>
+      <h1>{active ? player.scenario?.title ?? 'Training scenario' : 'Health overview'}</h1>
+      {!active && <div className="overview-actions">
+        <a className="button secondary" href="/assessment">Start assessment</a>
+        <a className="button primary" href="/measurements">Record measurement</a>
+      </div>}
     </header>
     {active && <ScenarioConsole player={player} embedded />}
     <div hidden={active} className="overview-workspace">
@@ -167,6 +168,8 @@ function Home({ mission, player }: { mission: Mission; player: ScenarioPlayer })
       </a>}
       <LatestMeasurements measurements={mission.measurements} pending={mission.measurementsPending}
         available={mission.measurementsAvailable} profile={mission.profile} />
+      {!active && <AnatomyDashboard embedded crewId={mission.selected?.id} measurements={mission.measurements}
+        assessments={mission.history} reachable={mission.reachable} load={mission.records.measurements} />}
       <section className="surface briefing-records overview-records" aria-labelledby="recent-heading">
         <div className="section-heading">
           <h2 id="recent-heading">Recent assessments</h2>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, ArrowRight, ChevronRight, Plus, RefreshCw, Info, CircleCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, ChevronRight, Plus, RefreshCw, Info, CircleCheck, TriangleAlert, Clock3 } from 'lucide-react'
 import { ExternalAssessmentResult } from './WorkspaceTools'
 import { api, type Assessment, type EngineFinding, type Measurement } from './api'
 import { AssessmentFollowUp } from './AssessmentFollowUp'

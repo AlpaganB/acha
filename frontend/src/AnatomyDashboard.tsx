@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { Activity, ChevronRight, HeartPulse, Moon, Pause, Play, Thermometer, TriangleAlert, Waves } from 'lucide-react'
+import { Activity, ChevronRight, Pause, Play, TriangleAlert } from 'lucide-react'
 import { api, type Assessment, type Measurement } from './api'
 import { formatDate, measurementLabels, symptomLabel } from './content'
 import skeleton from './assets/full-body-skeleton.webp'
@@ -61,7 +61,7 @@ function HistoryPlot({ records, kind }: { records: Measurement[]; kind: string }
 
 function SymptomCard({ assessment, codes, title }: { assessment?: Assessment; codes?: string[]; title: string }) {
   const reported = assessment?.symptoms.filter(item => !codes || codes.includes(item.code)) ?? []
-  return <article className="anatomy-card"><h3><Waves size={15} /> {title}</h3>
+  return <article className="anatomy-card"><h3>{title}</h3>
     {reported.length ? <ul className="anatomy-symptoms">{reported.map(item => <li key={item.code}><span>{symptomLabel(item.code)}</span><small>{item.severity === null ? 'Reported' : `${item.severity}/10`}</small></li>)}</ul>
       : <p className="anatomy-empty">{assessment ? 'None reported in the last check-in.' : 'No check-ins yet.'}</p>}
     {assessment && <p className="anatomy-footnote">Latest check-in · {formatDate(assessment.assessed_at)}</p>}
@@ -69,9 +69,9 @@ function SymptomCard({ assessment, codes, title }: { assessment?: Assessment; co
   </article>
 }
 
-export function AnatomyDashboard({ crewId, measurements, assessments, reachable, load = api.measurements, suspended = false }: {
+export function AnatomyDashboard({ crewId, measurements, assessments, reachable, load = api.measurements, suspended = false, embedded = false }: {
   crewId?: string; measurements: Measurement[]; assessments: Assessment[]; reachable: boolean
-  load?: typeof api.measurements; suspended?: boolean
+  load?: typeof api.measurements; suspended?: boolean; embedded?: boolean
 }) {
   const [stage, setStage] = useState(() => initialStage(false))
   const [reducedMotion, setReducedMotion] = useState(() => matchMedia('(prefers-reduced-motion: reduce)').matches)
@@ -144,36 +144,38 @@ export function AnatomyDashboard({ crewId, measurements, assessments, reachable,
 
   return <section className={`anatomy-dashboard ${ready ? 'is-ready' : ''} ${stopped ? 'is-paused' : ''} ${travelling ? 'is-travelling' : ''}`} aria-label="Body systems overview">
     <header className="anatomy-toolbar">
-      <h1>Body systems</h1>
+      {embedded ? <h2>Body systems</h2> : <h1>Body systems</h1>}
       <button className="anatomy-pause" onClick={() => setPaused(value => !value)} aria-label={paused ? 'Play body system rotation' : 'Pause body system rotation'}>{paused ? <Play size={15} /> : <Pause size={15} />}<span>{paused ? 'Play' : 'Pause'}</span></button>
     </header>
     <nav className="anatomy-navigation" aria-label="Body system views">
       {views.slice(1).map((view, index) => <button key={view.title} aria-current={(stage.phase === 'intro' || stage.phase === 'wide' || stage.phase === 'out' ? stage.target : stage.index) === index + 1 ? 'step' : undefined}
         onClick={() => { setPaused(true); setStage(current => selectStage(current, index + 1, true)) }}>
-        <span className="anatomy-tab-number">0{index + 1}</span><span>{view.title}</span>
+        <span>{view.title}</span>
         <span className="anatomy-progress-rail" aria-hidden="true"><SystemSignal index={index + 1} /><span className="anatomy-progress">{stage.phase === 'hold' && stage.index === index + 1 && <span key={stage.sequence} />}</span></span>
       </button>)}
     </nav>
-    <div className="anatomy-data-status" role="status">
-      {reachable && failedVisibleKinds.length > 0 ? <><TriangleAlert size={13} aria-hidden="true" /><span>Couldn't load {failedVisibleKinds.map(kind => measurementLabels[kind].toLowerCase()).join(', ')} history.</span><button className="text-link" onClick={() => setRetry(value => value + 1)}>Retry</button></> : <><span>Recorded measurements · For reference</span></>}
-    </div>
+    {reachable && failedVisibleKinds.length > 0 && <div className="anatomy-data-status" role="status">
+      <TriangleAlert size={13} aria-hidden="true" />
+      <span>Couldn't load {failedVisibleKinds.map(kind => measurementLabels[kind].toLowerCase()).join(', ')} history.</span>
+      <button className="text-link" onClick={() => setRetry(value => value + 1)}>Retry</button>
+    </div>}
     <div className="anatomy-stage" data-phase={stage.phase} data-system={stage.index}>
       {views.map((view, index) => <div key={view.title} className={`anatomy-panel ${cardsVisible && stage.index === index ? 'is-active' : ''} ${stage.phase === 'out' && stage.index === index ? 'is-exiting' : ''}`} aria-hidden={!cardsVisible || stage.index !== index} inert={!cardsVisible || stage.index !== index}>
         <div className="anatomy-column anatomy-column-left">
           {index === 0 && <>
-            <article className="anatomy-card"><h3><Thermometer size={15} /> Body temperature</h3>{cardReading('body_temperature')}</article>
-            <article className={`anatomy-card ${flagged ? 'anatomy-attention' : ''} ${assessment?.status === 'urgent' ? 'anatomy-urgent' : ''}`}><h3><TriangleAlert size={15} /> Latest assessment</h3>
+            <article className="anatomy-card"><h3>Body temperature</h3>{cardReading('body_temperature')}</article>
+            <article className={`anatomy-card ${flagged ? 'anatomy-attention' : ''} ${assessment?.status === 'urgent' ? 'anatomy-urgent' : ''}`}><h3>Latest assessment</h3>
               <p className="anatomy-assessment-label">{assessment ? assessment.status.replaceAll('_', ' ') : 'No assessment yet'}</p>
               {assessment?.rationale && <p className="anatomy-empty">{assessment.rationale}</p>}
               <a className="text-link" href={assessment ? `/assessments/${assessment.id}` : '/assessment'}>Review check-in <ChevronRight size={12} /></a>
             </article>
           </>}
           {index === 1 && <>
-            <article className="anatomy-card"><h3><HeartPulse size={15} /> Heart rate</h3>{cardReading('heart_rate')}<HistoryPlot records={records} kind="heart_rate" /></article>
-            <article className="anatomy-card"><h3><Activity size={15} /> Blood pressure</h3>{cardReading('blood_pressure')}</article>
+            <article className="anatomy-card"><h3>Heart rate</h3>{cardReading('heart_rate')}<HistoryPlot records={records} kind="heart_rate" /></article>
+            <article className="anatomy-card"><h3>Blood pressure</h3>{cardReading('blood_pressure')}</article>
           </>}
           {index === 2 && <>
-            <article className="anatomy-card"><h3><Moon size={15} /> Sleep duration</h3>{cardReading('sleep_duration', 'Previous 24 hours')}<HistoryPlot records={records} kind="sleep_duration" /></article>
+            <article className="anatomy-card"><h3>Sleep duration</h3>{cardReading('sleep_duration', 'Previous 24 hours')}<HistoryPlot records={records} kind="sleep_duration" /></article>
           </>}
           {index === 3 && <SymptomCard title="Digestive check-in" assessment={assessment} codes={['nausea', 'abdominal_discomfort', 'constipation', 'diarrhea']} />}
         </div>
@@ -181,7 +183,7 @@ export function AnatomyDashboard({ crewId, measurements, assessments, reachable,
         <div className="anatomy-column anatomy-column-right">
           {index === 0 && <SymptomCard title="Reported concerns" assessment={assessment} />}
           {index === 1 && <>
-            <article className="anatomy-card"><h3><Waves size={15} /> {measurementLabels.spo2}</h3>{cardReading('spo2')}<HistoryPlot records={records} kind="spo2" />
+            <article className="anatomy-card"><h3>{measurementLabels.spo2}</h3>{cardReading('spo2')}<HistoryPlot records={records} kind="spo2" />
               {records.some(record => record.kind === 'spo2') && <div className="oxygen-readings"><span>Recent oxygen readings</span>{records.filter(record => record.kind === 'spo2').slice(0, 3).map(record => <div key={record.id}><time dateTime={record.recorded_at}>{formatDate(record.recorded_at)}</time><strong>{record.value}%</strong></div>)}</div>}
             </article>
           </>}

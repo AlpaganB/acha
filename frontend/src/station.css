@@ -1,4 +1,3 @@
-/* Shared crew workspace theme. */
 :root {
   color: #ECECE8; background: #171716;
   --text: #ECECE8; --muted: #AEAEA7; --line: #373735;
@@ -174,7 +173,8 @@ select option { background: var(--chrome); color: var(--text); }
 .overview-alert { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 12px 15px; margin-bottom: 20px; border: 1px solid var(--line); border-left: 3px solid var(--warning); border-radius: var(--radius-control); background: var(--warning-bg); }
 .overview-alert[data-urgent='true'] { background: var(--error-bg); border-left-color: var(--danger); }
 .overview-alert span { text-decoration: underline; }
-.overview-records { margin-top: 24px; overflow: hidden; }
+.overview-workspace > .anatomy-dashboard, .overview-records { margin-top: 24px; }
+.overview-records { overflow: hidden; }
 .overview-records > .section-heading { min-height: 48px; }
 .monitoring-scenario-link { margin-bottom: 16px; }
 .scenario-meta { color: var(--muted); font-size: 12px; }
