@@ -1,98 +1,62 @@
 <p align="center">
-  <img src="frontend/public/acha.svg" width="80" height="80" alt="ACHA application mark">
+  <img src="frontend/public/acha.svg" width="72" height="72" alt="">
 </p>
 
 <h1 align="center">ACHA</h1>
 
 <p align="center">
   <strong>Autonomous Crew Health Assistant</strong><br>
-  Crew health check-ins for long duration space missions.
+  Crew health check-ins for missions far from Earth.
 </p>
 
 <p align="center">
-  <a href="https://acha.tr/">Open the Website</a> ·
-  <a href="https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/">NASA Space Apps 2026</a>
+  <a href="https://acha.tr/">Open the demo</a> ·
+  <a href="https://acha.tr/?scenario=lunar-fatigue&amp;step=3">Replay Lunar Fatigue</a> ·
+  <a href="docs/development.md">Run locally</a>
 </p>
 
-<p align="center">
-  <img src="docs/assets/screenshots/release/command-center-desktop.png" width="100%" alt="ACHA's synthetic lunar training replay showing the brain view, heart-rate comparison, and mission events">
-</p>
+<img src="docs/assets/screenshots/lunar-fatigue.png" alt="ACHA Lunar Fatigue replay showing the provisional heart-rate comparison, checkpoint timeline and mission events" width="1440">
 
-When a crew is far from Earth, its members may need to assess health changes before a flight surgeon can respond. ACHA lets crew members record measurements, compare them with their own recent readings, and review findings and related training guides.
+When communication with Earth is delayed, a crew needs to see what changed, review the evidence, and document what happened next. ACHA brings that sequence into one workspace. It was built for the **2026 NASA Space Apps Challenge** brief on astronaut health monitoring. The team’s Space Apps history includes a **2025 Local Event win for NovaCast**. [2026 challenge brief](https://www.spaceappschallenge.org/2026/challenges/health-monitoring-software/) · [NovaPulse team](https://www.spaceappschallenge.org/2025/find-a-team/novapulse/) · [Team announcement](https://tr.linkedin.com/company/stack-eleven)
 
-The web app records measurements and submits assessments through an API. The standalone onboard demo runs the assessment engine on a local workstation so the crew can complete a check-in during a simulated loss of contact with Earth.
+## Try a crew check-in
 
-**Use the connected workspace.** On Overview, use **Record**, **Assess**, and **Follow up** to move from a saved reading to an assessment and then link a repeat reading. The cards use the selected crew member’s records. The public workspace is shared and accepts sample readings only.
+Open the [Lunar Fatigue checkpoint](https://acha.tr/?scenario=lunar-fatigue&step=3). The fictional crew member’s heart rate is **83 bpm** against a **66 bpm** training reference. Activity and posture are missing, so the comparison is provisional.
 
-**Replay a space mission.** From Overview, select **Try a 90-second training scenario**. Lunar Fatigue plays inside Body systems. In the same panel, switch to Orbital Pressure or Solar Relay Outage. Use **Pause**, **Next**, **Previous**, or the timeline slider to inspect readings, missing samples, and mission events. The sidebar’s **Scenarios** page also offers full replay links. The fictional replays work offline after the app shell has been cached. [Open the live Lunar Fatigue review checkpoint](https://acha.tr/?scenario=lunar-fatigue&step=3)
+1. Open the fictional check-in and advance to the resting repeat.
+2. Record the **72 bpm** reading and link it to the original check-in.
+3. Close the follow-up to document completion. The original reading and its repeat remain linked in this browser.
 
-**Practice the check-in.** At the Lunar Fatigue review, open the fictional assessment, step to the resting repeat, save and link it, then close the follow-up. These explicit steps save fictional records in this browser. **Exit scenario** restores the Overview’s recorded workspace. The Crew Monitoring page also offers a separate browser-local practice workspace.
+Use **Training** to replay **Orbital Pressure**, where cabin measurements drop out mid-event, or **Solar Relay Outage**, where a simulated handover waits for contact to return.
 
-The latest public audit verified the training replays on `acha.tr`. Both NASA archive endpoints returned HTTP 404 from the current Railway deployment. The same routes and historical NASA archives work through the local API. See the [competition handoff](docs/competition-release.md) for verification and release steps.
+## Three ways to use ACHA
 
-## How a check-in works
-
-1. **Choose a crew member.** A mission profile supplies equipment, constraints, and guidance for the current environment.
-2. **Record a reading.** Save heart rate, respiratory rate, blood oxygen saturation, blood pressure, body temperature, or sleep duration. Each reading has a unit and a timestamp and stays in that crew member's history.
-3. **Submit an assessment.** Select saved readings, report symptoms, or combine both. The engine evaluates the available inputs and reports missing information.
-4. **Review the result.** Read the rationale and suggested next step, then open the training guide when one is linked. Previous assessments preserve the mission profile and inputs used at the time.
-5. **Document follow up.** Link a later reading from the same crew member and record either continued review or workflow completion. Closing the check-in preserves the original result and repeat-reading history.
-
-### How the engine evaluates a check-in
-
-The web app applies symptom rules and checks supported vital signs against the NEWS2 reference. It saves the inputs, result, and rules used. When at least five earlier readings of the same kind are available for the same crew member, the app shows how the current reading differs from the median of those readings over the preceding 30 days. Blood pressure comparisons use systolic values. The comparison is descriptive.
-
-The standalone demo covers the full terrestrial NEWS2 reference calculation in its test scenarios. The mission-service form displays incomplete scoring when required observations are missing. The browser-only scenario uses descriptive daily medians and provides no clinical score. The mission profiles and response mappings are training settings. [NEWS2 sources and scope](demo/NEWS2_SOURCES.md)
-
-## Data and evidence
-
-| Source | How ACHA uses it |
+| Mode | What you can do |
 | --- | --- |
-| Crew entries | The API stores entered measurements and symptoms in PostgreSQL. The public demo starts with eight days of synthetic readings and a completed check-in for each sample crew member. |
-| PhysioNet BIDMC | The Research page parses 481 published hospital observations and calculates the medians. **Fetch from PhysioNet** downloads the original record and recalculates them. This dataset has its own research view. [Data source and attribution](demo/DATA_SOURCE.md) |
-| NASA OSDR Rodent Research 6 | **Fetch from NASA** on the Research page loads historical ISS cabin temperature, relative humidity and ambient CO₂ from the public Environmental Data Application. [Source registry](docs/health-monitoring.md#scientific-source-registry) |
-| NASA OSDR RadLab DosTel1 | **Fetch from RadLab** loads historical instrument dose rates from the ISS Columbus module. [Source registry](docs/health-monitoring.md#scientific-source-registry) |
-| ACHA pressure scenario | **Mission → Review cabin pressure** shows a synthetic cabin timeline, measured-interval calculations, and comparison with a fictional resting baseline. The scenario runs offline after the app shell is cached. [Analysis method](docs/health-monitoring.md#pressure-analysis-and-interpretation) |
-| Mission observations | **Mission → Mission observations** compares synthetic sleep, cognition, workload, physiology and environment. An optional restricted log supports manual measurements and clinical/operational events. [Restricted log setup](docs/health-monitoring.md#restricted-log-setup) |
-| NASA Human Research Program | Spaceflight hazards and Earth-independent medical operations inform the choice of measurements and the onboard workflow. [NASA hazards](https://www.nasa.gov/hrp/hazards/) · [NASA risks](https://www.nasa.gov/hrp/risks/) · [NASA medical operations research](https://www.nasa.gov/centers-and-facilities/ames/ames-science/ames-space-biosciences/a-clinical-decision-support-system-for-earth-independent-medical-operations/) |
+| Connected workspace | Record measurements, review a crew member’s recent history, assess readings and symptoms, and link a follow-up. FastAPI evaluates the check-in and stores the inputs, result and rationale. |
+| Browser training | Step through three scripted missions and practice a follow-up with fictional data. Replays work offline after the app shell is cached. Scenario comparisons are descriptive. |
+| Standalone onboard demo | Run the Python assessment engine and SQLite on a local workstation. Practice a check-in and simulated ground handover without an internet connection. [Onboard quickstart](demo/START_HERE.md) |
 
-<details>
-<summary>See the live research fetch</summary>
+Use **synthetic data only** in the shared public demo. ACHA is a research and training prototype for crew health workflows. Clinical use and flight operations require separate validation and authorization.
 
-<p align="center">
-  <img src="docs/assets/screenshots/physionet-research.png" width="100%" alt="ACHA Research page showing 481 observations and calculated medians after downloading BIDMC 01 from PhysioNet">
-</p>
+## Research and evidence
 
-</details>
+The Research workspace keeps historical archives and published datasets separate from crew records and training scenarios.
 
-ACHA is a training and research prototype. Use sample readings in the public demo because its records are accessible without authentication. The BIDMC replay verifies calculations on hospital data. Astronaut telemetry and flight clinical validation remain outside the current release. [Engine verification](demo/VALIDATION.md)
-
-## Architecture
-
-~~~mermaid
-flowchart LR
-    Crew["Crew workspace<br/>React · Vite · Vercel"]
-    API["FastAPI<br/>Railway"]
-    Engine["Python assessment engine"]
-    DB[("PostgreSQL")]
-    Research["PhysioNet BIDMC"]
-    Onboard["Standalone onboard demo<br/>Python · SQLite"]
-
-    Crew -->|"/api/v1"| API
-    API <--> DB
-    API --> Engine
-    API -->|"On-demand research fetch"| Research
-    Onboard --> Engine
-~~~
-
-## Documentation
-
-| Document | Scope |
+| Source | What ACHA shows |
 | --- | --- |
-| [Onboard demo](demo/START_HERE.md) | Setup, offline scenarios, and simulated handover |
-| [Assessment engine](demo/README.md) | Inputs, outputs, and rule behavior |
-| [Verification report](demo/VALIDATION.md) | Rule comparisons, dataset replay, and limits |
-| [Health monitoring and environmental data](docs/health-monitoring.md) | Repository assessment, source and parameter registries, pressure analysis, and remaining gaps |
-| [Upgrade audit and workflow acceptance](docs/health-monitoring.md#upgrade-audit-and-acceptance) | Data flow, deployment comparison, monitoring scope and reproducible demo checks |
-| [NASA Space Apps submission](demo/SUBMISSION.md) | Challenge mapping, research sources, and demo narration |
-| [Competition handoff](docs/competition-release.md) | Submission checklist, source rights, screenshots, test results, and release manifest |
+| NASA OSDR | Historical ISS cabin temperature, humidity and CO₂ from **RR-6**, and fixed-instrument radiation dose rates from **RadLab DosTel1**. [Source registry](docs/health-monitoring.md#scientific-source-registry) |
+| PhysioNet | Published **BIDMC** vital-sign replay, **Sleep-EDF** sleep-stage summaries and **QoL_Stress** cohort comparisons. [Data attribution](docs/competition-release.md#provenance-and-licensing) |
+| Royal College of Physicians | The Python engine uses **NEWS2** as a terrestrial reference and preserves missing inputs in its results. [Rules and scope](demo/NEWS2_SOURCES.md) |
+
+## Repository guide
+
+| Path | Purpose |
+| --- | --- |
+| [`frontend/`](frontend) | React and TypeScript workspace, offline shell and training replays |
+| [`backend/`](backend) | FastAPI service, PostgreSQL records and Alembic migrations |
+| [`demo/`](demo) | Shared assessment engine and standalone SQLite app |
+| [`docs/`](docs) | Local setup, scientific references and verification |
+| [`scripts/`](scripts) | Browser checks, release checks and research data importers |
+
+[Local development and tests](docs/development.md) · [Engine verification](demo/VALIDATION.md) · [Demo walkthrough](demo/SUBMISSION.md) · [Data and asset rights](docs/competition-release.md#provenance-and-licensing)

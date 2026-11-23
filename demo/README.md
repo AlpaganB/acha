@@ -78,4 +78,4 @@ python example_usage.py
 
 NumPy and coverage are verification dependencies. Mutation checks write temporary code copies beside the package under mutation_runs. The optional previous-version benchmark runs when the original baseline snapshot is present locally.
 
-VALIDATION.md records evidence and the two-day acceptance plan. DATA_SOURCE.md records real-data provenance. NEWS2_SOURCES.md records source scope. Python execution needs no network, database or system clock. Browser-local parity and actual FastAPI integration remain application-repository work.
+See the [verification report](VALIDATION.md), [BIDMC data attribution](DATA_SOURCE.md) and [NEWS2 source notes](NEWS2_SOURCES.md). The Python engine is used by both the [connected mission API](../backend) and the [standalone onboard demo](START_HERE.md).

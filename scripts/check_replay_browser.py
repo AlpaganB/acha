@@ -38,8 +38,8 @@ def main():
             page.on('request', lambda request: writes.append(request.url)
                     if '/api/' in request.url and request.method not in ('GET', 'HEAD', 'OPTIONS') else None)
             page.goto(base)
-            expect(page.get_by_role('region', name='Crew health workflow')).to_be_visible()
-            start = page.get_by_role('button', name='Try a 90-second training scenario')
+            expect(page.get_by_role('heading', name='Health overview')).to_be_visible()
+            start = page.get_by_role('button', name='Start training scenario')
             expect(start).to_be_visible()
             start.click()
             anatomy = page.get_by_role('region', name='Body systems', exact=True)
@@ -154,9 +154,9 @@ def main():
             pending_routes = []
             page.route('**/api/v1/**', lambda route: pending_routes.append(route))
             page.goto(base)
-            expect(page.locator('.service-state[data-state="unreachable"]')).to_be_visible(timeout=13_000)
+            expect(page.get_by_text('Couldn’t refresh mission-service records.')).to_be_visible(timeout=13_000)
             expect(page.get_by_role('button', name='Retry', exact=True)).to_be_visible()
-            expect(page.get_by_role('button', name='Try a 90-second training scenario')).to_be_visible()
+            expect(page.get_by_role('button', name='Start training scenario')).to_be_visible()
             for route in pending_routes:
                 try:
                     route.abort()
@@ -231,9 +231,8 @@ def check_connected(browser, base, api):
         page.goto(f'{base}/crew')
         page.get_by_role('button', name=re.compile(crew['display_name'])).click()
         page.get_by_role('link', name='Open dashboard').click()
-        workflow = page.get_by_role('region', name='Crew health workflow')
-        expect(workflow.get_by_text('No measurements saved for this crew member.')).to_be_visible()
-        workflow.get_by_role('link', name='Record a measurement').click()
+        expect(page.get_by_role('heading', name='Health overview')).to_be_visible()
+        page.get_by_role('link', name='Record measurement', exact=True).click()
         form = page.get_by_role('region', name='Record a measurement')
         form.get_by_role('combobox', name='Indicator', exact=True).select_option('heart_rate')
         form.get_by_role('spinbutton', name='Reading (bpm)').fill('71')
@@ -243,8 +242,8 @@ def check_connected(browser, base, api):
         measurement = saved.value.json()
         expect(page.get_by_text('Measurement saved to the mission service.')).to_be_visible()
         page.get_by_role('link', name='Overview', exact=True).click()
-        expect(workflow.get_by_text('Heart rate · 71 bpm')).to_be_visible()
-        workflow.get_by_role('link', name='Assess saved measurement').click()
+        expect(page.get_by_role('region', name='Latest measurements')).to_contain_text(re.compile(r'71\s*bpm'))
+        page.get_by_role('link', name='Assess latest reading').click()
         expect(page.get_by_role('checkbox', name=re.compile(r'Heart rate.*71 bpm'))).to_be_checked()
         with page.expect_response(lambda response: response.request.method == 'POST' and urlparse(response.url).path.endswith('/assessments')) as submitted:
             page.get_by_role('button', name='Submit assessment').click()
@@ -256,8 +255,7 @@ def check_connected(browser, base, api):
         assessment_id = submitted.value.json()['id']
         assert persisted.ok and persisted.json()[0]['id'] == assessment_id
         page.get_by_role('link', name='Overview', exact=True).click()
-        expect(workflow.get_by_text('No repeat linked yet')).to_be_visible()
-        workflow.get_by_role('link', name='Review assessment and follow-up').click()
+        page.get_by_role('link', name='Review follow-up').click()
         follow_up = page.get_by_role('region', name='Follow-up', exact=True)
         follow_up.get_by_role('link', name='Record repeat measurement').click()
         form.get_by_role('spinbutton', name='Reading (bpm)').fill('70')
@@ -267,7 +265,11 @@ def check_connected(browser, base, api):
         follow_up.get_by_role('button', name='Save follow-up').click()
         expect(follow_up.get_by_text('Workflow complete.', exact=False)).to_be_visible()
         page.get_by_role('link', name='Overview', exact=True).click()
-        expect(workflow.get_by_text('Follow-up closed', exact=True)).to_be_visible()
+        recent = page.get_by_role('region', name='Recent assessments')
+        expect(recent.locator(f'a[href="/assessments/{assessment_id}"]')).to_be_visible()
+        expect(page.get_by_role('link', name='Review follow-up')).to_have_count(0)
+        persisted = context.request.get(f"{api}/api/v1/crew-members/{crew['id']}/assessments/{assessment_id}/follow-ups")
+        assert persisted.ok and persisted.json()[0]['outcome'] == 'workflow_complete'
         page.unroute_all(behavior='wait')
         print('Connected Overview workflow saved a measurement, evaluated it and closed a repeat follow-up in isolated PostgreSQL')
 
